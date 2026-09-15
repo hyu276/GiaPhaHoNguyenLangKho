@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+type TreeViewerRole = "admin" | "spectator";
 
 const personRowSchema = z.object({
   id: z.string().uuid(),
@@ -41,10 +43,34 @@ const saveLayoutSchema = z.object({
   positionY: z.number().finite().min(-1_000_000).max(1_000_000),
 });
 
+function getTreeViewerRole(value: unknown): TreeViewerRole | null {
+  return value === "admin" || value === "spectator" ? value : null;
+}
+
 function getFallbackPosition(index: number) {
   const column = index % 4;
   const row = Math.floor(index / 4);
   return { x: 80 + column * 260, y: 80 + row * 180 };
+}
+
+async function requireTreeViewer() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect("/admin/login");
+  }
+
+  const role = getTreeViewerRole(user.app_metadata.role);
+  if (!role) {
+    await supabase.auth.signOut();
+    redirect("/admin/login?error=forbidden");
+  }
+
+  return { supabase, user, role };
 }
 
 async function savePersonLayout(
@@ -88,7 +114,8 @@ async function signOut() {
 }
 
 export default async function AdminTreePage() {
-  const { supabase, user } = await requireAdmin();
+  const { supabase, user, role } = await requireTreeViewer();
+  const readOnly = role === "spectator";
 
   const [peopleResult, relationshipsResult, layoutsResult] = await Promise.all([
     supabase
@@ -140,7 +167,7 @@ export default async function AdminTreePage() {
       <header className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card px-5 py-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-            Admin editor
+            {readOnly ? "Spectator · chỉ xem" : "Admin editor"}
           </p>
           <h1 className="font-display mt-1 text-3xl text-card-foreground sm:text-4xl">
             Sơ đồ gia phả
@@ -161,7 +188,8 @@ export default async function AdminTreePage() {
       <AdminTreeEditor
         people={people}
         relationships={relationships}
-        saveLayout={savePersonLayout}
+        readOnly={readOnly}
+        saveLayout={readOnly ? undefined : savePersonLayout}
       />
     </main>
   );

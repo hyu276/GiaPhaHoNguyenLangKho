@@ -38,11 +38,13 @@ export type SaveLayoutInput = {
 };
 
 export type SaveLayoutResult = { ok: true } | { ok: false; message: string };
+type SaveLayout = (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
 
 type AdminTreeEditorProps = {
   people: EditorPerson[];
   relationships: EditorRelationship[];
-  saveLayout: (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
+  readOnly: boolean;
+  saveLayout: SaveLayout | undefined;
 };
 
 type PersonNodeData = {
@@ -63,6 +65,33 @@ function formatYears(person: EditorPerson) {
   const birth = person.birthYear?.toString() ?? "?";
   const death = person.deathYear?.toString() ?? "nay";
   return `${birth} – ${death}`;
+}
+
+function getStatusMessage(readOnly: boolean, saveState: SaveState) {
+  if (readOnly) return "Chế độ spectator: chỉ xem";
+
+  switch (saveState.status) {
+    case "saving":
+      return "Đang lưu vị trí…";
+    case "saved":
+      return "Đã lưu vị trí";
+    case "error":
+      return saveState.message;
+    default:
+      return "Chọn và kéo một người để thay đổi vị trí";
+  }
+}
+
+function getSelectedDescription(readOnly: boolean) {
+  return readOnly
+    ? "Tài khoản spectator có thể xem và điều hướng sơ đồ nhưng không thể kéo, chỉnh sửa hoặc lưu dữ liệu."
+    : "Kéo thẻ người trên sơ đồ. Vị trí được lưu khi thao tác kéo kết thúc và sẽ được tải lại từ database ở lần mở trang tiếp theo.";
+}
+
+function getEmptyDescription(readOnly: boolean) {
+  return readOnly
+    ? "Chọn một người trên sơ đồ để xem thông tin."
+    : "Chọn một người trên sơ đồ để xem thông tin và bắt đầu chỉnh vị trí.";
 }
 
 function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
@@ -126,6 +155,7 @@ function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
 export function AdminTreeEditor({
   people,
   relationships,
+  readOnly,
   saveLayout,
 }: AdminTreeEditorProps) {
   const initialNodes = useMemo(() => createNodes(people), [people]);
@@ -142,6 +172,9 @@ export function AdminTreeEditor({
   const selectedPerson = people.find(
     (person) => person.id === selectedPersonId,
   );
+  const statusMessage = getStatusMessage(readOnly, saveState);
+  const selectedDescription = getSelectedDescription(readOnly);
+  const emptyDescription = getEmptyDescription(readOnly);
 
   const restorePosition = useCallback(
     (personId: string) => {
@@ -159,6 +192,8 @@ export function AdminTreeEditor({
 
   const persistNodePosition = useCallback(
     (node: PersonNode) => {
+      if (readOnly || !saveLayout) return;
+
       const previousPosition = persistedPositions.current.get(node.id);
       setSaveState({ status: "saving", personId: node.id });
 
@@ -183,7 +218,7 @@ export function AdminTreeEditor({
         setSaveState({ status: "saved", personId: node.id });
       });
     },
-    [restorePosition, saveLayout],
+    [readOnly, restorePosition, saveLayout],
   );
 
   return (
@@ -199,6 +234,7 @@ export function AdminTreeEditor({
             setSelectedPersonId(node.id);
             persistNodePosition(node);
           }}
+          nodesDraggable={!readOnly}
           nodesConnectable={false}
           edgesFocusable={false}
           deleteKeyCode={null}
@@ -216,13 +252,7 @@ export function AdminTreeEditor({
           aria-live="polite"
           className="pointer-events-none absolute left-4 top-4 rounded-full border border-border bg-background/90 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur"
         >
-          {saveState.status === "saving"
-            ? "Đang lưu vị trí…"
-            : saveState.status === "saved"
-              ? "Đã lưu vị trí"
-              : saveState.status === "error"
-                ? saveState.message
-                : "Chọn và kéo một người để thay đổi vị trí"}
+          {statusMessage}
         </div>
       </section>
 
@@ -239,13 +269,12 @@ export function AdminTreeEditor({
               {formatYears(selectedPerson)}
             </p>
             <p className="mt-6 text-sm leading-6 text-muted-foreground">
-              Kéo thẻ người trên sơ đồ. Vị trí được lưu khi thao tác kéo kết
-              thúc và sẽ được tải lại từ database ở lần mở trang tiếp theo.
+              {selectedDescription}
             </p>
           </div>
         ) : (
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Chọn một người trên sơ đồ để xem thông tin và bắt đầu chỉnh vị trí.
+            {emptyDescription}
           </p>
         )}
       </aside>

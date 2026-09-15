@@ -10,13 +10,19 @@ const loginSchema = z.object({
 });
 
 const errorMessages = {
-  forbidden: "Tài khoản này không có quyền quản trị.",
+  forbidden: "Tài khoản này chưa được cấp quyền truy cập gia phả.",
   invalid: "Email hoặc mật khẩu không hợp lệ.",
 } as const;
+
+type TreeViewerRole = "admin" | "spectator";
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
+
+function getTreeViewerRole(value: unknown): TreeViewerRole | null {
+  return value === "admin" || value === "spectator" ? value : null;
+}
 
 async function signIn(formData: FormData) {
   "use server";
@@ -41,7 +47,7 @@ async function signIn(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user?.app_metadata.role !== "admin") {
+  if (!getTreeViewerRole(user?.app_metadata.role)) {
     await supabase.auth.signOut();
     redirect("/admin/login?error=forbidden");
   }
@@ -61,13 +67,13 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="grid min-h-svh place-items-center bg-background px-6 py-12">
       <section className="w-full max-w-md rounded-3xl border border-border bg-card p-8 shadow-sm">
-        <p className="text-sm font-semibold text-primary">Khu vực quản trị</p>
+        <p className="text-sm font-semibold text-primary">Khu vực nội bộ</p>
         <h1 className="font-display mt-2 text-4xl tracking-tight text-card-foreground">
-          Đăng nhập để chỉnh gia phả
+          Đăng nhập để xem gia phả
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Chỉ tài khoản được gán quyền admin trong Supabase Auth mới có thể sửa
-          dữ liệu và vị trí trên sơ đồ.
+          Tài khoản chỉ do người quản trị cấp. Admin có thể chỉnh sửa; spectator
+          chỉ có quyền xem và không thể lưu thay đổi.
         </p>
 
         {message ? (

@@ -38,14 +38,13 @@ export type SaveLayoutInput = {
 };
 
 export type SaveLayoutResult = { ok: true } | { ok: false; message: string };
+type SaveLayout = (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
 
 type AdminTreeEditorProps = {
   people: EditorPerson[];
   relationships: EditorRelationship[];
   readOnly: boolean;
-  saveLayout:
-    | ((input: SaveLayoutInput) => Promise<SaveLayoutResult>)
-    | undefined;
+  saveLayout: SaveLayout | undefined;
 };
 
 type PersonNodeData = {

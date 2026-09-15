@@ -46,7 +46,7 @@ async function signIn(formData: FormData) {
     redirect("/admin/login?error=forbidden");
   }
 
-  redirect("/");
+  redirect("/admin/tree");
 }
 
 export default async function AdminLoginPage({ searchParams }: LoginPageProps) {

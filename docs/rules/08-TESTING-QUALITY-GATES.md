@@ -4,6 +4,12 @@
 
 Tests protect genealogy correctness, authorization, and maintainability. A change that modifies behavior should normally modify or add tests at the same time.
 
+## Canonical tooling
+
+- Use **Vitest** for unit tests and deterministic application-level integration tests unless a test specifically requires another runtime.
+- Use **Playwright** for browser end-to-end tests.
+- Do not introduce a second competing JavaScript unit-test runner without an explicit architecture decision.
+
 ## Test layers
 
 Use the cheapest layer that can prove the requirement:
@@ -54,6 +60,8 @@ When E2E infrastructure exists, production-critical smoke coverage should includ
 - family-tree rendering,
 - unauthorized mutation rejection.
 
+Only paths backed by implemented product behavior should be added; do not create fake tests for features that do not exist yet.
+
 ## Regression rule
 
 Every confirmed bug should receive a regression test when reasonably automatable. The test should fail before the fix and pass after it.
@@ -62,19 +70,18 @@ Every confirmed bug should receive a regression test when reasonably automatable
 
 Use synthetic deterministic fixtures. Do not place private real-family information in repository tests or CI logs.
 
-## Quality gates before completion
-
-AI agents and contributors should run the repository-equivalent commands for:
+## Canonical quality commands
 
 ```text
-format/check
-lint
-typecheck
-test
-build
+npm run format:check
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run test:e2e
 ```
 
-If the project later defines canonical scripts, those scripts supersede these generic names.
+`npm run quality` runs the non-browser completion gate. CI additionally runs Playwright smoke coverage.
 
 A task may be reported complete only when applicable checks pass, or when the response explicitly lists checks that could not be executed and why.
 

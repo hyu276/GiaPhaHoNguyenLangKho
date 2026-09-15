@@ -47,6 +47,10 @@ function getTreeViewerRole(value: unknown): TreeViewerRole | null {
   return value === "admin" || value === "spectator" ? value : null;
 }
 
+function getViewerLabel(role: TreeViewerRole) {
+  return role === "spectator" ? "Spectator · chỉ xem" : "Admin editor";
+}
+
 function getFallbackPosition(index: number) {
   const column = index % 4;
   const row = Math.floor(index / 4);
@@ -105,6 +109,10 @@ async function savePersonLayout(
   return { ok: true };
 }
 
+function getSaveLayout(role: TreeViewerRole) {
+  return role === "spectator" ? undefined : savePersonLayout;
+}
+
 async function signOut() {
   "use server";
 
@@ -116,6 +124,8 @@ async function signOut() {
 export default async function AdminTreePage() {
   const { supabase, user, role } = await requireTreeViewer();
   const readOnly = role === "spectator";
+  const viewerLabel = getViewerLabel(role);
+  const saveLayout = getSaveLayout(role);
 
   const [peopleResult, relationshipsResult, layoutsResult] = await Promise.all([
     supabase
@@ -167,7 +177,7 @@ export default async function AdminTreePage() {
       <header className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card px-5 py-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-            {readOnly ? "Spectator · chỉ xem" : "Admin editor"}
+            {viewerLabel}
           </p>
           <h1 className="font-display mt-1 text-3xl text-card-foreground sm:text-4xl">
             Sơ đồ gia phả
@@ -189,7 +199,7 @@ export default async function AdminTreePage() {
         people={people}
         relationships={relationships}
         readOnly={readOnly}
-        saveLayout={readOnly ? undefined : savePersonLayout}
+        saveLayout={saveLayout}
       />
     </main>
   );

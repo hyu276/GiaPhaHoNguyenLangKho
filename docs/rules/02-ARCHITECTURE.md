@@ -15,6 +15,21 @@ Default architecture:
 
 Any major deviation from this stack must be documented here before or with the implementation.
 
+## Concrete foundation choices
+
+The repository foundation standardizes the following implementation tooling:
+
+- Runtime baseline: Node.js 22 or newer.
+- Framework baseline: Next.js 16 App Router and React 19.
+- Styling baseline: Tailwind CSS 4 with shadcn/ui-compatible primitives.
+- Supabase integration: `@supabase/ssr` with separate browser and server client factories; deprecated auth-helper packages are forbidden.
+- Unit test runner: Vitest.
+- Browser E2E runner: Playwright.
+- Static quality: ESLint, strict TypeScript, and Prettier.
+- CI: GitHub Actions runs format check, lint, typecheck, unit tests, production build, and a Playwright smoke test.
+
+These tools may be upgraded within compatible architecture boundaries. Replacing one with a competing framework or test runner requires updating this document and the relevant rule files.
+
 ## Architectural goals
 
 The system must optimize for:
@@ -87,7 +102,7 @@ UI components must not contain direct database mutation logic. Route handlers, s
 
 Each feature should own its use cases, validation, feature-specific UI, and tests. Shared domain concepts belong in `domain/`; generic infrastructure belongs in `lib/`.
 
-Avoid a generic `utils.ts` dumping ground. Name modules by responsibility.
+Avoid a generic `utils.ts` dumping ground. `src/lib/utils.ts` is reserved for the shadcn class-name merge primitive only; other helpers must be named by responsibility.
 
 ## Data access
 

@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+dist
+coverage
+playwright-report
+test-results
+.env*
+!.env.example
+
+# Normative prose is maintained intentionally rather than auto-reflowed.
+AGENTS.md
+.github/copilot-instructions.md
+docs/rules/*.md

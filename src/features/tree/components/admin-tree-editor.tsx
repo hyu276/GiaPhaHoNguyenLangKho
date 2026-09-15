@@ -43,7 +43,9 @@ type AdminTreeEditorProps = {
   people: EditorPerson[];
   relationships: EditorRelationship[];
   readOnly: boolean;
-  saveLayout?: (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
+  saveLayout:
+    | ((input: SaveLayoutInput) => Promise<SaveLayoutResult>)
+    | undefined;
 };
 
 type PersonNodeData = {

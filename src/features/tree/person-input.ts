@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const personVisibilitySchema = z.enum(["public", "private"]);
+export const personSexSchema = z.enum(["male", "female"]);
 
 const nullableYearSchema = z.number().int().min(1).max(2200).nullable();
 
@@ -13,6 +14,7 @@ const personFieldsSchema = z.object({
   description: nullableDescriptionSchema,
   birthYear: nullableYearSchema,
   deathYear: nullableYearSchema,
+  sex: personSexSchema.nullable(),
   visibility: personVisibilitySchema,
 });
 
@@ -45,5 +47,6 @@ export const updatePersonInputSchema = personFieldsSchema
   });
 
 export type PersonVisibility = z.infer<typeof personVisibilitySchema>;
+export type PersonSex = z.infer<typeof personSexSchema>;
 export type CreatePersonInput = z.input<typeof createPersonInputSchema>;
 export type UpdatePersonInput = z.input<typeof updatePersonInputSchema>;

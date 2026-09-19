@@ -33,6 +33,7 @@ export async function createPerson(
       description: parsed.data.description,
       birth_year: parsed.data.birthYear,
       death_year: parsed.data.deathYear,
+      sex: parsed.data.sex,
       visibility: parsed.data.visibility,
     })
     .select("id")
@@ -62,6 +63,7 @@ export async function updatePerson(
       description: parsed.data.description,
       birth_year: parsed.data.birthYear,
       death_year: parsed.data.deathYear,
+      sex: parsed.data.sex,
       visibility: parsed.data.visibility,
     })
     .eq("id", parsed.data.personId)

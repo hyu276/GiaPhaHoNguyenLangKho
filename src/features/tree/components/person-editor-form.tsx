@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type {
   CreatePersonInput,
+  PersonSex,
   PersonVisibility,
 } from "@/features/tree/person-input";
 
@@ -14,6 +15,7 @@ export type PersonFormPerson = {
   description: string | null;
   birthYear: number | null;
   deathYear: number | null;
+  sex?: PersonSex | null;
   visibility: PersonVisibility;
 };
 
@@ -32,6 +34,7 @@ type Draft = {
   description: string;
   birthYear: string;
   deathYear: string;
+  sex: PersonSex | "";
   visibility: PersonVisibility;
 };
 
@@ -40,6 +43,7 @@ const EMPTY_DRAFT: Draft = {
   description: "",
   birthYear: "",
   deathYear: "",
+  sex: "",
   visibility: "private",
 };
 
@@ -59,6 +63,7 @@ function toDraft(person: PersonFormPerson | null): Draft {
     description: formatDescriptionField(person.description),
     birthYear: formatYearField(person.birthYear),
     deathYear: formatYearField(person.deathYear),
+    sex: person.sex ?? "",
     visibility: person.visibility,
   };
 }
@@ -73,6 +78,7 @@ function toInput(draft: Draft): CreatePersonInput {
     description: draft.description,
     birthYear: parseYear(draft.birthYear),
     deathYear: parseYear(draft.deathYear),
+    sex: draft.sex || null,
     visibility: draft.visibility,
   };
 }
@@ -187,6 +193,24 @@ export function PersonEditorForm({
           />
         </label>
       </div>
+
+      <label className="block text-sm font-medium text-card-foreground">
+        Giới tính dùng cho quan hệ
+        <select
+          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          onChange={(event) =>
+            setDraft((current) => ({
+              ...current,
+              sex: event.target.value as PersonSex | "",
+            }))
+          }
+          value={draft.sex}
+        >
+          <option value="">Chưa rõ</option>
+          <option value="male">Nam</option>
+          <option value="female">Nữ</option>
+        </select>
+      </label>
 
       <label className="block text-sm font-medium text-card-foreground">
         Visibility

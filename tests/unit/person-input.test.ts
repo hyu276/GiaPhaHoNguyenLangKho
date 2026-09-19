@@ -10,6 +10,7 @@ const validPerson = {
   description: "  Trưởng chi thứ nhất.  ",
   birthYear: 1940,
   deathYear: 2001,
+  sex: "male" as const,
   visibility: "private" as const,
 };
 
@@ -19,6 +20,15 @@ describe("person input validation", () => {
 
     expect(parsed.displayName).toBe("Nguyễn Văn A");
     expect(parsed.description).toBe("Trưởng chi thứ nhất.");
+  });
+
+  it("preserves an unknown sex as null", () => {
+    const parsed = createPersonInputSchema.parse({
+      ...validPerson,
+      sex: null,
+    });
+
+    expect(parsed.sex).toBeNull();
   });
 
   it("normalizes a blank description to null", () => {

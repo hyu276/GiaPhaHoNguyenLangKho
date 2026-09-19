@@ -29,6 +29,7 @@ const personRowSchema = z.object({
   description: z.string().nullable(),
   birth_year: z.number().nullable(),
   death_year: z.number().nullable(),
+  sex: z.enum(["male", "female"]).nullable(),
   visibility: z.enum(["public", "private"]),
 });
 
@@ -157,7 +158,7 @@ export default async function AdminTreePage() {
     supabase
       .from("people")
       .select(
-        "id, display_name, description, birth_year, death_year, visibility",
+        "id, display_name, description, birth_year, death_year, sex, visibility",
       )
       .order("display_name"),
     supabase
@@ -189,6 +190,7 @@ export default async function AdminTreePage() {
     description: person.description,
     birthYear: person.birth_year,
     deathYear: person.death_year,
+    sex: person.sex,
     visibility: person.visibility,
     position: layoutByPersonId.get(person.id) ?? getFallbackPosition(index),
   }));

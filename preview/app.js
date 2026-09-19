@@ -365,74 +365,98 @@ function endDrag(event) {
   render();
 }
 
-function escapeHtml(value) {
-  return value.replace(
-    /[&<>"']/g,
-    (char) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;",
-      })[char],
-  );
+function getPersonField(person, field, fallback = "") {
+  if (!person) return fallback;
+  const value = person[field];
+  return value === null || value === undefined ? fallback : value;
 }
 
 function openPersonDialog(person = null) {
   const dialog = document.querySelector("#personDialog");
-  document.querySelector("#dialogTitle").textContent = person
-    ? "Sửa người"
-    : "Thêm người";
-  document.querySelector("#editingId").value = person?.id ?? "";
-  document.querySelector("#nameField").value = person?.name ?? "";
-  document.querySelector("#birthField").value = person?.birth ?? "";
-  document.querySelector("#deathField").value = person?.death ?? "";
-  document.querySelector("#visibilityField").value =
-    person?.visibility ?? "private";
+  const title = person ? "Sửa người" : "Thêm người";
+
+  document.querySelector("#dialogTitle").textContent = title;
+  document.querySelector("#editingId").value = getPersonField(person, "id");
+  document.querySelector("#nameField").value = getPersonField(person, "name");
+  document.querySelector("#birthField").value = getPersonField(person, "birth");
+  document.querySelector("#deathField").value = getPersonField(person, "death");
+  document.querySelector("#visibilityField").value = getPersonField(
+    person,
+    "visibility",
+    "private",
+  );
+
   dialog.showModal();
   document.querySelector("#nameField").focus();
 }
 
-function savePersonFromDialog() {
-  const id = document.querySelector("#editingId").value;
-  const name = document.querySelector("#nameField").value.trim();
-  const birthRaw = document.querySelector("#birthField").value;
-  const deathRaw = document.querySelector("#deathField").value;
-  const birth = birthRaw ? Number(birthRaw) : null;
-  const death = deathRaw ? Number(deathRaw) : null;
-  const visibility = document.querySelector("#visibilityField").value;
+function readNullableYear(selector) {
+  const raw = document.querySelector(selector).value;
+  return raw ? Number(raw) : null;
+}
 
-  if (!name) return false;
-  if (birth && death && birth > death) {
+function readPersonDraft() {
+  return {
+    name: document.querySelector("#nameField").value.trim(),
+    birth: readNullableYear("#birthField"),
+    death: readNullableYear("#deathField"),
+    visibility: document.querySelector("#visibilityField").value,
+  };
+}
+
+function validatePersonDraft(draft) {
+  if (!draft.name) return false;
+
+  const hasBothYears = draft.birth !== null && draft.death !== null;
+  if (hasBothYears && draft.birth > draft.death) {
     window.alert("Năm sinh không thể sau năm mất.");
     return false;
   }
 
+  return true;
+}
+
+function updatePersonRecord(id, draft) {
+  const person = getPerson(id);
+  if (!person) return false;
+
+  Object.assign(person, draft);
+  selectedId = id;
+  return true;
+}
+
+function createPersonRecord(draft) {
+  const bounds = canvas.getBoundingClientRect();
+  const person = {
+    id: nextPersonId(),
+    ...draft,
+    archived: false,
+    x: Math.max(40, bounds.width / 2 - 89),
+    y: Math.max(40, bounds.height / 2 - 39),
+  };
+
+  state.people.push(person);
+  selectedId = person.id;
+  return true;
+}
+
+function applyPersonDraft(id, draft) {
+  return id ? updatePersonRecord(id, draft) : createPersonRecord(draft);
+}
+
+function getPersonSaveMessage(id) {
+  return id ? "Đã cập nhật người trong demo" : "Đã thêm người vào demo";
+}
+
+function savePersonFromDialog() {
+  const id = document.querySelector("#editingId").value;
+  const draft = readPersonDraft();
+  if (!validatePersonDraft(draft)) return false;
+
   checkpoint();
+  if (!applyPersonDraft(id, draft)) return false;
 
-  if (id) {
-    const person = getPerson(id);
-    if (!person) return false;
-    Object.assign(person, { name, birth, death, visibility });
-    selectedId = id;
-  } else {
-    const bounds = canvas.getBoundingClientRect();
-    const person = {
-      id: nextPersonId(),
-      name,
-      birth,
-      death,
-      visibility,
-      archived: false,
-      x: Math.max(40, bounds.width / 2 - 89),
-      y: Math.max(40, bounds.height / 2 - 39),
-    };
-    state.people.push(person);
-    selectedId = person.id;
-  }
-
-  persistState(id ? "Đã cập nhật người trong demo" : "Đã thêm người vào demo");
+  persistState(getPersonSaveMessage(id));
   render();
   return true;
 }
@@ -505,43 +529,55 @@ function descendantsOf(personId) {
   return visited;
 }
 
-function saveRelationshipFromDialog() {
-  const selected = selectedId;
-  const target = document.querySelector("#relationshipTarget").value;
-  if (!selected || !target || !relationshipMode) return false;
+function hasRelationshipSelection(selected, target, mode) {
+  return Boolean(selected && target && mode);
+}
 
-  let kind = "parent_child";
-  let source = selected;
-  let destination = target;
-
-  if (relationshipMode === "parent") {
-    source = target;
-    destination = selected;
-  } else if (relationshipMode === "partner") {
-    kind = "partnership";
+function buildRelationshipDraft(selected, target, mode) {
+  if (mode === "parent") {
+    return { kind: "parent_child", source: target, target: selected };
   }
 
-  if (source === destination) {
+  if (mode === "partner") {
+    return { kind: "partnership", source: selected, target };
+  }
+
+  return { kind: "parent_child", source: selected, target };
+}
+
+function validateRelationshipDraft(draft) {
+  if (draft.source === draft.target) {
     window.alert("Không thể tạo quan hệ với chính người đó.");
     return false;
   }
 
-  if (wouldDuplicate(kind, source, destination)) {
+  if (wouldDuplicate(draft.kind, draft.source, draft.target)) {
     window.alert("Quan hệ này đã tồn tại.");
     return false;
   }
 
-  if (kind === "parent_child" && descendantsOf(destination).has(source)) {
+  const isParentChild = draft.kind === "parent_child";
+  if (isParentChild && descendantsOf(draft.target).has(draft.source)) {
     window.alert("Quan hệ này sẽ tạo vòng lặp tổ tiên nên bị từ chối.");
     return false;
   }
 
+  return true;
+}
+
+function saveRelationshipFromDialog() {
+  const selected = selectedId;
+  const target = document.querySelector("#relationshipTarget").value;
+  const mode = relationshipMode;
+  if (!hasRelationshipSelection(selected, target, mode)) return false;
+
+  const draft = buildRelationshipDraft(selected, target, mode);
+  if (!validateRelationshipDraft(draft)) return false;
+
   checkpoint();
   state.relationships.push({
     id: nextRelationshipId(),
-    kind,
-    source,
-    target: destination,
+    ...draft,
   });
   persistState("Đã tạo quan hệ demo");
   render();

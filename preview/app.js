@@ -404,8 +404,9 @@ function openPersonDialog(person = null) {
 }
 
 function updateDescriptionCount() {
-  document.querySelector("#descriptionCount").textContent =
-    document.querySelector("#descriptionField").value.length.toString();
+  document.querySelector("#descriptionCount").textContent = document
+    .querySelector("#descriptionField")
+    .value.length.toString();
 }
 
 function readNullableYear(selector) {
@@ -416,7 +417,8 @@ function readNullableYear(selector) {
 function readPersonDraft() {
   return {
     name: document.querySelector("#nameField").value.trim(),
-    description: document.querySelector("#descriptionField").value.trim() || null,
+    description:
+      document.querySelector("#descriptionField").value.trim() || null,
     birth: readNullableYear("#birthField"),
     death: readNullableYear("#deathField"),
     visibility: document.querySelector("#visibilityField").value,

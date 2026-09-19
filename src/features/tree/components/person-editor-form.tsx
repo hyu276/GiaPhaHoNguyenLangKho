@@ -198,7 +198,12 @@ export function PersonEditorForm({
         <Button disabled={saving} type="submit">
           {saving ? "Đang lưu…" : "Lưu hồ sơ"}
         </Button>
-        <Button disabled={saving} onClick={onCancel} type="button" variant="outline">
+        <Button
+          disabled={saving}
+          onClick={onCancel}
+          type="button"
+          variant="outline"
+        >
           Hủy
         </Button>
       </div>

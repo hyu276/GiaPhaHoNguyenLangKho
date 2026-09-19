@@ -274,7 +274,10 @@ export function AdminTreeEditor({
 
   async function handleCreate(input: CreatePersonInput) {
     if (!createPerson) {
-      return { ok: false as const, message: "Tài khoản này không thể thêm người." };
+      return {
+        ok: false as const,
+        message: "Tài khoản này không thể thêm người.",
+      };
     }
     return createPerson(input);
   }

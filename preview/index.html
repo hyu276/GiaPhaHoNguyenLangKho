@@ -17,14 +17,18 @@
         <h1>Admin Genealogy Editor</h1>
       </div>
       <div class="topbar-actions">
-        <span class="status" id="saveStatus">Demo local · chưa kết nối Supabase</span>
-        <button class="button secondary" id="resetDemo" type="button">Reset demo</button>
+        <span class="status" id="saveStatus"
+          >Demo local · chưa kết nối Supabase</span
+        >
+        <button class="button secondary" id="resetDemo" type="button">
+          Reset demo
+        </button>
       </div>
     </header>
 
     <div class="notice">
-      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Không có thao tác nào ghi vào
-      database production.
+      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Không có thao tác
+      nào ghi vào database production.
     </div>
 
     <main class="workspace">
@@ -43,24 +47,46 @@
           </label>
 
           <div class="button-grid">
-            <button class="button primary" id="addPerson" type="button">+ Thêm người</button>
-            <button class="button" id="editPerson" type="button">Sửa người</button>
-            <button class="button" id="addParent" type="button">+ Cha / mẹ</button>
+            <button class="button primary" id="addPerson" type="button">
+              + Thêm người
+            </button>
+            <button class="button" id="editPerson" type="button">
+              Sửa người
+            </button>
+            <button class="button" id="addParent" type="button">
+              + Cha / mẹ
+            </button>
             <button class="button" id="addChild" type="button">+ Con</button>
-            <button class="button" id="addPartner" type="button">+ Hôn phối</button>
-            <button class="button danger" id="archivePerson" type="button">Lưu trữ</button>
+            <button class="button" id="addPartner" type="button">
+              + Hôn phối
+            </button>
+            <button class="button danger" id="archivePerson" type="button">
+              Lưu trữ
+            </button>
           </div>
 
           <div class="divider"></div>
 
           <div class="button-row">
-            <button class="icon-button" id="undoButton" type="button" aria-label="Hoàn tác">
+            <button
+              class="icon-button"
+              id="undoButton"
+              type="button"
+              aria-label="Hoàn tác"
+            >
               ↶
             </button>
-            <button class="icon-button" id="redoButton" type="button" aria-label="Làm lại">
+            <button
+              class="icon-button"
+              id="redoButton"
+              type="button"
+              aria-label="Làm lại"
+            >
               ↷
             </button>
-            <button class="button secondary grow" id="fitButton" type="button">Focus toàn cây</button>
+            <button class="button secondary grow" id="fitButton" type="button">
+              Focus toàn cây
+            </button>
           </div>
 
           <label class="toggle-row">
@@ -88,7 +114,9 @@
         <div class="canvas-toolbar">
           <div>
             <p class="eyebrow">Sơ đồ tương tác</p>
-            <p class="muted">Kéo node để thử layout · click node để mở inspector</p>
+            <p class="muted">
+              Kéo node để thử layout · click node để mở inspector
+            </p>
           </div>
           <div class="legend">
             <span><i class="dot public"></i>Công khai</span>
@@ -100,7 +128,9 @@
         <div class="canvas" id="canvas">
           <svg class="edges" id="edges" aria-hidden="true"></svg>
           <div id="nodes"></div>
-          <div class="empty-search" id="emptySearch" hidden>Không có người phù hợp.</div>
+          <div class="empty-search" id="emptySearch" hidden>
+            Không có người phù hợp.
+          </div>
         </div>
       </section>
 
@@ -109,7 +139,9 @@
           <p class="eyebrow">Inspector</p>
           <div id="inspectorEmpty">
             <h2>Chưa chọn người</h2>
-            <p class="muted">Chọn một node trên cây để xem hồ sơ và thao tác quản trị.</p>
+            <p class="muted">
+              Chọn một node trên cây để xem hồ sơ và thao tác quản trị.
+            </p>
           </div>
 
           <div id="inspectorContent" hidden>
@@ -119,15 +151,29 @@
                 <h2 id="personName"></h2>
                 <p class="muted" id="personYears"></p>
               </div>
-              <button class="icon-button" id="focusSelected" type="button" aria-label="Focus người">
+              <button
+                class="icon-button"
+                id="focusSelected"
+                type="button"
+                aria-label="Focus người"
+              >
                 ◎
               </button>
             </div>
 
             <dl class="facts">
-              <div><dt>ID demo</dt><dd id="personId"></dd></div>
-              <div><dt>Trạng thái</dt><dd id="personState"></dd></div>
-              <div><dt>Vị trí</dt><dd id="personPosition"></dd></div>
+              <div>
+                <dt>ID demo</dt>
+                <dd id="personId"></dd>
+              </div>
+              <div>
+                <dt>Trạng thái</dt>
+                <dd id="personState"></dd>
+              </div>
+              <div>
+                <dt>Vị trí</dt>
+                <dd id="personPosition"></dd>
+              </div>
             </dl>
 
             <div class="divider"></div>
@@ -146,7 +192,9 @@
             <p class="eyebrow">Person record</p>
             <h2 id="dialogTitle">Thêm người</h2>
           </div>
-          <button class="icon-button" value="cancel" aria-label="Đóng">×</button>
+          <button class="icon-button" value="cancel" aria-label="Đóng">
+            ×
+          </button>
         </div>
         <input id="editingId" type="hidden" />
         <label class="field">
@@ -172,7 +220,9 @@
         </label>
         <div class="dialog-actions">
           <button class="button secondary" value="cancel">Hủy</button>
-          <button class="button primary" id="savePerson" value="default">Lưu</button>
+          <button class="button primary" id="savePerson" value="default">
+            Lưu
+          </button>
         </div>
       </form>
     </dialog>
@@ -184,7 +234,9 @@
             <p class="eyebrow">Relationship command</p>
             <h2 id="relationshipTitle">Thêm quan hệ</h2>
           </div>
-          <button class="icon-button" value="cancel" aria-label="Đóng">×</button>
+          <button class="icon-button" value="cancel" aria-label="Đóng">
+            ×
+          </button>
         </div>
         <p class="muted" id="relationshipSummary"></p>
         <label class="field">
@@ -193,7 +245,9 @@
         </label>
         <div class="dialog-actions">
           <button class="button secondary" value="cancel">Hủy</button>
-          <button class="button primary" id="saveRelationship" value="default">Tạo quan hệ</button>
+          <button class="button primary" id="saveRelationship" value="default">
+            Tạo quan hệ
+          </button>
         </div>
       </form>
     </dialog>
@@ -204,7 +258,9 @@
           <strong class="relation-name"></strong>
           <span class="relation-kind"></span>
         </div>
-        <button class="link-danger relation-remove" type="button">Xóa quan hệ</button>
+        <button class="link-danger relation-remove" type="button">
+          Xóa quan hệ
+        </button>
       </div>
     </template>
 

@@ -2,12 +2,66 @@ const STORAGE_KEY = "giapha-admin-demo-v1";
 
 const initialState = {
   people: [
-    { id: "P001", name: "Nguyễn Văn Tổ", birth: 1902, death: 1978, visibility: "public", archived: false, x: 90, y: 70 },
-    { id: "P002", name: "Nguyễn Thị An", birth: 1908, death: 1987, visibility: "public", archived: false, x: 390, y: 70 },
-    { id: "P003", name: "Nguyễn Văn Bình", birth: 1932, death: 2004, visibility: "public", archived: false, x: 240, y: 250 },
-    { id: "P004", name: "Nguyễn Thị Mai", birth: 1936, death: null, visibility: "private", archived: false, x: 540, y: 250 },
-    { id: "P005", name: "Nguyễn Văn Cường", birth: 1958, death: null, visibility: "public", archived: false, x: 240, y: 450 },
-    { id: "P006", name: "Nguyễn Thị Lan", birth: 1962, death: null, visibility: "private", archived: false, x: 540, y: 450 }
+    {
+      id: "P001",
+      name: "Nguyễn Văn Tổ",
+      birth: 1902,
+      death: 1978,
+      visibility: "public",
+      archived: false,
+      x: 90,
+      y: 70,
+    },
+    {
+      id: "P002",
+      name: "Nguyễn Thị An",
+      birth: 1908,
+      death: 1987,
+      visibility: "public",
+      archived: false,
+      x: 390,
+      y: 70,
+    },
+    {
+      id: "P003",
+      name: "Nguyễn Văn Bình",
+      birth: 1932,
+      death: 2004,
+      visibility: "public",
+      archived: false,
+      x: 240,
+      y: 250,
+    },
+    {
+      id: "P004",
+      name: "Nguyễn Thị Mai",
+      birth: 1936,
+      death: null,
+      visibility: "private",
+      archived: false,
+      x: 540,
+      y: 250,
+    },
+    {
+      id: "P005",
+      name: "Nguyễn Văn Cường",
+      birth: 1958,
+      death: null,
+      visibility: "public",
+      archived: false,
+      x: 240,
+      y: 450,
+    },
+    {
+      id: "P006",
+      name: "Nguyễn Thị Lan",
+      birth: 1962,
+      death: null,
+      visibility: "private",
+      archived: false,
+      x: 540,
+      y: 450,
+    },
   ],
   relationships: [
     { id: "R001", kind: "partnership", source: "P001", target: "P002" },
@@ -16,8 +70,8 @@ const initialState = {
     { id: "R004", kind: "partnership", source: "P003", target: "P004" },
     { id: "R005", kind: "parent_child", source: "P003", target: "P005" },
     { id: "R006", kind: "parent_child", source: "P004", target: "P005" },
-    { id: "R007", kind: "partnership", source: "P005", target: "P006" }
-  ]
+    { id: "R007", kind: "partnership", source: "P005", target: "P006" },
+  ],
 };
 
 let state = loadState();
@@ -69,12 +123,18 @@ function restoreSnapshot(snapshot, message) {
 }
 
 function nextPersonId() {
-  const max = state.people.reduce((value, person) => Math.max(value, Number(person.id.slice(1)) || 0), 0);
+  const max = state.people.reduce(
+    (value, person) => Math.max(value, Number(person.id.slice(1)) || 0),
+    0,
+  );
   return `P${String(max + 1).padStart(3, "0")}`;
 }
 
 function nextRelationshipId() {
-  const max = state.relationships.reduce((value, relation) => Math.max(value, Number(relation.id.slice(1)) || 0), 0);
+  const max = state.relationships.reduce(
+    (value, relation) => Math.max(value, Number(relation.id.slice(1)) || 0),
+    0,
+  );
   return `R${String(max + 1).padStart(3, "0")}`;
 }
 
@@ -110,7 +170,8 @@ function renderEdges() {
   const displayed = new Set(visiblePeople().map((person) => person.id));
 
   state.relationships.forEach((relation) => {
-    if (!displayed.has(relation.source) || !displayed.has(relation.target)) return;
+    if (!displayed.has(relation.source) || !displayed.has(relation.target))
+      return;
     const source = getPerson(relation.source);
     const target = getPerson(relation.target);
     if (!source || !target) return;
@@ -122,7 +183,10 @@ function renderEdges() {
     line.setAttribute("y1", a.y);
     line.setAttribute("x2", b.x);
     line.setAttribute("y2", b.y);
-    line.setAttribute("class", relation.kind === "partnership" ? "edge-partner" : "edge-parent");
+    line.setAttribute(
+      "class",
+      relation.kind === "partnership" ? "edge-partner" : "edge-parent",
+    );
     edgesSvg.appendChild(line);
   });
 }
@@ -138,8 +202,10 @@ function renderNodes() {
       "person-node",
       person.id === selectedId ? "selected" : "",
       person.visibility === "private" ? "private" : "",
-      person.archived ? "archived" : ""
-    ].filter(Boolean).join(" ");
+      person.archived ? "archived" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
     node.style.left = `${person.x}px`;
     node.style.top = `${person.y}px`;
     node.dataset.personId = person.id;
@@ -176,12 +242,18 @@ function renderInspector() {
   document.querySelector("#personName").textContent = person.name;
   document.querySelector("#personYears").textContent = formatYears(person);
   document.querySelector("#personId").textContent = person.id;
-  document.querySelector("#personState").textContent = person.archived ? "Đã lưu trữ" : "Đang hoạt động";
-  document.querySelector("#personPosition").textContent = `${Math.round(person.x)}, ${Math.round(person.y)}`;
+  document.querySelector("#personState").textContent = person.archived
+    ? "Đã lưu trữ"
+    : "Đang hoạt động";
+  document.querySelector("#personPosition").textContent =
+    `${Math.round(person.x)}, ${Math.round(person.y)}`;
 
   const list = document.querySelector("#relationList");
   list.replaceChildren();
-  const related = state.relationships.filter((relation) => relation.source === person.id || relation.target === person.id);
+  const related = state.relationships.filter(
+    (relation) =>
+      relation.source === person.id || relation.target === person.id,
+  );
 
   if (!related.length) {
     const empty = document.createElement("p");
@@ -192,13 +264,21 @@ function renderInspector() {
   }
 
   related.forEach((relation) => {
-    const otherId = relation.source === person.id ? relation.target : relation.source;
+    const otherId =
+      relation.source === person.id ? relation.target : relation.source;
     const other = getPerson(otherId);
     if (!other) return;
-    const item = document.querySelector("#relationTemplate").content.firstElementChild.cloneNode(true);
+    const item = document
+      .querySelector("#relationTemplate")
+      .content.firstElementChild.cloneNode(true);
     item.querySelector(".relation-name").textContent = other.name;
-    item.querySelector(".relation-kind").textContent = relationshipLabel(relation, person.id);
-    item.querySelector(".relation-remove").addEventListener("click", () => removeRelationship(relation.id));
+    item.querySelector(".relation-kind").textContent = relationshipLabel(
+      relation,
+      person.id,
+    );
+    item
+      .querySelector(".relation-remove")
+      .addEventListener("click", () => removeRelationship(relation.id));
     list.appendChild(item);
   });
 }
@@ -230,7 +310,7 @@ function startDrag(event) {
     startX: event.clientX,
     startY: event.clientY,
     personX: person.x,
-    personY: person.y
+    personY: person.y,
   };
   event.currentTarget.setPointerCapture(event.pointerId);
   event.currentTarget.addEventListener("pointermove", moveDrag);
@@ -265,23 +345,30 @@ function endDrag(event) {
 }
 
 function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
+  return value.replace(
+    /[&<>"']/g,
+    (char) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[char],
+  );
 }
 
 function openPersonDialog(person = null) {
   const dialog = document.querySelector("#personDialog");
-  document.querySelector("#dialogTitle").textContent = person ? "Sửa người" : "Thêm người";
+  document.querySelector("#dialogTitle").textContent = person
+    ? "Sửa người"
+    : "Thêm người";
   document.querySelector("#editingId").value = person?.id ?? "";
   document.querySelector("#nameField").value = person?.name ?? "";
   document.querySelector("#birthField").value = person?.birth ?? "";
   document.querySelector("#deathField").value = person?.death ?? "";
-  document.querySelector("#visibilityField").value = person?.visibility ?? "private";
+  document.querySelector("#visibilityField").value =
+    person?.visibility ?? "private";
   dialog.showModal();
   document.querySelector("#nameField").focus();
 }
@@ -318,7 +405,7 @@ function savePersonFromDialog() {
       visibility,
       archived: false,
       x: Math.max(40, bounds.width / 2 - 89),
-      y: Math.max(40, bounds.height / 2 - 39)
+      y: Math.max(40, bounds.height / 2 - 39),
     };
     state.people.push(person);
     selectedId = person.id;
@@ -335,13 +422,20 @@ function openRelationshipDialog(mode) {
   relationshipMode = mode;
 
   const labels = {
-    parent: ["Thêm cha / mẹ", "Chọn người sẽ là cha hoặc mẹ của người đang chọn."],
+    parent: [
+      "Thêm cha / mẹ",
+      "Chọn người sẽ là cha hoặc mẹ của người đang chọn.",
+    ],
     child: ["Thêm con", "Chọn người sẽ là con của người đang chọn."],
-    partner: ["Thêm hôn phối", "Chọn người sẽ có quan hệ hôn phối với người đang chọn."]
+    partner: [
+      "Thêm hôn phối",
+      "Chọn người sẽ có quan hệ hôn phối với người đang chọn.",
+    ],
   };
 
   document.querySelector("#relationshipTitle").textContent = labels[mode][0];
-  document.querySelector("#relationshipSummary").textContent = `${labels[mode][1]} Đang chọn: ${source.name}`;
+  document.querySelector("#relationshipSummary").textContent =
+    `${labels[mode][1]} Đang chọn: ${source.name}`;
 
   const select = document.querySelector("#relationshipTarget");
   select.replaceChildren();
@@ -361,8 +455,10 @@ function wouldDuplicate(kind, source, target) {
   return state.relationships.some((relation) => {
     if (relation.kind !== kind) return false;
     if (kind === "partnership") {
-      return (relation.source === source && relation.target === target) ||
-        (relation.source === target && relation.target === source);
+      return (
+        (relation.source === source && relation.target === target) ||
+        (relation.source === target && relation.target === source)
+      );
     }
     return relation.source === source && relation.target === target;
   });
@@ -374,7 +470,10 @@ function descendantsOf(personId) {
   while (queue.length) {
     const current = queue.shift();
     state.relationships
-      .filter((relation) => relation.kind === "parent_child" && relation.source === current)
+      .filter(
+        (relation) =>
+          relation.kind === "parent_child" && relation.source === current,
+      )
       .forEach((relation) => {
         if (!visited.has(relation.target)) {
           visited.add(relation.target);
@@ -421,7 +520,7 @@ function saveRelationshipFromDialog() {
     id: nextRelationshipId(),
     kind,
     source,
-    target: destination
+    target: destination,
   });
   persistState("Đã tạo quan hệ demo");
   render();
@@ -441,12 +540,24 @@ function removeRelationship(id) {
 function archiveSelected() {
   const person = getPerson(selectedId);
   if (!person) return;
-  const connected = state.relationships.filter((relation) => relation.source === person.id || relation.target === person.id).length;
+  const connected = state.relationships.filter(
+    (relation) =>
+      relation.source === person.id || relation.target === person.id,
+  ).length;
   const action = person.archived ? "khôi phục" : "lưu trữ";
-  if (!window.confirm(`${action[0].toUpperCase() + action.slice(1)} ${person.name}? Người này hiện có ${connected} quan hệ; các quan hệ sẽ được giữ nguyên trong demo.`)) return;
+  if (
+    !window.confirm(
+      `${action[0].toUpperCase() + action.slice(1)} ${person.name}? Người này hiện có ${connected} quan hệ; các quan hệ sẽ được giữ nguyên trong demo.`,
+    )
+  )
+    return;
   checkpoint();
   person.archived = !person.archived;
-  persistState(person.archived ? "Đã lưu trữ người trong demo" : "Đã khôi phục người trong demo");
+  persistState(
+    person.archived
+      ? "Đã lưu trữ người trong demo"
+      : "Đã khôi phục người trong demo",
+  );
   render();
 }
 
@@ -460,23 +571,39 @@ function focusPerson(person) {
   render();
 }
 
-document.querySelector("#addPerson").addEventListener("click", () => openPersonDialog());
-document.querySelector("#editPerson").addEventListener("click", () => openPersonDialog(getPerson(selectedId)));
-document.querySelector("#addParent").addEventListener("click", () => openRelationshipDialog("parent"));
-document.querySelector("#addChild").addEventListener("click", () => openRelationshipDialog("child"));
-document.querySelector("#addPartner").addEventListener("click", () => openRelationshipDialog("partner"));
-document.querySelector("#archivePerson").addEventListener("click", archiveSelected);
-document.querySelector("#focusSelected").addEventListener("click", () => focusPerson(getPerson(selectedId)));
+document
+  .querySelector("#addPerson")
+  .addEventListener("click", () => openPersonDialog());
+document
+  .querySelector("#editPerson")
+  .addEventListener("click", () => openPersonDialog(getPerson(selectedId)));
+document
+  .querySelector("#addParent")
+  .addEventListener("click", () => openRelationshipDialog("parent"));
+document
+  .querySelector("#addChild")
+  .addEventListener("click", () => openRelationshipDialog("child"));
+document
+  .querySelector("#addPartner")
+  .addEventListener("click", () => openRelationshipDialog("partner"));
+document
+  .querySelector("#archivePerson")
+  .addEventListener("click", archiveSelected);
+document
+  .querySelector("#focusSelected")
+  .addEventListener("click", () => focusPerson(getPerson(selectedId)));
 
 document.querySelector("#personForm").addEventListener("submit", (event) => {
   if (event.submitter?.value === "cancel") return;
   if (!savePersonFromDialog()) event.preventDefault();
 });
 
-document.querySelector("#relationshipForm").addEventListener("submit", (event) => {
-  if (event.submitter?.value === "cancel") return;
-  if (!saveRelationshipFromDialog()) event.preventDefault();
-});
+document
+  .querySelector("#relationshipForm")
+  .addEventListener("submit", (event) => {
+    if (event.submitter?.value === "cancel") return;
+    if (!saveRelationshipFromDialog()) event.preventDefault();
+  });
 
 document.querySelector("#searchInput").addEventListener("input", (event) => {
   searchTerm = event.target.value.trim().toLowerCase();
@@ -489,7 +616,8 @@ document.querySelector("#showArchived").addEventListener("change", (event) => {
 });
 
 document.querySelector("#resetDemo").addEventListener("click", () => {
-  if (!window.confirm("Reset toàn bộ dữ liệu demo về trạng thái ban đầu?")) return;
+  if (!window.confirm("Reset toàn bộ dữ liệu demo về trạng thái ban đầu?"))
+    return;
   history = [];
   future = [];
   state = clone(initialState);
@@ -513,14 +641,26 @@ document.querySelector("#redoButton").addEventListener("click", () => {
 document.querySelector("#fitButton").addEventListener("click", () => {
   checkpoint();
   const positions = [
-    [90, 70], [390, 70], [240, 250], [540, 250], [240, 450], [540, 450],
-    [90, 630], [390, 630], [690, 630]
+    [90, 70],
+    [390, 70],
+    [240, 250],
+    [540, 250],
+    [240, 450],
+    [540, 450],
+    [90, 630],
+    [390, 630],
+    [690, 630],
   ];
-  state.people.filter((person) => !person.archived).forEach((person, index) => {
-    const position = positions[index] ?? [90 + (index % 3) * 300, 70 + Math.floor(index / 3) * 180];
-    person.x = position[0];
-    person.y = position[1];
-  });
+  state.people
+    .filter((person) => !person.archived)
+    .forEach((person, index) => {
+      const position = positions[index] ?? [
+        90 + (index % 3) * 300,
+        70 + Math.floor(index / 3) * 180,
+      ];
+      person.x = position[0];
+      person.y = position[1];
+    });
   persistState("Đã sắp xếp lại demo");
   render();
 });

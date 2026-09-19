@@ -11,6 +11,7 @@ Automatic Vercel Git deployments are disabled through `vercel.json`. GitHub is t
 Goal: agree on interaction patterns before persistent mutations expand.
 
 Deliverables:
+
 - GitHub Pages static demo for admin workflows.
 - Selection + inspector pattern.
 - Explicit toolbar actions; no hidden genealogy mutations.
@@ -18,6 +19,7 @@ Deliverables:
 - Vercel Git auto-deployment disabled.
 
 Exit criteria:
+
 - Preview is reviewable on desktop and usable on tablet.
 - Every proposed mutation has a visible, explicit action.
 - No production database/network dependency exists in the preview.
@@ -27,6 +29,7 @@ Exit criteria:
 Goal: admins can create and update individual records safely.
 
 Add:
+
 - Create person.
 - Edit display name, birth/death year, visibility.
 - Optional alias / short note fields only after schema design is approved.
@@ -34,11 +37,13 @@ Add:
 - Clear saving/saved/error feedback.
 
 Server commands:
+
 - CreatePerson
 - UpdatePersonDetails
 - ChangeVisibility
 
 Tests:
+
 - admin allowed;
 - spectator rejected;
 - malformed data rejected;
@@ -49,6 +54,7 @@ Tests:
 Goal: explicitly manage canonical kinship relationships.
 
 Add:
+
 - Add parent.
 - Add child.
 - Add partner/spouse.
@@ -57,11 +63,13 @@ Add:
 - Prevent duplicate/self/cyclic parent-child relationships.
 
 Server commands:
+
 - CreateParentChildRelationship
 - CreatePartnership
 - RemoveRelationship
 
 Tests:
+
 - valid relationships persist;
 - reverse duplicate partnership rejected;
 - ancestry cycle rejected;
@@ -72,6 +80,7 @@ Tests:
 Goal: avoid dangerous hard deletes.
 
 Add:
+
 - Archive person.
 - Restore archived person.
 - Impact preview showing connected relationships before archival.
@@ -84,6 +93,7 @@ Do not add hard delete until an explicit recovery/audit design exists.
 Goal: make large trees administrable.
 
 Add:
+
 - Search by name/alias.
 - Focus selected person.
 - Filters: living/deceased, public/private, archived, generation branch.
@@ -95,6 +105,7 @@ Add:
 Goal: make manual layout a first-class presentation workflow.
 
 Add:
+
 - Existing drag-position persistence.
 - Undo/redo for layout moves.
 - Lock/unlock node position.
@@ -109,12 +120,14 @@ Add:
 Goal: distinguish recorded facts from evidence and uncertainty.
 
 Schema/design:
+
 - sources/citations;
 - notes;
 - confidence/certainty where appropriate;
 - approximate/unknown dates without fabricating exact values.
 
 Add:
+
 - source list per person/relationship;
 - add/edit/remove citation;
 - display provenance in inspector;
@@ -125,6 +138,7 @@ Add:
 Goal: resolve duplicate people without corrupting the graph.
 
 Add:
+
 - duplicate suggestions based on conservative signals;
 - side-by-side review;
 - explicit target/source merge;
@@ -139,6 +153,7 @@ No automatic merge.
 Goal: make editing traceable and safe for multiple administrators.
 
 Add:
+
 - mutation audit entries: actor, command, affected IDs, timestamp;
 - revision/updated_at stale-write checks;
 - recoverable conflict UI;
@@ -150,6 +165,7 @@ Add:
 Goal: surface genealogy problems before publication.
 
 Checks:
+
 - missing parents or dates where noteworthy;
 - impossible/suspicious chronology;
 - duplicate candidates;
@@ -162,6 +178,7 @@ These are review signals, not automatic corrections.
 ## Step 10 — Bulk utilities and release preparation
 
 Add only after single-record workflows are stable:
+
 - structured import preview;
 - export/backup;
 - batch visibility changes with impact review;
@@ -172,6 +189,7 @@ Add only after single-record workflows are stable:
 ## Final release gate
 
 Before the next Vercel deployment:
+
 1. Every step above intended for the release is merged to `main`.
 2. Full CI is green on `main`.
 3. Supabase migrations are applied and migration history matches the repo.

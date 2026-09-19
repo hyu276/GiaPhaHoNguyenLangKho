@@ -190,29 +190,129 @@ function RelationshipIntentButtons({
   );
 }
 
-export function PersonRelationshipSection({
+function getRelationshipProposal(
+  focalPersonId: string,
+  targetPersonId: string,
+  intent: RelationshipIntent | null,
+) {
+  if (!intent || !targetPersonId) return null;
+  return buildRelationshipProposal(focalPersonId, targetPersonId, intent);
+}
+
+function getProposalError(
+  relationships: RelationshipRecord[],
+  proposal: ReturnType<typeof buildRelationshipProposal> | null,
+) {
+  if (!proposal) return null;
+  return validateRelationshipProposal(relationships, proposal);
+}
+
+type RelationshipCreationControlsProps = Pick<
+  PersonRelationshipSectionProps,
+  | "createParentChildRelationship"
+  | "createPartnership"
+  | "focalPerson"
+  | "onChanged"
+  | "people"
+  | "relationships"
+>;
+
+function RelationshipCreationForm({
+  availablePeople,
+  errorMessage,
+  intent,
+  onCancel,
+  onSave,
+  onTargetChange,
+  proposalReady,
+  saving,
+  targetPersonId,
+}: {
+  availablePeople: RelationshipPerson[];
+  errorMessage: string | null;
+  intent: RelationshipIntent;
+  onCancel: () => void;
+  onSave: () => void;
+  onTargetChange: (personId: string) => void;
+  proposalReady: boolean;
+  saving: boolean;
+  targetPersonId: string;
+}) {
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-background p-3">
+      <p className="text-sm font-semibold text-card-foreground">
+        {getIntentLabel(intent)}
+      </p>
+      <label className="mt-3 block text-sm font-medium text-card-foreground">
+        Chọn người
+        <select
+          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          onChange={(event) => onTargetChange(event.target.value)}
+          value={targetPersonId}
+        >
+          <option value="">Chọn một người…</option>
+          {availablePeople.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.displayName} · {formatYears(person)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {errorMessage ? (
+        <p aria-live="polite" className="mt-2 text-sm text-destructive">
+          {errorMessage}
+        </p>
+      ) : null}
+
+      <div className="mt-3 flex gap-2">
+        <Button
+          disabled={!proposalReady || saving}
+          onClick={onSave}
+          type="button"
+        >
+          {saving ? "Đang lưu…" : "Tạo quan hệ"}
+        </Button>
+        <Button
+          disabled={saving}
+          onClick={onCancel}
+          type="button"
+          variant="outline"
+        >
+          Hủy
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function RelationshipCreationControls({
   createParentChildRelationship,
   createPartnership,
   focalPerson,
   onChanged,
   people,
-  readOnly,
   relationships,
-}: PersonRelationshipSectionProps) {
+}: RelationshipCreationControlsProps) {
   const [intent, setIntent] = useState<RelationshipIntent | null>(null);
   const [targetPersonId, setTargetPersonId] = useState("");
   const [serverError, setServerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const proposal = useMemo(() => {
-    if (!intent || !targetPersonId) return null;
-    return buildRelationshipProposal(focalPerson.id, targetPersonId, intent);
-  }, [focalPerson.id, intent, targetPersonId]);
+  const proposal = useMemo(
+    () => getRelationshipProposal(focalPerson.id, targetPersonId, intent),
+    [focalPerson.id, intent, targetPersonId],
+  );
+  const validationError = useMemo(
+    () => getProposalError(relationships, proposal),
+    [proposal, relationships],
+  );
 
-  const validationError = useMemo(() => {
-    if (!proposal) return null;
-    return validateRelationshipProposal(relationships, proposal);
-  }, [proposal, relationships]);
+  function resetCreator() {
+    setIntent(null);
+    setTargetPersonId("");
+    setServerError(null);
+  }
 
   function startIntent(nextIntent: RelationshipIntent) {
     setIntent(nextIntent);
@@ -220,9 +320,8 @@ export function PersonRelationshipSection({
     setServerError(null);
   }
 
-  function cancelIntent() {
-    setIntent(null);
-    setTargetPersonId("");
+  function changeTarget(personId: string) {
+    setTargetPersonId(personId);
     setServerError(null);
   }
 
@@ -243,7 +342,7 @@ export function PersonRelationshipSection({
       return;
     }
 
-    cancelIntent();
+    resetCreator();
     onChanged(focalPerson.id);
   }
 
@@ -251,6 +350,34 @@ export function PersonRelationshipSection({
     (person) => person.id !== focalPerson.id,
   );
 
+  if (!intent) {
+    return <RelationshipIntentButtons onSelect={startIntent} />;
+  }
+
+  return (
+    <RelationshipCreationForm
+      availablePeople={availablePeople}
+      errorMessage={validationError ?? serverError}
+      intent={intent}
+      onCancel={resetCreator}
+      onSave={saveRelationship}
+      onTargetChange={changeTarget}
+      proposalReady={Boolean(proposal) && !validationError}
+      saving={saving}
+      targetPersonId={targetPersonId}
+    />
+  );
+}
+
+export function PersonRelationshipSection({
+  createParentChildRelationship,
+  createPartnership,
+  focalPerson,
+  onChanged,
+  people,
+  readOnly,
+  relationships,
+}: PersonRelationshipSectionProps) {
   return (
     <section className="mt-6 border-t border-border pt-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -262,56 +389,15 @@ export function PersonRelationshipSection({
         relationships={relationships}
       />
 
-      {readOnly ? null : intent ? (
-        <div className="mt-4 rounded-2xl border border-border bg-background p-3">
-          <p className="text-sm font-semibold text-card-foreground">
-            {getIntentLabel(intent)}
-          </p>
-          <label className="mt-3 block text-sm font-medium text-card-foreground">
-            Chọn người
-            <select
-              className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              onChange={(event) => {
-                setTargetPersonId(event.target.value);
-                setServerError(null);
-              }}
-              value={targetPersonId}
-            >
-              <option value="">Chọn một người…</option>
-              {availablePeople.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.displayName} · {formatYears(person)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {validationError || serverError ? (
-            <p aria-live="polite" className="mt-2 text-sm text-destructive">
-              {validationError ?? serverError}
-            </p>
-          ) : null}
-
-          <div className="mt-3 flex gap-2">
-            <Button
-              disabled={!proposal || Boolean(validationError) || saving}
-              onClick={saveRelationship}
-              type="button"
-            >
-              {saving ? "Đang lưu…" : "Tạo quan hệ"}
-            </Button>
-            <Button
-              disabled={saving}
-              onClick={cancelIntent}
-              type="button"
-              variant="outline"
-            >
-              Hủy
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <RelationshipIntentButtons onSelect={startIntent} />
+      {readOnly ? null : (
+        <RelationshipCreationControls
+          createParentChildRelationship={createParentChildRelationship}
+          createPartnership={createPartnership}
+          focalPerson={focalPerson}
+          onChanged={onChanged}
+          people={people}
+          relationships={relationships}
+        />
       )}
 
       <p className="mt-3 text-xs leading-5 text-muted-foreground">

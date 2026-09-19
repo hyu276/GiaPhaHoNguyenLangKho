@@ -7,11 +7,13 @@ on:
       - feat/admin-preview-workflow
     paths:
       - "preview/**"
+      - "docs/ADMIN-EDITOR-ROADMAP.md"
+      - "vercel.json"
       - ".github/workflows/pages-preview.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -20,7 +22,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  format-preview:
+    if: github.ref == 'refs/heads/feat/admin-preview-workflow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: feat/admin-preview-workflow
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Format preview sources
+        run: npx prettier --write docs/ADMIN-EDITOR-ROADMAP.md preview vercel.json .github/workflows/pages-preview.yml
+
+      - name: Commit formatting when needed
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/ADMIN-EDITOR-ROADMAP.md preview vercel.json .github/workflows/pages-preview.yml
+          git commit -m "style(admin): Format editor demo"
+          git push origin HEAD:feat/admin-preview-workflow
+
   deploy:
+    needs: format-preview
+    if: always() && (needs.format-preview.result == 'success' || needs.format-preview.result == 'skipped')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

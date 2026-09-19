@@ -11,8 +11,7 @@ import {
 import { requireAdmin } from "@/lib/auth/admin";
 
 export type PersonMutationResult =
-  | { ok: true; personId: string }
-  | { ok: false; message: string };
+  { ok: true; personId: string } | { ok: false; message: string };
 
 function getValidationMessage(error: { issues: Array<{ message: string }> }) {
   return error.issues[0]?.message ?? "Dữ liệu người không hợp lệ.";

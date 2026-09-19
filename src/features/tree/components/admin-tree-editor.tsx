@@ -37,7 +37,7 @@ import {
 import type {
   CreatePersonInput,
   PersonSex,
-  type PersonStateInput,
+  PersonStateInput,
   PersonVisibility,
   UpdatePersonInput,
 } from "@/features/tree/person-input";
@@ -326,7 +326,6 @@ function SelectedPersonSummary({
   );
 }
 
-
 function ArchiveFilter({
   archivedCount,
   onChange,
@@ -352,6 +351,43 @@ function ArchiveFilter({
   );
 }
 
+function getPersonStateMutation(
+  archived: boolean,
+  archivePerson: PersonStateMutation | undefined,
+  restorePerson: PersonStateMutation | undefined,
+) {
+  return archived ? restorePerson : archivePerson;
+}
+
+function getArchiveTitle(archived: boolean) {
+  return archived ? "Hồ sơ đã lưu trữ" : "Ảnh hưởng khi lưu trữ";
+}
+
+function getArchiveDescription(archived: boolean, relationshipCount: number) {
+  if (archived) {
+    return "Hồ sơ đang bị ẩn khỏi chế độ xem thông thường. Quan hệ và vị trí sơ đồ vẫn được giữ nguyên.";
+  }
+
+  return `${relationshipCount} quan hệ trực tiếp và vị trí sơ đồ sẽ được giữ nguyên; chỉ hồ sơ bị ẩn khỏi chế độ xem thông thường.`;
+}
+
+function getArchiveButtonLabel(archived: boolean, saving: boolean) {
+  if (saving) return "Đang xử lý…";
+  return archived ? "Khôi phục hồ sơ" : "Lưu trữ hồ sơ";
+}
+
+function confirmArchive(
+  nextArchived: boolean,
+  person: EditorPerson,
+  relationshipCount: number,
+) {
+  if (!nextArchived) return true;
+
+  return window.confirm(
+    `Lưu trữ ${person.displayName}? ${relationshipCount} quan hệ trực tiếp và vị trí sơ đồ sẽ được giữ nguyên.`,
+  );
+}
+
 function PersonArchiveControls({
   archivePerson,
   onChanged,
@@ -368,19 +404,15 @@ function PersonArchiveControls({
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const archived = isArchived(person);
-  const mutation = archived ? restorePerson : archivePerson;
+  const mutation = getPersonStateMutation(
+    archived,
+    archivePerson,
+    restorePerson,
+  );
 
   async function submit(nextArchived: boolean) {
     if (!mutation) return;
-
-    if (
-      nextArchived &&
-      !window.confirm(
-        `Lưu trữ ${person.displayName}? ${relationshipCount} quan hệ trực tiếp và vị trí sơ đồ sẽ được giữ nguyên.`,
-      )
-    ) {
-      return;
-    }
+    if (!confirmArchive(nextArchived, person, relationshipCount)) return;
 
     setSaving(true);
     setErrorMessage(null);
@@ -398,12 +430,10 @@ function PersonArchiveControls({
   return (
     <div className="mt-4 rounded-2xl border border-border bg-muted/35 p-3">
       <p className="text-xs font-semibold text-card-foreground">
-        {archived ? "Hồ sơ đã lưu trữ" : "Ảnh hưởng khi lưu trữ"}
+        {getArchiveTitle(archived)}
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        {archived
-          ? "Hồ sơ đang bị ẩn khỏi chế độ xem thông thường. Quan hệ và vị trí sơ đồ vẫn được giữ nguyên."
-          : `${relationshipCount} quan hệ trực tiếp và vị trí sơ đồ sẽ được giữ nguyên; chỉ hồ sơ bị ẩn khỏi chế độ xem thông thường.`}
+        {getArchiveDescription(archived, relationshipCount)}
       </p>
       <Button
         className="mt-3 w-full"
@@ -412,11 +442,7 @@ function PersonArchiveControls({
         type="button"
         variant="outline"
       >
-        {saving
-          ? "Đang xử lý…"
-          : archived
-            ? "Khôi phục hồ sơ"
-            : "Lưu trữ hồ sơ"}
+        {getArchiveButtonLabel(archived, saving)}
       </Button>
       {errorMessage ? (
         <p className="mt-2 text-xs text-destructive">{errorMessage}</p>

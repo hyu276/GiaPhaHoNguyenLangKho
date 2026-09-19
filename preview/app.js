@@ -209,14 +209,35 @@ function renderNodes() {
     node.style.left = `${person.x}px`;
     node.style.top = `${person.y}px`;
     node.dataset.personId = person.id;
-    node.innerHTML = `
-      <strong>${escapeHtml(person.name)}</strong>
-      <small>${formatYears(person)}</small>
-      <span class="node-badges">
-        <span class="node-badge ${person.visibility === "private" ? "private" : ""}">${person.visibility === "private" ? "Riêng tư" : "Công khai"}</span>
-        ${person.archived ? '<span class="node-badge private">Đã lưu trữ</span>' : ""}
-      </span>
-    `;
+
+    const name = document.createElement("strong");
+    name.textContent = person.name;
+
+    const years = document.createElement("small");
+    years.textContent = formatYears(person);
+
+    const badges = document.createElement("span");
+    badges.className = "node-badges";
+
+    const visibilityBadge = document.createElement("span");
+    visibilityBadge.className = [
+      "node-badge",
+      person.visibility === "private" ? "private" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    visibilityBadge.textContent =
+      person.visibility === "private" ? "Riêng tư" : "Công khai";
+    badges.appendChild(visibilityBadge);
+
+    if (person.archived) {
+      const archivedBadge = document.createElement("span");
+      archivedBadge.className = "node-badge private";
+      archivedBadge.textContent = "Đã lưu trữ";
+      badges.appendChild(archivedBadge);
+    }
+
+    node.append(name, years, badges);
 
     node.addEventListener("click", () => {
       selectedId = person.id;

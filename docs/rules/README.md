@@ -17,6 +17,8 @@ All human contributors and AI coding agents must treat these documents as engine
 | `07-UI-UX-RULES.md` | Accessibility, responsive behavior, genealogy visualization | Any UI task |
 | `08-TESTING-QUALITY-GATES.md` | Tests and completion gates | Every behavior-changing task |
 | `09-GIT-WORKFLOW.md` | Branch/commit/PR discipline | Any repository change |
+| `10-INTERACTIVE-MAP-EDITOR.md` | Live genealogy map, admin editor, direct manipulation, layout persistence, concurrency, editor performance | Any map/tree editor, drag/drop, selection, admin editing, graph persistence, or live-map synchronization task |
+| `11-VERCEL-DEPLOYMENT-RETENTION.md` | Vercel deployment-count ceiling, cleanup priority, rollback preservation, and pre/post-deploy pruning | Any Vercel deploy, preview, promotion, rollback, cleanup, or deployment investigation |
 
 ## Global rules
 

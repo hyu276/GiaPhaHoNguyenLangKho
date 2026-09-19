@@ -1,10 +1,11 @@
-const STORAGE_KEY = "giapha-admin-demo-v1";
+const STORAGE_KEY = "giapha-admin-demo-v2";
 
 const initialState = {
   people: [
     {
       id: "P001",
       name: "Nguyễn Văn Tổ",
+      description: "Thủy tổ của nhánh demo, lưu lại để minh họa hồ sơ tiểu sử.",
       birth: 1902,
       death: 1978,
       visibility: "public",
@@ -15,6 +16,7 @@ const initialState = {
     {
       id: "P002",
       name: "Nguyễn Thị An",
+      description: "Hồ sơ synthetic dùng để thử chỉnh sửa mô tả và visibility.",
       birth: 1908,
       death: 1987,
       visibility: "public",
@@ -25,6 +27,7 @@ const initialState = {
     {
       id: "P003",
       name: "Nguyễn Văn Bình",
+      description: "Đại diện thế hệ thứ hai trong cây demo.",
       birth: 1932,
       death: 2004,
       visibility: "public",
@@ -35,6 +38,7 @@ const initialState = {
     {
       id: "P004",
       name: "Nguyễn Thị Mai",
+      description: "Ví dụ hồ sơ riêng tư của người còn sống.",
       birth: 1936,
       death: null,
       visibility: "private",
@@ -45,6 +49,7 @@ const initialState = {
     {
       id: "P005",
       name: "Nguyễn Văn Cường",
+      description: "Bản ghi synthetic phục vụ kiểm thử Person CRUD.",
       birth: 1958,
       death: null,
       visibility: "public",
@@ -55,6 +60,7 @@ const initialState = {
     {
       id: "P006",
       name: "Nguyễn Thị Lan",
+      description: null,
       birth: 1962,
       death: null,
       visibility: "private",
@@ -262,6 +268,8 @@ function renderInspector() {
   pill.classList.toggle("private", person.visibility === "private");
   document.querySelector("#personName").textContent = person.name;
   document.querySelector("#personYears").textContent = formatYears(person);
+  document.querySelector("#personDescription").textContent =
+    person.description || "Chưa có mô tả.";
   document.querySelector("#personId").textContent = person.id;
   document.querySelector("#personState").textContent = person.archived
     ? "Đã lưu trữ"
@@ -378,6 +386,11 @@ function openPersonDialog(person = null) {
   document.querySelector("#dialogTitle").textContent = title;
   document.querySelector("#editingId").value = getPersonField(person, "id");
   document.querySelector("#nameField").value = getPersonField(person, "name");
+  document.querySelector("#descriptionField").value = getPersonField(
+    person,
+    "description",
+  );
+  updateDescriptionCount();
   document.querySelector("#birthField").value = getPersonField(person, "birth");
   document.querySelector("#deathField").value = getPersonField(person, "death");
   document.querySelector("#visibilityField").value = getPersonField(
@@ -390,6 +403,12 @@ function openPersonDialog(person = null) {
   document.querySelector("#nameField").focus();
 }
 
+function updateDescriptionCount() {
+  document.querySelector("#descriptionCount").textContent = document
+    .querySelector("#descriptionField")
+    .value.length.toString();
+}
+
 function readNullableYear(selector) {
   const raw = document.querySelector(selector).value;
   return raw ? Number(raw) : null;
@@ -398,6 +417,8 @@ function readNullableYear(selector) {
 function readPersonDraft() {
   return {
     name: document.querySelector("#nameField").value.trim(),
+    description:
+      document.querySelector("#descriptionField").value.trim() || null,
     birth: readNullableYear("#birthField"),
     death: readNullableYear("#deathField"),
     visibility: document.querySelector("#visibilityField").value,
@@ -627,6 +648,10 @@ function focusPerson(person) {
   persistState("Đã focus người trong demo");
   render();
 }
+
+document
+  .querySelector("#descriptionField")
+  .addEventListener("input", updateDescriptionCount);
 
 document
   .querySelector("#addPerson")

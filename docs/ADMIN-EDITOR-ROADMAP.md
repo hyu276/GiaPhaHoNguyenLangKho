@@ -26,21 +26,22 @@ Exit criteria:
 
 ## Step 1 — Person CRUD
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Goal: admins can create and update individual records safely.
 
 Add:
 
 - Create person.
-- Edit display name, birth/death year, visibility.
-- Optional alias / short note fields only after schema design is approved.
+- Edit display name, description, birth/death year, visibility.
+- Description is nullable and limited to 2,000 characters.
 - Validation for unknown/partial values.
 - Clear saving/saved/error feedback.
 
 Server commands:
 
 - CreatePerson
-- UpdatePersonDetails
-- ChangeVisibility
+- UpdatePersonDetails (including description and visibility)
 
 Tests:
 

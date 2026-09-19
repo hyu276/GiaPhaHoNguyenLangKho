@@ -1,5 +1,7 @@
 name: Admin editor demo
 
+# Synthetic admin previews publish from preview feature branches.
+
 on:
   push:
     branches:

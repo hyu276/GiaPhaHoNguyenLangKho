@@ -167,7 +167,9 @@ function DirectRelationshipList({
     <div className="mt-3 space-y-2">
       {directRelationships.map((relationship) => {
         const otherPersonId = getOtherPersonId(relationship, focalPerson.id);
-        const otherPerson = people.find((person) => person.id === otherPersonId);
+        const otherPerson = people.find(
+          (person) => person.id === otherPersonId,
+        );
         return (
           <div
             className="rounded-xl border border-border bg-background px-3 py-2"
@@ -177,7 +179,11 @@ function DirectRelationshipList({
               {getPersonName(people, otherPersonId)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {getDirectRelationshipLabel(relationship, focalPerson.id, otherPerson)}
+              {getDirectRelationshipLabel(
+                relationship,
+                focalPerson.id,
+                otherPerson,
+              )}
             </p>
           </div>
         );
@@ -463,7 +469,8 @@ function RelationshipEndpoints({
       </p>
       <p>
         <span className="text-muted-foreground">
-          {getSexLabel(targetPerson?.sex ?? null, "Con trai", "Con gái", "Con")}:
+          {getSexLabel(targetPerson?.sex ?? null, "Con trai", "Con gái", "Con")}
+          :
         </span>{" "}
         <strong className="text-card-foreground">{targetName}</strong>
       </p>

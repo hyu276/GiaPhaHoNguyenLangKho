@@ -1,0 +1,44 @@
+name: Temporary preview formatter
+
+on:
+  push:
+    branches:
+      - feat/person-crud-preview
+    paths:
+      - ".github/workflows/person-preview-format.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: feat/person-crud-preview
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Format preview
+        run: npx prettier --write preview/app.js preview/index.html
+
+      - name: Commit formatting
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add preview/app.js preview/index.html
+          git commit -m "style(preview): Format person CRUD demo"
+          git push origin HEAD:feat/person-crud-preview

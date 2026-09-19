@@ -82,9 +82,7 @@ describe("relationship domain guards", () => {
       targetPersonId: C,
     });
 
-    expect(buildRelationshipProposal(A, D, "partner").kind).toBe(
-      "partnership",
-    );
+    expect(buildRelationshipProposal(A, D, "partner").kind).toBe("partnership");
   });
 
   it("normalizes partnership endpoint order", () => {

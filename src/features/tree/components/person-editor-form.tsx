@@ -18,8 +18,7 @@ export type PersonFormPerson = {
 };
 
 type PersonMutationResult =
-  | { ok: true; personId: string }
-  | { ok: false; message: string };
+  { ok: true; personId: string } | { ok: false; message: string };
 
 type PersonEditorFormProps = {
   person: PersonFormPerson | null;

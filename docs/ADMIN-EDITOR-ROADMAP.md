@@ -61,7 +61,7 @@ Add:
 - Add partner/spouse.
 - Select an edge and inspect its type.
 - Remove relationship with confirmation.
-- Prevent duplicate/self/cyclic parent-child relationships.
+- Prevent duplicate/self/cyclic parent-child relationships.\n- Persist only canonical parent-child and partnership edges; derived kinship/address labels are inferred from graph paths.
 
 Server commands:
 

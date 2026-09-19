@@ -14,6 +14,7 @@ import {
   Controls,
   Handle,
   MiniMap,
+  MarkerType,
   Position,
   ReactFlow,
   type Edge,
@@ -26,6 +27,13 @@ import "@xyflow/react/dist/style.css";
 
 import { Button } from "@/components/ui/button";
 import { PersonEditorForm } from "@/features/tree/components/person-editor-form";
+import {
+  PersonRelationshipSection,
+  RelationshipInspector,
+  type CreateParentChildRelationship,
+  type CreatePartnership,
+  type RemoveRelationship,
+} from "@/features/tree/components/relationship-editor-panel";
 import type {
   CreatePersonInput,
   PersonVisibility,
@@ -67,7 +75,10 @@ type AdminTreeEditorProps = {
   relationships: EditorRelationship[];
   readOnly: boolean;
   saveLayout: SaveLayout | undefined;
+  createParentChildRelationship: CreateParentChildRelationship | undefined;
+  createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
+  removeRelationship: RemoveRelationship | undefined;
   updatePerson: UpdatePerson | undefined;
 };
 
@@ -88,14 +99,21 @@ type SaveState =
   | { status: "error"; personId: string; message: string };
 
 type SidebarProps = {
+  createParentChildRelationship: CreateParentChildRelationship | undefined;
+  createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
   formMode: PersonFormMode;
   onCancelForm: () => void;
+  onRelationshipChanged: (focusPersonId?: string) => void;
   onSaved: (personId: string) => void;
   onStartCreate: () => void;
   onStartEdit: () => void;
+  people: EditorPerson[];
   readOnly: boolean;
+  relationships: EditorRelationship[];
+  removeRelationship: RemoveRelationship | undefined;
   selectedPerson: EditorPerson | null;
+  selectedRelationship: EditorRelationship | null;
   updatePerson: UpdatePerson | undefined;
 };
 
@@ -174,6 +192,10 @@ function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
       type: "smoothstep",
       data: { kind: relationship.kind },
       animated: false,
+      ariaLabel:
+        relationship.kind === "partnership"
+          ? "Quan hệ hôn phối"
+          : "Quan hệ cha mẹ con",
       deletable: false,
     };
 
@@ -185,7 +207,10 @@ function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
       };
     }
 
-    return edge;
+    return {
+      ...edge,
+      markerEnd: { type: MarkerType.ArrowClosed },
+    };
   });
 }
 
@@ -296,6 +321,20 @@ function EditPersonPanel({
 }
 
 function EditorSidebar(props: SidebarProps) {
+  if (props.selectedRelationship) {
+    return (
+      <aside className="rounded-3xl border border-border bg-card p-5">
+        <RelationshipInspector
+          onChanged={props.onRelationshipChanged}
+          people={props.people}
+          readOnly={props.readOnly}
+          relationship={props.selectedRelationship}
+          removeRelationship={props.removeRelationship}
+        />
+      </aside>
+    );
+  }
+
   if (props.formMode === "create") {
     return (
       <aside className="rounded-3xl border border-border bg-card p-5">
@@ -337,6 +376,17 @@ function EditorSidebar(props: SidebarProps) {
         readOnly={props.readOnly}
         selectedPerson={props.selectedPerson}
       />
+      {props.selectedPerson ? (
+        <PersonRelationshipSection
+          createParentChildRelationship={props.createParentChildRelationship}
+          createPartnership={props.createPartnership}
+          focalPerson={props.selectedPerson}
+          onChanged={props.onRelationshipChanged}
+          people={props.people}
+          readOnly={props.readOnly}
+          relationships={props.relationships}
+        />
+      ) : null}
     </aside>
   );
 }
@@ -346,7 +396,10 @@ export function AdminTreeEditor({
   relationships,
   readOnly,
   saveLayout,
+  createParentChildRelationship,
+  createPartnership,
   createPerson,
+  removeRelationship,
   updatePerson,
 }: AdminTreeEditorProps) {
   const router = useRouter();
@@ -355,6 +408,9 @@ export function AdminTreeEditor({
   const [nodes, setNodes, onNodesChange] =
     useNodesState<PersonNode>(initialNodes);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [selectedRelationshipId, setSelectedRelationshipId] = useState<
+    string | null
+  >(null);
   const [formMode, setFormMode] = useState<PersonFormMode>(null);
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
   const [, startTransition] = useTransition();
@@ -364,6 +420,10 @@ export function AdminTreeEditor({
 
   const selectedPerson =
     people.find((person) => person.id === selectedPersonId) ?? null;
+  const selectedRelationship =
+    relationships.find(
+      (relationship) => relationship.id === selectedRelationshipId,
+    ) ?? null;
   const statusMessage = getStatusMessage(readOnly, saveState);
 
   useEffect(() => {
@@ -420,11 +480,26 @@ export function AdminTreeEditor({
 
   function handleNodeSelect(personId: string) {
     setSelectedPersonId(personId);
+    setSelectedRelationshipId(null);
+    setFormMode(null);
+  }
+
+  function handleEdgeSelect(relationshipId: string) {
+    setSelectedPersonId(null);
+    setSelectedRelationshipId(relationshipId);
     setFormMode(null);
   }
 
   function handleSaved(personId: string) {
     setSelectedPersonId(personId);
+    setSelectedRelationshipId(null);
+    setFormMode(null);
+    router.refresh();
+  }
+
+  function handleRelationshipChanged(focusPersonId?: string) {
+    setSelectedRelationshipId(null);
+    setSelectedPersonId(focusPersonId ?? null);
     setFormMode(null);
     router.refresh();
   }
@@ -437,6 +512,7 @@ export function AdminTreeEditor({
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
+          onEdgeClick={(_, edge) => handleEdgeSelect(edge.id)}
           onNodeClick={(_, node) => handleNodeSelect(node.id)}
           onNodeDragStop={(_, node) => {
             handleNodeSelect(node.id);
@@ -444,7 +520,7 @@ export function AdminTreeEditor({
           }}
           nodesDraggable={!readOnly}
           nodesConnectable={false}
-          edgesFocusable={false}
+          edgesFocusable
           deleteKeyCode={null}
           fitView
           fitViewOptions={{ padding: 0.25 }}
@@ -465,14 +541,21 @@ export function AdminTreeEditor({
       </section>
 
       <EditorSidebar
+        createParentChildRelationship={createParentChildRelationship}
+        createPartnership={createPartnership}
         createPerson={createPerson}
         formMode={formMode}
         onCancelForm={() => setFormMode(null)}
+        onRelationshipChanged={handleRelationshipChanged}
         onSaved={handleSaved}
         onStartCreate={() => setFormMode("create")}
         onStartEdit={() => setFormMode("edit")}
+        people={people}
         readOnly={readOnly}
+        relationships={relationships}
+        removeRelationship={removeRelationship}
         selectedPerson={selectedPerson}
+        selectedRelationship={selectedRelationship}
         updatePerson={updatePerson}
       />
     </div>

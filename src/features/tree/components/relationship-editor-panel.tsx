@@ -494,11 +494,11 @@ export function RelationshipInspector({
 
       {readOnly ? null : (
         <Button
-          className="mt-5 w-full"
+          className="mt-5 w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
           disabled={deleting}
           onClick={handleRemove}
           type="button"
-          variant="destructive"
+          variant="outline"
         >
           {deleting ? "Đang xóa…" : "Xóa quan hệ"}
         </Button>

@@ -438,10 +438,7 @@ export function PersonRelationshipSection({
   );
 }
 
-function getRelationshipPerson(
-  people: RelationshipPerson[],
-  personId: string,
-) {
+function getRelationshipPerson(people: RelationshipPerson[], personId: string) {
   return people.find((person) => person.id === personId);
 }
 

@@ -15,7 +15,7 @@ export type PersonFormPerson = {
   description: string | null;
   birthYear: number | null;
   deathYear: number | null;
-  sex: PersonSex | null;
+  sex?: PersonSex | null;
   visibility: PersonVisibility;
 };
 

@@ -57,8 +57,7 @@ export type SaveLayoutInput = {
 
 export type SaveLayoutResult = { ok: true } | { ok: false; message: string };
 type PersonMutationResult =
-  | { ok: true; personId: string }
-  | { ok: false; message: string };
+  { ok: true; personId: string } | { ok: false; message: string };
 type SaveLayout = (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
 type CreatePerson = (input: CreatePersonInput) => Promise<PersonMutationResult>;
 type UpdatePerson = (input: UpdatePersonInput) => Promise<PersonMutationResult>;
@@ -234,11 +233,7 @@ function SelectedPersonSummary({
       </p>
 
       {readOnly ? null : (
-        <Button
-          className="mt-6 w-full"
-          onClick={onStartEdit}
-          variant="outline"
-        >
+        <Button className="mt-6 w-full" onClick={onStartEdit} variant="outline">
           Sửa hồ sơ
         </Button>
       )}

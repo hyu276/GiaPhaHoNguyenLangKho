@@ -38,6 +38,10 @@ function relationshipDatabaseMessage(error: DatabaseError) {
     return "Không thể tạo quan hệ với chính người đó.";
   }
 
+  if (error.message?.includes("archived people cannot receive new relationships")) {
+    return "Hãy khôi phục hồ sơ đã lưu trữ trước khi thêm quan hệ mới.";
+  }
+
   return "Không thể lưu quan hệ gia phả.";
 }
 

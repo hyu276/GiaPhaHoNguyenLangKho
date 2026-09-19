@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import {
   createPersonInputSchema,
   type CreatePersonInput,
+  type PersonStateInput,
+  personStateInputSchema,
   type UpdatePersonInput,
   updatePersonInputSchema,
 } from "@/features/tree/person-input";
@@ -67,11 +69,69 @@ export async function updatePerson(
       visibility: parsed.data.visibility,
     })
     .eq("id", parsed.data.personId)
+    .is("archived_at", null)
     .select("id")
     .single();
 
   if (error || !data) {
     return { ok: false, message: "Không thể cập nhật hồ sơ người này." };
+  }
+
+  revalidatePath("/admin/tree");
+  return { ok: true, personId: data.id };
+}
+
+
+export async function archivePerson(
+  input: PersonStateInput,
+): Promise<PersonMutationResult> {
+  const parsed = personStateInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: getValidationMessage(parsed.error) };
+  }
+
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase
+    .from("people")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", parsed.data.personId)
+    .is("archived_at", null)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return {
+      ok: false,
+      message: "Không thể lưu trữ hồ sơ này hoặc hồ sơ đã được lưu trữ.",
+    };
+  }
+
+  revalidatePath("/admin/tree");
+  return { ok: true, personId: data.id };
+}
+
+export async function restorePerson(
+  input: PersonStateInput,
+): Promise<PersonMutationResult> {
+  const parsed = personStateInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: getValidationMessage(parsed.error) };
+  }
+
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase
+    .from("people")
+    .update({ archived_at: null })
+    .eq("id", parsed.data.personId)
+    .not("archived_at", "is", null)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return {
+      ok: false,
+      message: "Không thể khôi phục hồ sơ này hoặc hồ sơ chưa được lưu trữ.",
+    };
   }
 
   revalidatePath("/admin/tree");

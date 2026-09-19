@@ -23,8 +23,7 @@ export type RelationshipPerson = {
 };
 
 export type RelationshipMutationResult =
-  | { ok: true; relationshipId: string }
-  | { ok: false; message: string };
+  { ok: true; relationshipId: string } | { ok: false; message: string };
 
 export type CreateParentChildRelationship = (
   input: CreateParentChildInput,
@@ -170,7 +169,11 @@ function RelationshipIntentButtons({
 }) {
   return (
     <div className="mt-3 grid grid-cols-1 gap-2">
-      <Button onClick={() => onSelect("parent")} type="button" variant="outline">
+      <Button
+        onClick={() => onSelect("parent")}
+        type="button"
+        variant="outline"
+      >
         + Cha / mẹ
       </Button>
       <Button onClick={() => onSelect("child")} type="button" variant="outline">

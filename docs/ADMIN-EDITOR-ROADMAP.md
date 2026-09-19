@@ -33,7 +33,7 @@ Goal: admins can create and update individual records safely.
 Add:
 
 - Create person.
-- Edit display name, description, birth/death year, visibility.
+- Edit display name, description, birth/death year, sex metadata, visibility.
 - Description is nullable and limited to 2,000 characters.
 - Validation for unknown/partial values.
 - Clear saving/saved/error feedback.
@@ -52,6 +52,8 @@ Tests:
 
 ## Step 2 — Relationship CRUD
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Goal: explicitly manage canonical kinship relationships.
 
 Add:
@@ -61,7 +63,9 @@ Add:
 - Add partner/spouse.
 - Select an edge and inspect its type.
 - Remove relationship with confirmation.
-- Prevent duplicate/self/cyclic parent-child relationships.\n- Persist only canonical parent-child and partnership edges; derived kinship/address labels are inferred from graph paths.
+- Prevent duplicate/self/cyclic parent-child relationships.
+- Persist only canonical parent-child and partnership edges; derived kinship/address labels are inferred from graph paths.
+- Use known sex metadata only for direct display labels such as cha/mẹ, con trai/con gái, chồng/vợ; unknown sex stays neutral.
 
 Server commands:
 

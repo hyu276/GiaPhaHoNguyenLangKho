@@ -36,6 +36,7 @@ import {
 } from "@/features/tree/components/relationship-editor-panel";
 import type {
   CreatePersonInput,
+  PersonSex,
   PersonVisibility,
   UpdatePersonInput,
 } from "@/features/tree/person-input";
@@ -46,6 +47,7 @@ export type EditorPerson = {
   description: string | null;
   birthYear: number | null;
   deathYear: number | null;
+  sex: PersonSex | null;
   visibility: PersonVisibility;
   position: { x: number; y: number };
 };

@@ -14,12 +14,14 @@ import type {
   CreatePartnershipInput,
   RemoveRelationshipInput,
 } from "@/features/tree/relationship-input";
+import type { PersonSex } from "@/features/tree/person-input";
 
 export type RelationshipPerson = {
   id: string;
   displayName: string;
   birthYear: number | null;
   deathYear: number | null;
+  sex: PersonSex | null;
 };
 
 export type RelationshipMutationResult =
@@ -65,12 +67,33 @@ function getIntentLabel(intent: RelationshipIntent) {
   return "Thêm hôn phối";
 }
 
+function getSexLabel(
+  sex: PersonSex | null,
+  maleLabel: string,
+  femaleLabel: string,
+  unknownLabel: string,
+) {
+  if (sex === "male") return maleLabel;
+  if (sex === "female") return femaleLabel;
+  return unknownLabel;
+}
+
 function getDirectRelationshipLabel(
   relationship: RelationshipRecord,
   focalPersonId: string,
+  otherPerson: RelationshipPerson | undefined,
 ) {
-  if (relationship.kind === "partnership") return "Hôn phối";
-  return relationship.sourcePersonId === focalPersonId ? "Con" : "Cha / mẹ";
+  const otherSex = otherPerson?.sex ?? null;
+
+  if (relationship.kind === "partnership") {
+    return getSexLabel(otherSex, "Chồng", "Vợ", "Hôn phối");
+  }
+
+  if (relationship.sourcePersonId === focalPersonId) {
+    return getSexLabel(otherSex, "Con trai", "Con gái", "Con");
+  }
+
+  return getSexLabel(otherSex, "Cha", "Mẹ", "Cha / mẹ");
 }
 
 function getOtherPersonId(
@@ -144,6 +167,7 @@ function DirectRelationshipList({
     <div className="mt-3 space-y-2">
       {directRelationships.map((relationship) => {
         const otherPersonId = getOtherPersonId(relationship, focalPerson.id);
+        const otherPerson = people.find((person) => person.id === otherPersonId);
         return (
           <div
             className="rounded-xl border border-border bg-background px-3 py-2"
@@ -153,7 +177,7 @@ function DirectRelationshipList({
               {getPersonName(people, otherPersonId)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {getDirectRelationshipLabel(relationship, focalPerson.id)}
+              {getDirectRelationshipLabel(relationship, focalPerson.id, otherPerson)}
             </p>
           </div>
         );
@@ -412,8 +436,14 @@ function RelationshipEndpoints({
   people,
   relationship,
 }: Pick<RelationshipInspectorProps, "people" | "relationship">) {
-  const sourceName = getPersonName(people, relationship.sourcePersonId);
-  const targetName = getPersonName(people, relationship.targetPersonId);
+  const sourcePerson = people.find(
+    (person) => person.id === relationship.sourcePersonId,
+  );
+  const targetPerson = people.find(
+    (person) => person.id === relationship.targetPersonId,
+  );
+  const sourceName = sourcePerson?.displayName ?? "Người không xác định";
+  const targetName = targetPerson?.displayName ?? "Người không xác định";
 
   if (relationship.kind === "partnership") {
     return (
@@ -426,11 +456,15 @@ function RelationshipEndpoints({
   return (
     <div className="mt-4 space-y-2 text-sm">
       <p>
-        <span className="text-muted-foreground">Cha / mẹ:</span>{" "}
+        <span className="text-muted-foreground">
+          {getSexLabel(sourcePerson?.sex ?? null, "Cha", "Mẹ", "Cha / mẹ")}:
+        </span>{" "}
         <strong className="text-card-foreground">{sourceName}</strong>
       </p>
       <p>
-        <span className="text-muted-foreground">Con:</span>{" "}
+        <span className="text-muted-foreground">
+          {getSexLabel(targetPerson?.sex ?? null, "Con trai", "Con gái", "Con")}:
+        </span>{" "}
         <strong className="text-card-foreground">{targetName}</strong>
       </p>
     </div>

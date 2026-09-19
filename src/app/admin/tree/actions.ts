@@ -81,7 +81,6 @@ export async function updatePerson(
   return { ok: true, personId: data.id };
 }
 
-
 export async function archivePerson(
   input: PersonStateInput,
 ): Promise<PersonMutationResult> {

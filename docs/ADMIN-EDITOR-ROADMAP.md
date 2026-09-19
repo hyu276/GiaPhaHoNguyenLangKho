@@ -82,6 +82,8 @@ Tests:
 
 ## Step 3 — Archive / restore and destructive-action safety
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Goal: avoid dangerous hard deletes.
 
 Add:
@@ -90,8 +92,12 @@ Add:
 - Restore archived person.
 - Impact preview showing connected relationships before archival.
 - Hide archived records from normal views with an admin filter to reveal them.
+- Keep relationships and layout rows intact across archive/restore.
+- Reject profile edits and new relationship mutations while a person is archived.
+- Enforce archived-record hiding for spectator/anonymous access at RLS level.
+- Revoke authenticated hard-delete permission for people.
 
-Do not add hard delete until an explicit recovery/audit design exists.
+Hard delete remains unavailable until an explicit recovery/audit design exists.
 
 ## Step 4 — Search, filter, focus, and branch navigation
 

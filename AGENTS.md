@@ -31,6 +31,17 @@ Security, privacy, genealogy data integrity, and authorization rules are non-neg
 7. Report any check that could not be run; never claim a check passed when it was not executed.
 8. If a change alters architecture, data modeling, security assumptions, or development conventions, update the relevant file in `docs/rules/` in the same change.
 
+## Vercel deployment retention
+
+Any agent that inspects, creates, promotes, rolls back, or deletes Vercel deployments MUST read and enforce `docs/rules/11-VERCEL-DEPLOYMENT-RETENTION.md`.
+
+- A Vercel project must never intentionally retain more than 10 deployments at one time.
+- Before creating a new deployment, prune the project to 9 or fewer retained deployments; the preferred steady-state target is 8 or fewer.
+- Delete terminal failed/error/canceled deployments first, then obsolete draft/preview deployments, then the oldest superseded successful deployments.
+- Never delete the current production deployment, a deployment still building or queued, or a deployment explicitly reserved for an active rollback/investigation.
+- If the project cannot be reduced below the pre-deploy threshold safely, do not create another deployment until the retention conflict is resolved.
+- After every deployment or rollback, run retention cleanup again instead of allowing stale deployments to accumulate.
+
 ## Hard prohibitions
 
 - Never commit secrets, credentials, private keys, service-role keys, `.env*` values, or production data.

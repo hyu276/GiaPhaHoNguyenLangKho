@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Bản demo tĩnh cho admin editor của Gia phả họ Nguyễn Làng Khô."
+    />
+    <title>Admin Editor Preview · Gia phả họ Nguyễn Làng Khô</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">GitHub Pages · synthetic demo</p>
+        <h1>Admin Genealogy Editor</h1>
+      </div>
+      <div class="topbar-actions">
+        <span class="status" id="saveStatus">Demo local · chưa kết nối Supabase</span>
+        <button class="button secondary" id="resetDemo" type="button">Reset demo</button>
+      </div>
+    </header>
+
+    <div class="notice">
+      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Không có thao tác nào ghi vào
+      database production.
+    </div>
+
+    <main class="workspace">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Công cụ</p>
+              <h2>Quản trị</h2>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>Tìm người</span>
+            <input id="searchInput" type="search" placeholder="Nhập tên..." />
+          </label>
+
+          <div class="button-grid">
+            <button class="button primary" id="addPerson" type="button">+ Thêm người</button>
+            <button class="button" id="editPerson" type="button">Sửa người</button>
+            <button class="button" id="addParent" type="button">+ Cha / mẹ</button>
+            <button class="button" id="addChild" type="button">+ Con</button>
+            <button class="button" id="addPartner" type="button">+ Hôn phối</button>
+            <button class="button danger" id="archivePerson" type="button">Lưu trữ</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="button-row">
+            <button class="icon-button" id="undoButton" type="button" aria-label="Hoàn tác">
+              ↶
+            </button>
+            <button class="icon-button" id="redoButton" type="button" aria-label="Làm lại">
+              ↷
+            </button>
+            <button class="button secondary grow" id="fitButton" type="button">Focus toàn cây</button>
+          </div>
+
+          <label class="toggle-row">
+            <input id="showArchived" type="checkbox" />
+            <span>Hiện người đã lưu trữ</span>
+          </label>
+        </section>
+
+        <section class="panel compact">
+          <p class="eyebrow">Roadmap preview</p>
+          <ol class="roadmap-list">
+            <li class="done">Drag layout</li>
+            <li class="active">Person CRUD</li>
+            <li>Relationship CRUD</li>
+            <li>Archive / restore</li>
+            <li>Search & branch focus</li>
+            <li>Sources & provenance</li>
+            <li>Merge duplicates</li>
+            <li>Audit / conflict / undo</li>
+          </ol>
+        </section>
+      </aside>
+
+      <section class="canvas-panel">
+        <div class="canvas-toolbar">
+          <div>
+            <p class="eyebrow">Sơ đồ tương tác</p>
+            <p class="muted">Kéo node để thử layout · click node để mở inspector</p>
+          </div>
+          <div class="legend">
+            <span><i class="dot public"></i>Công khai</span>
+            <span><i class="dot private"></i>Riêng tư</span>
+            <span><i class="line parent"></i>Cha/mẹ → con</span>
+            <span><i class="line partner"></i>Hôn phối</span>
+          </div>
+        </div>
+        <div class="canvas" id="canvas">
+          <svg class="edges" id="edges" aria-hidden="true"></svg>
+          <div id="nodes"></div>
+          <div class="empty-search" id="emptySearch" hidden>Không có người phù hợp.</div>
+        </div>
+      </section>
+
+      <aside class="inspector">
+        <section class="panel inspector-panel">
+          <p class="eyebrow">Inspector</p>
+          <div id="inspectorEmpty">
+            <h2>Chưa chọn người</h2>
+            <p class="muted">Chọn một node trên cây để xem hồ sơ và thao tác quản trị.</p>
+          </div>
+
+          <div id="inspectorContent" hidden>
+            <div class="person-heading">
+              <div>
+                <span class="privacy-pill" id="privacyPill">Công khai</span>
+                <h2 id="personName"></h2>
+                <p class="muted" id="personYears"></p>
+              </div>
+              <button class="icon-button" id="focusSelected" type="button" aria-label="Focus người">
+                ◎
+              </button>
+            </div>
+
+            <dl class="facts">
+              <div><dt>ID demo</dt><dd id="personId"></dd></div>
+              <div><dt>Trạng thái</dt><dd id="personState"></dd></div>
+              <div><dt>Vị trí</dt><dd id="personPosition"></dd></div>
+            </dl>
+
+            <div class="divider"></div>
+
+            <h3>Quan hệ trực tiếp</h3>
+            <div id="relationList" class="relation-list"></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <dialog id="personDialog">
+      <form method="dialog" id="personForm" class="dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Person record</p>
+            <h2 id="dialogTitle">Thêm người</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Đóng">×</button>
+        </div>
+        <input id="editingId" type="hidden" />
+        <label class="field">
+          <span>Họ tên</span>
+          <input id="nameField" required maxlength="120" />
+        </label>
+        <div class="two-col">
+          <label class="field">
+            <span>Năm sinh</span>
+            <input id="birthField" type="number" min="1" max="2200" />
+          </label>
+          <label class="field">
+            <span>Năm mất</span>
+            <input id="deathField" type="number" min="1" max="2200" />
+          </label>
+        </div>
+        <label class="field">
+          <span>Hiển thị</span>
+          <select id="visibilityField">
+            <option value="public">Công khai</option>
+            <option value="private">Riêng tư</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button class="button secondary" value="cancel">Hủy</button>
+          <button class="button primary" id="savePerson" value="default">Lưu</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="relationshipDialog">
+      <form method="dialog" id="relationshipForm" class="dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Relationship command</p>
+            <h2 id="relationshipTitle">Thêm quan hệ</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Đóng">×</button>
+        </div>
+        <p class="muted" id="relationshipSummary"></p>
+        <label class="field">
+          <span>Chọn người còn lại</span>
+          <select id="relationshipTarget" required></select>
+        </label>
+        <div class="dialog-actions">
+          <button class="button secondary" value="cancel">Hủy</button>
+          <button class="button primary" id="saveRelationship" value="default">Tạo quan hệ</button>
+        </div>
+      </form>
+    </dialog>
+
+    <template id="relationTemplate">
+      <div class="relation-item">
+        <div>
+          <strong class="relation-name"></strong>
+          <span class="relation-kind"></span>
+        </div>
+        <button class="link-danger relation-remove" type="button">Xóa quan hệ</button>
+      </div>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

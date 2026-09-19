@@ -505,6 +505,64 @@ function EditPersonPanel({
   );
 }
 
+function SelectedPersonDetails(props: SidebarProps) {
+  if (!props.selectedPerson) return null;
+
+  const relationshipReadOnly =
+    props.readOnly || isArchived(props.selectedPerson);
+
+  return (
+    <>
+      {props.readOnly ? null : (
+        <PersonArchiveControls
+          archivePerson={props.archivePerson}
+          onChanged={props.onPersonStateChanged}
+          person={props.selectedPerson}
+          relationshipCount={props.selectedRelationshipCount}
+          restorePerson={props.restorePerson}
+        />
+      )}
+      <PersonRelationshipSection
+        createParentChildRelationship={props.createParentChildRelationship}
+        createPartnership={props.createPartnership}
+        focalPerson={props.selectedPerson}
+        onChanged={props.onRelationshipChanged}
+        people={props.people}
+        readOnly={relationshipReadOnly}
+        relationships={props.relationships}
+      />
+    </>
+  );
+}
+
+function DefaultEditorSidebar(props: SidebarProps) {
+  return (
+    <aside className="rounded-3xl border border-border bg-card p-5">
+      {props.readOnly ? null : (
+        <Button className="w-full" onClick={props.onStartCreate}>
+          Thêm người
+        </Button>
+      )}
+      <ArchiveFilter
+        archivedCount={props.archivedCount}
+        onChange={props.onShowArchivedChange}
+        readOnly={props.readOnly}
+        showArchived={props.showArchived}
+      />
+
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Đang chọn
+      </p>
+      <SelectedPersonSummary
+        onStartEdit={props.onStartEdit}
+        readOnly={props.readOnly}
+        selectedPerson={props.selectedPerson}
+      />
+      <SelectedPersonDetails {...props} />
+    </aside>
+  );
+}
+
 function EditorSidebar(props: SidebarProps) {
   if (props.selectedRelationship) {
     return (
@@ -545,50 +603,7 @@ function EditorSidebar(props: SidebarProps) {
     );
   }
 
-  return (
-    <aside className="rounded-3xl border border-border bg-card p-5">
-      {props.readOnly ? null : (
-        <Button className="w-full" onClick={props.onStartCreate}>
-          Thêm người
-        </Button>
-      )}
-      <ArchiveFilter
-        archivedCount={props.archivedCount}
-        onChange={props.onShowArchivedChange}
-        readOnly={props.readOnly}
-        showArchived={props.showArchived}
-      />
-
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Đang chọn
-      </p>
-      <SelectedPersonSummary
-        onStartEdit={props.onStartEdit}
-        readOnly={props.readOnly}
-        selectedPerson={props.selectedPerson}
-      />
-      {props.selectedPerson && !props.readOnly ? (
-        <PersonArchiveControls
-          archivePerson={props.archivePerson}
-          onChanged={props.onPersonStateChanged}
-          person={props.selectedPerson}
-          relationshipCount={props.selectedRelationshipCount}
-          restorePerson={props.restorePerson}
-        />
-      ) : null}
-      {props.selectedPerson ? (
-        <PersonRelationshipSection
-          createParentChildRelationship={props.createParentChildRelationship}
-          createPartnership={props.createPartnership}
-          focalPerson={props.selectedPerson}
-          onChanged={props.onRelationshipChanged}
-          people={props.people}
-          readOnly={props.readOnly || isArchived(props.selectedPerson)}
-          relationships={props.relationships}
-        />
-      ) : null}
-    </aside>
-  );
+  return <DefaultEditorSidebar {...props} />;
 }
 
 export function AdminTreeEditor({

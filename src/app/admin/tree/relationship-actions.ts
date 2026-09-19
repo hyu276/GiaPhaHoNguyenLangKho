@@ -26,21 +26,21 @@ function validationMessage(error: { issues: Array<{ message: string }> }) {
 }
 
 function relationshipDatabaseMessage(error: DatabaseError) {
+  const message = error.message ?? "";
+
   if (error.code === "23505") {
     return "Quan hệ này đã tồn tại.";
   }
 
-  if (error.message?.includes("ancestry cycle")) {
+  if (message.includes("ancestry cycle")) {
     return "Quan hệ cha/mẹ – con này sẽ tạo vòng lặp tổ tiên.";
   }
 
-  if (error.message?.includes("relationships_no_self_link")) {
+  if (message.includes("relationships_no_self_link")) {
     return "Không thể tạo quan hệ với chính người đó.";
   }
 
-  if (
-    error.message?.includes("archived people cannot receive new relationships")
-  ) {
+  if (message.includes("archived people cannot receive new relationships")) {
     return "Hãy khôi phục hồ sơ đã lưu trữ trước khi thêm quan hệ mới.";
   }
 

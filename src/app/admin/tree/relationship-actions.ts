@@ -14,8 +14,7 @@ import {
 import { requireAdmin } from "@/lib/auth/admin";
 
 export type RelationshipMutationResult =
-  | { ok: true; relationshipId: string }
-  | { ok: false; message: string };
+  { ok: true; relationshipId: string } | { ok: false; message: string };
 
 type DatabaseError = {
   code?: string;

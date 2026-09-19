@@ -87,6 +87,18 @@ type SaveState =
   | { status: "saved"; personId: string }
   | { status: "error"; personId: string; message: string };
 
+type SidebarProps = {
+  createPerson: CreatePerson | undefined;
+  formMode: PersonFormMode;
+  onCancelForm: () => void;
+  onSaved: (personId: string) => void;
+  onStartCreate: () => void;
+  onStartEdit: () => void;
+  readOnly: boolean;
+  selectedPerson: EditorPerson | null;
+  updatePerson: UpdatePerson | undefined;
+};
+
 function formatYears(person: EditorPerson) {
   const birth = person.birthYear?.toString() ?? "?";
   const death = person.deathYear?.toString() ?? "nay";
@@ -181,6 +193,154 @@ function getVisibilityLabel(visibility: PersonVisibility) {
   return visibility === "private" ? "Riêng tư" : "Công khai";
 }
 
+function EmptySelection({ readOnly }: { readOnly: boolean }) {
+  return (
+    <p className="mt-4 text-sm leading-6 text-muted-foreground">
+      {getEmptyDescription(readOnly)}
+    </p>
+  );
+}
+
+function SelectedPersonSummary({
+  onStartEdit,
+  readOnly,
+  selectedPerson,
+}: {
+  onStartEdit: () => void;
+  readOnly: boolean;
+  selectedPerson: EditorPerson | null;
+}) {
+  if (!selectedPerson) return <EmptySelection readOnly={readOnly} />;
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-3xl text-card-foreground">
+            {selectedPerson.displayName}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {formatYears(selectedPerson)}
+          </p>
+        </div>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {getVisibilityLabel(selectedPerson.visibility)}
+        </span>
+      </div>
+
+      <p className="mt-6 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+        {selectedPerson.description ?? "Chưa có mô tả."}
+      </p>
+
+      {readOnly ? null : (
+        <Button className="mt-6 w-full" onClick={onStartEdit} variant="outline">
+          Sửa hồ sơ
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function CreatePersonPanel({
+  createPerson,
+  onCancelForm,
+  onSaved,
+}: Pick<SidebarProps, "createPerson" | "onCancelForm" | "onSaved">) {
+  async function handleSave(input: CreatePersonInput) {
+    if (!createPerson) {
+      return {
+        ok: false as const,
+        message: "Tài khoản này không thể thêm người.",
+      };
+    }
+
+    return createPerson(input);
+  }
+
+  return (
+    <PersonEditorForm
+      onCancel={onCancelForm}
+      onSave={handleSave}
+      onSaved={onSaved}
+      person={null}
+    />
+  );
+}
+
+function EditPersonPanel({
+  onCancelForm,
+  onSaved,
+  selectedPerson,
+  updatePerson,
+}: Pick<
+  SidebarProps,
+  "onCancelForm" | "onSaved" | "selectedPerson" | "updatePerson"
+>) {
+  async function handleSave(input: CreatePersonInput) {
+    if (!updatePerson || !selectedPerson) {
+      return { ok: false as const, message: "Chưa chọn người để cập nhật." };
+    }
+
+    return updatePerson({ ...input, personId: selectedPerson.id });
+  }
+
+  return (
+    <PersonEditorForm
+      key={selectedPerson?.id ?? "missing"}
+      onCancel={onCancelForm}
+      onSave={handleSave}
+      onSaved={onSaved}
+      person={selectedPerson}
+    />
+  );
+}
+
+function EditorSidebar(props: SidebarProps) {
+  if (props.formMode === "create") {
+    return (
+      <aside className="rounded-3xl border border-border bg-card p-5">
+        <CreatePersonPanel
+          createPerson={props.createPerson}
+          onCancelForm={props.onCancelForm}
+          onSaved={props.onSaved}
+        />
+      </aside>
+    );
+  }
+
+  if (props.formMode === "edit") {
+    return (
+      <aside className="rounded-3xl border border-border bg-card p-5">
+        <EditPersonPanel
+          onCancelForm={props.onCancelForm}
+          onSaved={props.onSaved}
+          selectedPerson={props.selectedPerson}
+          updatePerson={props.updatePerson}
+        />
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="rounded-3xl border border-border bg-card p-5">
+      {props.readOnly ? null : (
+        <Button className="w-full" onClick={props.onStartCreate}>
+          Thêm người
+        </Button>
+      )}
+
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Đang chọn
+      </p>
+      <SelectedPersonSummary
+        onStartEdit={props.onStartEdit}
+        readOnly={props.readOnly}
+        selectedPerson={props.selectedPerson}
+      />
+    </aside>
+  );
+}
+
 export function AdminTreeEditor({
   people,
   relationships,
@@ -202,11 +362,9 @@ export function AdminTreeEditor({
     new Map(people.map((person) => [person.id, person.position])),
   );
 
-  const selectedPerson = people.find(
-    (person) => person.id === selectedPersonId,
-  );
+  const selectedPerson =
+    people.find((person) => person.id === selectedPersonId) ?? null;
   const statusMessage = getStatusMessage(readOnly, saveState);
-  const emptyDescription = getEmptyDescription(readOnly);
 
   useEffect(() => {
     setNodes(createNodes(people));
@@ -271,26 +429,6 @@ export function AdminTreeEditor({
     router.refresh();
   }
 
-  async function handleCreate(input: CreatePersonInput) {
-    if (!createPerson) {
-      return {
-        ok: false as const,
-        message: "Tài khoản này không thể thêm người.",
-      };
-    }
-    return createPerson(input);
-  }
-
-  async function handleUpdate(input: CreatePersonInput) {
-    if (!updatePerson || !selectedPerson) {
-      return { ok: false as const, message: "Chưa chọn người để cập nhật." };
-    }
-    return updatePerson({ ...input, personId: selectedPerson.id });
-  }
-
-  const formPerson = formMode === "edit" ? (selectedPerson ?? null) : null;
-  const formSave = formMode === "edit" ? handleUpdate : handleCreate;
-
   return (
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card">
@@ -326,64 +464,17 @@ export function AdminTreeEditor({
         </div>
       </section>
 
-      <aside className="rounded-3xl border border-border bg-card p-5">
-        {!readOnly && formMode === null ? (
-          <Button className="w-full" onClick={() => setFormMode("create")}>
-            Thêm người
-          </Button>
-        ) : null}
-
-        {formMode ? (
-          <PersonEditorForm
-            key={`${formMode}:${formPerson?.id ?? "new"}`}
-            onCancel={() => setFormMode(null)}
-            onSave={formSave}
-            onSaved={handleSaved}
-            person={formPerson}
-          />
-        ) : (
-          <>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Đang chọn
-            </p>
-            {selectedPerson ? (
-              <div className="mt-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-display text-3xl text-card-foreground">
-                      {selectedPerson.displayName}
-                    </h2>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {formatYears(selectedPerson)}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                    {getVisibilityLabel(selectedPerson.visibility)}
-                  </span>
-                </div>
-
-                <p className="mt-6 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                  {selectedPerson.description ?? "Chưa có mô tả."}
-                </p>
-
-                {!readOnly ? (
-                  <Button
-                    className="mt-6 w-full"
-                    onClick={() => setFormMode("edit")}
-                    variant="outline"
-                  >
-                    Sửa hồ sơ
-                  </Button>
-                ) : null}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                {emptyDescription}
-              </p>
-            )}
-          </>
-        )}
-      </aside>
+      <EditorSidebar
+        createPerson={createPerson}
+        formMode={formMode}
+        onCancelForm={() => setFormMode(null)}
+        onSaved={handleSaved}
+        onStartCreate={() => setFormMode("create")}
+        onStartEdit={() => setFormMode("edit")}
+        readOnly={readOnly}
+        selectedPerson={selectedPerson}
+        updatePerson={updatePerson}
+      />
     </div>
   );
 }

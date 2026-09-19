@@ -35,13 +35,31 @@ type Draft = {
   visibility: PersonVisibility;
 };
 
+const EMPTY_DRAFT: Draft = {
+  displayName: "",
+  description: "",
+  birthYear: "",
+  deathYear: "",
+  visibility: "private",
+};
+
+function formatYearField(year: number | null) {
+  return year === null ? "" : year.toString();
+}
+
+function formatDescriptionField(description: string | null) {
+  return description ?? "";
+}
+
 function toDraft(person: PersonFormPerson | null): Draft {
+  if (!person) return { ...EMPTY_DRAFT };
+
   return {
-    displayName: person?.displayName ?? "",
-    description: person?.description ?? "",
-    birthYear: person?.birthYear?.toString() ?? "",
-    deathYear: person?.deathYear?.toString() ?? "",
-    visibility: person?.visibility ?? "private",
+    displayName: person.displayName,
+    description: formatDescriptionField(person.description),
+    birthYear: formatYearField(person.birthYear),
+    deathYear: formatYearField(person.deathYear),
+    visibility: person.visibility,
   };
 }
 

@@ -5,6 +5,11 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { createPerson, updatePerson } from "@/app/admin/tree/actions";
 import {
+  createParentChildRelationship,
+  createPartnership,
+  removeRelationship,
+} from "@/app/admin/tree/relationship-actions";
+import {
   AdminTreeEditor,
   type EditorPerson,
   type EditorRelationship,
@@ -115,13 +120,23 @@ async function savePersonLayout(
 function getAdminMutations(role: TreeViewerRole) {
   if (role === "spectator") {
     return {
+      createParentChildRelationship: undefined,
+      createPartnership: undefined,
       createPerson: undefined,
+      removeRelationship: undefined,
       updatePerson: undefined,
       saveLayout: undefined,
     };
   }
 
-  return { createPerson, updatePerson, saveLayout: savePersonLayout };
+  return {
+    createParentChildRelationship,
+    createPartnership,
+    createPerson,
+    removeRelationship,
+    updatePerson,
+    saveLayout: savePersonLayout,
+  };
 }
 
 async function signOut() {
@@ -211,10 +226,13 @@ export default async function AdminTreePage() {
       </header>
 
       <AdminTreeEditor
+        createParentChildRelationship={mutations.createParentChildRelationship}
+        createPartnership={mutations.createPartnership}
         createPerson={mutations.createPerson}
         people={people}
         readOnly={readOnly}
         relationships={relationships}
+        removeRelationship={mutations.removeRelationship}
         saveLayout={mutations.saveLayout}
         updatePerson={mutations.updatePerson}
       />

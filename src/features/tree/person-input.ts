@@ -37,6 +37,10 @@ export const createPersonInputSchema = personFieldsSchema.refine(
   },
 );
 
+export const personStateInputSchema = z.object({
+  personId: z.string().uuid(),
+});
+
 export const updatePersonInputSchema = personFieldsSchema
   .extend({
     personId: z.string().uuid(),
@@ -50,3 +54,4 @@ export type PersonVisibility = z.infer<typeof personVisibilitySchema>;
 export type PersonSex = z.infer<typeof personSexSchema>;
 export type CreatePersonInput = z.input<typeof createPersonInputSchema>;
 export type UpdatePersonInput = z.input<typeof updatePersonInputSchema>;
+export type PersonStateInput = z.input<typeof personStateInputSchema>;

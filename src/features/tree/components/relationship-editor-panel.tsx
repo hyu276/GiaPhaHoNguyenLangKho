@@ -438,43 +438,97 @@ export function PersonRelationshipSection({
   );
 }
 
-function RelationshipEndpoints({
-  people,
-  relationship,
-}: Pick<RelationshipInspectorProps, "people" | "relationship">) {
-  const sourcePerson = people.find(
-    (person) => person.id === relationship.sourcePersonId,
-  );
-  const targetPerson = people.find(
-    (person) => person.id === relationship.targetPersonId,
-  );
-  const sourceName = sourcePerson?.displayName ?? "Người không xác định";
-  const targetName = targetPerson?.displayName ?? "Người không xác định";
+function getRelationshipPerson(
+  people: RelationshipPerson[],
+  personId: string,
+) {
+  return people.find((person) => person.id === personId);
+}
 
-  if (relationship.kind === "partnership") {
-    return (
-      <p className="mt-4 text-sm leading-6 text-muted-foreground">
-        {sourceName} ↔ {targetName}
-      </p>
-    );
-  }
+function getRelationshipPersonName(person: RelationshipPerson | undefined) {
+  return person?.displayName ?? "Người không xác định";
+}
+
+function PartnershipEndpoints({
+  sourcePerson,
+  targetPerson,
+}: {
+  sourcePerson: RelationshipPerson | undefined;
+  targetPerson: RelationshipPerson | undefined;
+}) {
+  return (
+    <p className="mt-4 text-sm leading-6 text-muted-foreground">
+      {getRelationshipPersonName(sourcePerson)} ↔{" "}
+      {getRelationshipPersonName(targetPerson)}
+    </p>
+  );
+}
+
+function ParentChildEndpoints({
+  sourcePerson,
+  targetPerson,
+}: {
+  sourcePerson: RelationshipPerson | undefined;
+  targetPerson: RelationshipPerson | undefined;
+}) {
+  const parentLabel = getSexLabel(
+    sourcePerson?.sex ?? null,
+    "Cha",
+    "Mẹ",
+    "Cha / mẹ",
+  );
+  const childLabel = getSexLabel(
+    targetPerson?.sex ?? null,
+    "Con trai",
+    "Con gái",
+    "Con",
+  );
 
   return (
     <div className="mt-4 space-y-2 text-sm">
       <p>
-        <span className="text-muted-foreground">
-          {getSexLabel(sourcePerson?.sex ?? null, "Cha", "Mẹ", "Cha / mẹ")}:
-        </span>{" "}
-        <strong className="text-card-foreground">{sourceName}</strong>
+        <span className="text-muted-foreground">{parentLabel}:</span>{" "}
+        <strong className="text-card-foreground">
+          {getRelationshipPersonName(sourcePerson)}
+        </strong>
       </p>
       <p>
-        <span className="text-muted-foreground">
-          {getSexLabel(targetPerson?.sex ?? null, "Con trai", "Con gái", "Con")}
-          :
-        </span>{" "}
-        <strong className="text-card-foreground">{targetName}</strong>
+        <span className="text-muted-foreground">{childLabel}:</span>{" "}
+        <strong className="text-card-foreground">
+          {getRelationshipPersonName(targetPerson)}
+        </strong>
       </p>
     </div>
+  );
+}
+
+function RelationshipEndpoints({
+  people,
+  relationship,
+}: Pick<RelationshipInspectorProps, "people" | "relationship">) {
+  const sourcePerson = getRelationshipPerson(
+    people,
+    relationship.sourcePersonId,
+  );
+  const targetPerson = getRelationshipPerson(
+    people,
+    relationship.targetPersonId,
+  );
+
+  if (relationship.kind === "partnership") {
+    return (
+      <PartnershipEndpoints
+        sourcePerson={sourcePerson}
+        targetPerson={targetPerson}
+      />
+    );
+  }
+
+  return (
+    <ParentChildEndpoints
+      sourcePerson={sourcePerson}
+      targetPerson={targetPerson}
+    />
   );
 }
 

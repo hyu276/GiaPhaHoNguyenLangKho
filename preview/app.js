@@ -1,4 +1,4 @@
-const STORAGE_KEY = "giapha-admin-demo-v2";
+const STORAGE_KEY = "giapha-admin-demo-v3";
 
 const initialState = {
   people: [
@@ -8,6 +8,7 @@ const initialState = {
       description: "Thủy tổ của nhánh demo, lưu lại để minh họa hồ sơ tiểu sử.",
       birth: 1902,
       death: 1978,
+      sex: "male",
       visibility: "public",
       archived: false,
       x: 90,
@@ -19,6 +20,7 @@ const initialState = {
       description: "Hồ sơ synthetic dùng để thử chỉnh sửa mô tả và visibility.",
       birth: 1908,
       death: 1987,
+      sex: "female",
       visibility: "public",
       archived: false,
       x: 390,
@@ -30,6 +32,7 @@ const initialState = {
       description: "Đại diện thế hệ thứ hai trong cây demo.",
       birth: 1932,
       death: 2004,
+      sex: "male",
       visibility: "public",
       archived: false,
       x: 240,
@@ -41,6 +44,7 @@ const initialState = {
       description: "Ví dụ hồ sơ riêng tư của người còn sống.",
       birth: 1936,
       death: null,
+      sex: "female",
       visibility: "private",
       archived: false,
       x: 540,
@@ -52,6 +56,7 @@ const initialState = {
       description: "Bản ghi synthetic phục vụ kiểm thử Person CRUD.",
       birth: 1958,
       death: null,
+      sex: "male",
       visibility: "public",
       archived: false,
       x: 240,
@@ -63,6 +68,7 @@ const initialState = {
       description: null,
       birth: 1962,
       death: null,
+      sex: "female",
       visibility: "private",
       archived: false,
       x: 540,
@@ -166,9 +172,27 @@ function formatYears(person) {
   return `${birth} – ${death}`;
 }
 
+function sexLabel(sex, maleLabel, femaleLabel, unknownLabel) {
+  if (sex === "male") return maleLabel;
+  if (sex === "female") return femaleLabel;
+  return unknownLabel;
+}
+
 function relationshipLabel(relation, selectedPersonId) {
-  if (relation.kind === "partnership") return "Hôn phối";
-  return relation.source === selectedPersonId ? "Con" : "Cha / mẹ";
+  const otherId =
+    relation.source === selectedPersonId ? relation.target : relation.source;
+  const other = getPerson(otherId);
+  const otherSex = other?.sex ?? null;
+
+  if (relation.kind === "partnership") {
+    return sexLabel(otherSex, "Chồng", "Vợ", "Hôn phối");
+  }
+
+  if (relation.source === selectedPersonId) {
+    return sexLabel(otherSex, "Con trai", "Con gái", "Con");
+  }
+
+  return sexLabel(otherSex, "Cha", "Mẹ", "Cha / mẹ");
 }
 
 function renderEdges() {
@@ -393,6 +417,7 @@ function openPersonDialog(person = null) {
   updateDescriptionCount();
   document.querySelector("#birthField").value = getPersonField(person, "birth");
   document.querySelector("#deathField").value = getPersonField(person, "death");
+  document.querySelector("#sexField").value = getPersonField(person, "sex");
   document.querySelector("#visibilityField").value = getPersonField(
     person,
     "visibility",
@@ -421,6 +446,7 @@ function readPersonDraft() {
       document.querySelector("#descriptionField").value.trim() || null,
     birth: readNullableYear("#birthField"),
     death: readNullableYear("#deathField"),
+    sex: document.querySelector("#sexField").value || null,
     visibility: document.querySelector("#visibilityField").value,
   };
 }

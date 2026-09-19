@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { createPerson, updatePerson } from "@/app/admin/tree/actions";
 import {
   AdminTreeEditor,
   type EditorPerson,
@@ -20,8 +21,10 @@ type TreeViewerRole = "admin" | "spectator";
 const personRowSchema = z.object({
   id: z.string().uuid(),
   display_name: z.string(),
+  description: z.string().nullable(),
   birth_year: z.number().nullable(),
   death_year: z.number().nullable(),
+  visibility: z.enum(["public", "private"]),
 });
 
 const relationshipRowSchema = z.object({
@@ -109,8 +112,16 @@ async function savePersonLayout(
   return { ok: true };
 }
 
-function getSaveLayout(role: TreeViewerRole) {
-  return role === "spectator" ? undefined : savePersonLayout;
+function getAdminMutations(role: TreeViewerRole) {
+  if (role === "spectator") {
+    return {
+      createPerson: undefined,
+      updatePerson: undefined,
+      saveLayout: undefined,
+    };
+  }
+
+  return { createPerson, updatePerson, saveLayout: savePersonLayout };
 }
 
 async function signOut() {
@@ -125,12 +136,14 @@ export default async function AdminTreePage() {
   const { supabase, user, role } = await requireTreeViewer();
   const readOnly = role === "spectator";
   const viewerLabel = getViewerLabel(role);
-  const saveLayout = getSaveLayout(role);
+  const mutations = getAdminMutations(role);
 
   const [peopleResult, relationshipsResult, layoutsResult] = await Promise.all([
     supabase
       .from("people")
-      .select("id, display_name, birth_year, death_year")
+      .select(
+        "id, display_name, description, birth_year, death_year, visibility",
+      )
       .order("display_name"),
     supabase
       .from("relationships")
@@ -158,8 +171,10 @@ export default async function AdminTreePage() {
   const people: EditorPerson[] = peopleRows.map((person, index) => ({
     id: person.id,
     displayName: person.display_name,
+    description: person.description,
     birthYear: person.birth_year,
     deathYear: person.death_year,
+    visibility: person.visibility,
     position: layoutByPersonId.get(person.id) ?? getFallbackPosition(index),
   }));
 
@@ -196,10 +211,12 @@ export default async function AdminTreePage() {
       </header>
 
       <AdminTreeEditor
+        createPerson={mutations.createPerson}
         people={people}
-        relationships={relationships}
         readOnly={readOnly}
-        saveLayout={saveLayout}
+        relationships={relationships}
+        saveLayout={mutations.saveLayout}
+        updatePerson={mutations.updatePerson}
       />
     </main>
   );

@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   Background,
   Controls,
@@ -16,11 +24,21 @@ import {
 
 import "@xyflow/react/dist/style.css";
 
+import { Button } from "@/components/ui/button";
+import { PersonEditorForm } from "@/features/tree/components/person-editor-form";
+import type {
+  CreatePersonInput,
+  PersonVisibility,
+  UpdatePersonInput,
+} from "@/features/tree/person-input";
+
 export type EditorPerson = {
   id: string;
   displayName: string;
+  description: string | null;
   birthYear: number | null;
   deathYear: number | null;
+  visibility: PersonVisibility;
   position: { x: number; y: number };
 };
 
@@ -38,22 +56,31 @@ export type SaveLayoutInput = {
 };
 
 export type SaveLayoutResult = { ok: true } | { ok: false; message: string };
+type PersonMutationResult =
+  | { ok: true; personId: string }
+  | { ok: false; message: string };
 type SaveLayout = (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
+type CreatePerson = (input: CreatePersonInput) => Promise<PersonMutationResult>;
+type UpdatePerson = (input: UpdatePersonInput) => Promise<PersonMutationResult>;
 
 type AdminTreeEditorProps = {
   people: EditorPerson[];
   relationships: EditorRelationship[];
   readOnly: boolean;
   saveLayout: SaveLayout | undefined;
+  createPerson: CreatePerson | undefined;
+  updatePerson: UpdatePerson | undefined;
 };
 
 type PersonNodeData = {
   displayName: string;
   years: string;
+  visibility: PersonVisibility;
 };
 
 type PersonNode = Node<PersonNodeData, "person">;
 type RelationshipEdge = Edge<{ kind: EditorRelationship["kind"] }>;
+type PersonFormMode = "create" | "edit" | null;
 
 type SaveState =
   | { status: "idle" }
@@ -78,20 +105,14 @@ function getStatusMessage(readOnly: boolean, saveState: SaveState) {
     case "error":
       return saveState.message;
     default:
-      return "Chọn và kéo một người để thay đổi vị trí";
+      return "Chọn một người để xem hồ sơ hoặc kéo để đổi vị trí";
   }
-}
-
-function getSelectedDescription(readOnly: boolean) {
-  return readOnly
-    ? "Tài khoản spectator có thể xem và điều hướng sơ đồ nhưng không thể kéo, chỉnh sửa hoặc lưu dữ liệu."
-    : "Kéo thẻ người trên sơ đồ. Vị trí được lưu khi thao tác kéo kết thúc và sẽ được tải lại từ database ở lần mở trang tiếp theo.";
 }
 
 function getEmptyDescription(readOnly: boolean) {
   return readOnly
     ? "Chọn một người trên sơ đồ để xem thông tin."
-    : "Chọn một người trên sơ đồ để xem thông tin và bắt đầu chỉnh vị trí.";
+    : "Chọn một người để xem/sửa hồ sơ, hoặc thêm người mới.";
 }
 
 function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
@@ -105,7 +126,11 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
       <p className="text-sm font-semibold text-card-foreground">
         {data.displayName}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">{data.years}</p>
+      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>{data.years}</span>
+        <span aria-hidden="true">·</span>
+        <span>{data.visibility === "private" ? "Riêng tư" : "Công khai"}</span>
+      </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
   );
@@ -124,6 +149,7 @@ function createNodes(people: EditorPerson[]): PersonNode[] {
     data: {
       displayName: person.displayName,
       years: formatYears(person),
+      visibility: person.visibility,
     },
   }));
 }
@@ -152,17 +178,25 @@ function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
   });
 }
 
+function getVisibilityLabel(visibility: PersonVisibility) {
+  return visibility === "private" ? "Riêng tư" : "Công khai";
+}
+
 export function AdminTreeEditor({
   people,
   relationships,
   readOnly,
   saveLayout,
+  createPerson,
+  updatePerson,
 }: AdminTreeEditorProps) {
+  const router = useRouter();
   const initialNodes = useMemo(() => createNodes(people), [people]);
   const edges = useMemo(() => createEdges(relationships), [relationships]);
   const [nodes, setNodes, onNodesChange] =
     useNodesState<PersonNode>(initialNodes);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<PersonFormMode>(null);
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
   const [, startTransition] = useTransition();
   const persistedPositions = useRef(
@@ -173,8 +207,14 @@ export function AdminTreeEditor({
     (person) => person.id === selectedPersonId,
   );
   const statusMessage = getStatusMessage(readOnly, saveState);
-  const selectedDescription = getSelectedDescription(readOnly);
   const emptyDescription = getEmptyDescription(readOnly);
+
+  useEffect(() => {
+    setNodes(createNodes(people));
+    persistedPositions.current = new Map(
+      people.map((person) => [person.id, person.position]),
+    );
+  }, [people, setNodes]);
 
   const restorePosition = useCallback(
     (personId: string) => {
@@ -221,17 +261,45 @@ export function AdminTreeEditor({
     [readOnly, restorePosition, saveLayout],
   );
 
+  function handleNodeSelect(personId: string) {
+    setSelectedPersonId(personId);
+    setFormMode(null);
+  }
+
+  function handleSaved(personId: string) {
+    setSelectedPersonId(personId);
+    setFormMode(null);
+    router.refresh();
+  }
+
+  async function handleCreate(input: CreatePersonInput) {
+    if (!createPerson) {
+      return { ok: false as const, message: "Tài khoản này không thể thêm người." };
+    }
+    return createPerson(input);
+  }
+
+  async function handleUpdate(input: CreatePersonInput) {
+    if (!updatePerson || !selectedPerson) {
+      return { ok: false as const, message: "Chưa chọn người để cập nhật." };
+    }
+    return updatePerson({ ...input, personId: selectedPerson.id });
+  }
+
+  const formPerson = formMode === "edit" ? (selectedPerson ?? null) : null;
+  const formSave = formMode === "edit" ? handleUpdate : handleCreate;
+
   return (
-    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card">
         <ReactFlow<PersonNode, RelationshipEdge>
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
-          onNodeClick={(_, node) => setSelectedPersonId(node.id)}
+          onNodeClick={(_, node) => handleNodeSelect(node.id)}
           onNodeDragStop={(_, node) => {
-            setSelectedPersonId(node.id);
+            handleNodeSelect(node.id);
             persistNodePosition(node);
           }}
           nodesDraggable={!readOnly}
@@ -257,25 +325,61 @@ export function AdminTreeEditor({
       </section>
 
       <aside className="rounded-3xl border border-border bg-card p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Đang chọn
-        </p>
-        {selectedPerson ? (
-          <div className="mt-4">
-            <h2 className="font-display text-3xl text-card-foreground">
-              {selectedPerson.displayName}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {formatYears(selectedPerson)}
-            </p>
-            <p className="mt-6 text-sm leading-6 text-muted-foreground">
-              {selectedDescription}
-            </p>
-          </div>
+        {!readOnly && formMode === null ? (
+          <Button className="w-full" onClick={() => setFormMode("create")}>
+            Thêm người
+          </Button>
+        ) : null}
+
+        {formMode ? (
+          <PersonEditorForm
+            key={`${formMode}:${formPerson?.id ?? "new"}`}
+            onCancel={() => setFormMode(null)}
+            onSave={formSave}
+            onSaved={handleSaved}
+            person={formPerson}
+          />
         ) : (
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            {emptyDescription}
-          </p>
+          <>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Đang chọn
+            </p>
+            {selectedPerson ? (
+              <div className="mt-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-display text-3xl text-card-foreground">
+                      {selectedPerson.displayName}
+                    </h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {formatYears(selectedPerson)}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    {getVisibilityLabel(selectedPerson.visibility)}
+                  </span>
+                </div>
+
+                <p className="mt-6 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                  {selectedPerson.description ?? "Chưa có mô tả."}
+                </p>
+
+                {!readOnly ? (
+                  <Button
+                    className="mt-6 w-full"
+                    onClick={() => setFormMode("edit")}
+                    variant="outline"
+                  >
+                    Sửa hồ sơ
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                {emptyDescription}
+              </p>
+            )}
+          </>
         )}
       </aside>
     </div>

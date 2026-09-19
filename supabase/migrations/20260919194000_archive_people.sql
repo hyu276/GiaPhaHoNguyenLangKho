@@ -91,7 +91,7 @@ drop trigger if exists relationships_prevent_archived_endpoints
 on public.relationships;
 
 create trigger relationships_prevent_archived_endpoints
-before insert or update of source_person_id, target_person_id
+before insert or update of relationship_kind, source_person_id, target_person_id
 on public.relationships
 for each row execute function public.prevent_archived_relationship_endpoints();
 

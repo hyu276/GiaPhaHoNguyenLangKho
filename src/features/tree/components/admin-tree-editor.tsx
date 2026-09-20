@@ -1224,6 +1224,77 @@ export function AdminTreeEditor({
     });
   }
 
+  function toggleLayoutLock(personId: string) {
+    const person = people.find((candidate) => candidate.id === personId);
+    if (!person || isArchived(person)) return;
+
+    setLockedPersonIds((current) => {
+      const next = new Set(current);
+      if (next.has(personId)) next.delete(personId);
+      else next.add(personId);
+      return next;
+    });
+  }
+
+  function removeArchivedPositions(positions: Map<string, LayoutPosition>) {
+    people.forEach((person) => {
+      if (isArchived(person)) positions.delete(person.id);
+    });
+    return positions;
+  }
+
+  function resetPersonPosition(personId: string) {
+    const positions = getFallbackLayoutPositions(
+      people,
+      new Set([personId]),
+      lockedPersonIds,
+    );
+    void applyLayoutPositions(removeArchivedPositions(positions));
+  }
+
+  function resetBranchLayout(personId: string) {
+    const branchIds = getBranchPersonIds(relationships, personId);
+    const positions = getFallbackLayoutPositions(
+      people,
+      branchIds,
+      lockedPersonIds,
+    );
+    void applyLayoutPositions(removeArchivedPositions(positions));
+  }
+
+  function autoLayoutBranch(personId: string) {
+    const positions = getAutoLayoutPositions(
+      people,
+      relationships,
+      personId,
+      persistedPositions.current,
+      lockedPersonIds,
+    );
+    void applyLayoutPositions(removeArchivedPositions(positions));
+  }
+
+  async function undoLayout() {
+    const entry = layoutHistory.at(-1);
+    if (!entry) return;
+
+    const saved = await applyLayoutPositions(entry.before, false);
+    if (!saved) return;
+
+    setLayoutHistory((current) => current.slice(0, -1));
+    setLayoutFuture((current) => [...current, entry].slice(-50));
+  }
+
+  async function redoLayout() {
+    const entry = layoutFuture.at(-1);
+    if (!entry) return;
+
+    const saved = await applyLayoutPositions(entry.after, false);
+    if (!saved) return;
+
+    setLayoutFuture((current) => current.slice(0, -1));
+    setLayoutHistory((current) => [...current, entry].slice(-50));
+  }
+
   function clearFilters() {
     setQuery("");
     setLifeFilter("all");

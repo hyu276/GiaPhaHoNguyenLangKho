@@ -457,7 +457,11 @@ function CitationForm({
       </label>
 
       <div className="mt-3 flex gap-2">
-        <Button disabled={saving || sources.length === 0} size="sm" type="submit">
+        <Button
+          disabled={saving || sources.length === 0}
+          size="sm"
+          type="submit"
+        >
           {saving ? "Đang lưu…" : "Lưu citation"}
         </Button>
         <Button

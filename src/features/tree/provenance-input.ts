@@ -64,10 +64,34 @@ export const updateProvenanceSourceInputSchema = z.object({
   ...sourceShape,
 });
 
-const citationShape = {
-  sourceId: z.string().uuid(),
+const targetShape = {
   personId: z.string().uuid().nullable(),
   relationshipId: z.string().uuid().nullable(),
+};
+
+function validateExclusiveTarget(
+  value: { personId: string | null; relationshipId: string | null },
+  context: z.RefinementCtx,
+) {
+  const targetCount =
+    Number(value.personId !== null) + Number(value.relationshipId !== null);
+
+  if (targetCount !== 1) {
+    context.addIssue({
+      code: "custom",
+      message: "Citation phải gắn với đúng một người hoặc một quan hệ.",
+      path: ["personId"],
+    });
+  }
+}
+
+export const provenanceTargetInputSchema = z
+  .object(targetShape)
+  .superRefine(validateExclusiveTarget);
+
+const citationShape = {
+  sourceId: z.string().uuid(),
+  ...targetShape,
   claimKind: provenanceClaimKindSchema,
   claimText: z
     .string()
@@ -90,16 +114,7 @@ function validateCitationTargetAndDate(
   },
   context: z.RefinementCtx,
 ) {
-  const targetCount =
-    Number(value.personId !== null) + Number(value.relationshipId !== null);
-
-  if (targetCount !== 1) {
-    context.addIssue({
-      code: "custom",
-      message: "Citation phải gắn với đúng một người hoặc một quan hệ.",
-      path: ["personId"],
-    });
-  }
+  validateExclusiveTarget(value, context);
 
   const hasDateText = value.dateText !== null;
   const hasDateQualifier = value.dateQualifier !== null;
@@ -135,6 +150,9 @@ export type ProvenanceCertainty = z.infer<typeof provenanceCertaintySchema>;
 export type ProvenanceDateQualifier = z.infer<
   typeof provenanceDateQualifierSchema
 >;
+export type ProvenanceTargetInput = z.input<
+  typeof provenanceTargetInputSchema
+>;
 export type CreateProvenanceSourceInput = z.input<
   typeof createProvenanceSourceInputSchema
 >;
@@ -150,3 +168,26 @@ export type UpdateProvenanceCitationInput = z.input<
 export type RemoveProvenanceCitationInput = z.input<
   typeof removeProvenanceCitationInputSchema
 >;
+
+export type ProvenanceSourceRecord = {
+  id: string;
+  title: string;
+  sourceType: ProvenanceSourceType;
+  repositoryName: string | null;
+  referenceCode: string | null;
+  sourceUrl: string | null;
+};
+
+export type ProvenanceCitationRecord = {
+  id: string;
+  sourceId: string;
+  personId: string | null;
+  relationshipId: string | null;
+  claimKind: ProvenanceClaimKind;
+  claimText: string;
+  citationLocator: string | null;
+  note: string | null;
+  certainty: ProvenanceCertainty;
+  dateText: string | null;
+  dateQualifier: ProvenanceDateQualifier | null;
+};

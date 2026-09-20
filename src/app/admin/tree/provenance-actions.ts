@@ -22,12 +22,10 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ProvenanceSourceMutationResult =
-  | { ok: true; sourceId: string }
-  | { ok: false; message: string };
+  { ok: true; sourceId: string } | { ok: false; message: string };
 
 export type ProvenanceCitationMutationResult =
-  | { ok: true; citationId: string }
-  | { ok: false; message: string };
+  { ok: true; citationId: string } | { ok: false; message: string };
 
 export type ProvenanceLoadResult =
   | {
@@ -151,7 +149,11 @@ export async function loadProvenance(
 
   if (viewer.role === "spectator") {
     if (sourceIds.length === 0) {
-      return { ok: true, sources: [], citations: citationRows.map(mapCitation) };
+      return {
+        ok: true,
+        sources: [],
+        citations: citationRows.map(mapCitation),
+      };
     }
     sourceQuery = sourceQuery.in("id", sourceIds);
   }

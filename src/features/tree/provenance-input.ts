@@ -93,11 +93,7 @@ const citationShape = {
   sourceId: z.string().uuid(),
   ...targetShape,
   claimKind: provenanceClaimKindSchema,
-  claimText: z
-    .string()
-    .trim()
-    .min(1, "Nội dung claim là bắt buộc.")
-    .max(2000),
+  claimText: z.string().trim().min(1, "Nội dung claim là bắt buộc.").max(2000),
   citationLocator: nullableTextSchema(240),
   note: nullableTextSchema(2000),
   certainty: provenanceCertaintySchema,
@@ -142,17 +138,13 @@ export const removeProvenanceCitationInputSchema = z.object({
   citationId: z.string().uuid(),
 });
 
-export type ProvenanceSourceType = z.infer<
-  typeof provenanceSourceTypeSchema
->;
+export type ProvenanceSourceType = z.infer<typeof provenanceSourceTypeSchema>;
 export type ProvenanceClaimKind = z.infer<typeof provenanceClaimKindSchema>;
 export type ProvenanceCertainty = z.infer<typeof provenanceCertaintySchema>;
 export type ProvenanceDateQualifier = z.infer<
   typeof provenanceDateQualifierSchema
 >;
-export type ProvenanceTargetInput = z.input<
-  typeof provenanceTargetInputSchema
->;
+export type ProvenanceTargetInput = z.input<typeof provenanceTargetInputSchema>;
 export type CreateProvenanceSourceInput = z.input<
   typeof createProvenanceSourceInputSchema
 >;

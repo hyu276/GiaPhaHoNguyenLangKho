@@ -1,4 +1,4 @@
-const STORAGE_KEY = "giapha-admin-demo-v4";
+const STORAGE_KEY = "giapha-admin-demo-v5";
 
 const initialState = {
   people: [
@@ -84,6 +84,65 @@ const initialState = {
     { id: "R006", kind: "parent_child", source: "P004", target: "P005" },
     { id: "R007", kind: "partnership", source: "P005", target: "P006" },
   ],
+  sources: [
+    {
+      id: "S001",
+      title: "Gia phả chi họ Nguyễn",
+      sourceType: "family_book",
+      repositoryName: "Bản synthetic dùng cho preview",
+      referenceCode: "GP-DEMO-01",
+      sourceUrl: null,
+    },
+    {
+      id: "S002",
+      title: "Ghi chép khẩu thuật của gia đình",
+      sourceType: "oral_history",
+      repositoryName: "Phỏng vấn synthetic",
+      referenceCode: "OH-DEMO-02",
+      sourceUrl: null,
+    },
+  ],
+  citations: [
+    {
+      id: "C001",
+      sourceId: "S001",
+      personId: "P001",
+      relationshipId: null,
+      claimKind: "birth",
+      claimText: "Gia phả ghi ông sinh khoảng năm 1902.",
+      citationLocator: "tr. 4",
+      note: "Năm được ghi theo bản chép lại, chưa đối chiếu hộ tịch.",
+      certainty: "probable",
+      dateText: "khoảng 1902",
+      dateQualifier: "about",
+    },
+    {
+      id: "C002",
+      sourceId: "S002",
+      personId: "P001",
+      relationshipId: null,
+      claimKind: "birth",
+      claimText: "Khẩu thuật gia đình nhớ năm sinh có thể là 1904.",
+      citationLocator: "đoạn 12:30",
+      note: "Cố ý mâu thuẫn với C001 để minh họa conflicting claims.",
+      certainty: "possible",
+      dateText: "1904",
+      dateQualifier: "about",
+    },
+    {
+      id: "C003",
+      sourceId: "S001",
+      personId: null,
+      relationshipId: "R002",
+      claimKind: "relationship",
+      claimText: "Nguồn ghi Nguyễn Văn Tổ là cha của Nguyễn Văn Bình.",
+      citationLocator: "tr. 8",
+      note: null,
+      certainty: "certain",
+      dateText: null,
+      dateQualifier: null,
+    },
+  ],
 };
 
 let state = loadState();
@@ -100,6 +159,9 @@ let collapsedBranchIds = new Set();
 let lockedPersonIds = new Set();
 let layoutHistory = [];
 let layoutFuture = [];
+let selectedProvenanceTarget = null;
+let editingSourceId = null;
+let editingCitationId = null;
 let dragContext = null;
 
 const canvas = document.querySelector("#canvas");
@@ -108,6 +170,44 @@ const edgesSvg = document.querySelector("#edges");
 const saveStatus = document.querySelector("#saveStatus");
 const emptySearch = document.querySelector("#emptySearch");
 const filterStatus = document.querySelector("#filterStatus");
+
+const SOURCE_TYPE_LABELS = {
+  family_book: "Gia phả / tộc phả",
+  civil_record: "Hộ tịch",
+  archive: "Lưu trữ",
+  oral_history: "Khẩu thuật",
+  photo: "Ảnh / hiện vật",
+  publication: "Ấn phẩm",
+  web: "Nguồn web",
+  other: "Khác",
+};
+
+const CLAIM_KIND_LABELS = {
+  identity: "Nhân thân",
+  birth: "Sinh",
+  death: "Mất",
+  relationship: "Quan hệ",
+  residence: "Cư trú",
+  occupation: "Nghề nghiệp",
+  note: "Ghi chú",
+  other: "Khác",
+};
+
+const CERTAINTY_LABELS = {
+  certain: "Chắc chắn",
+  probable: "Có khả năng cao",
+  possible: "Có thể",
+  unknown: "Chưa rõ",
+};
+
+const DATE_QUALIFIER_LABELS = {
+  exact: "Chính xác",
+  about: "Khoảng",
+  before: "Trước",
+  after: "Sau",
+  range: "Khoảng thời gian",
+  unknown: "Không rõ",
+};
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -158,6 +258,14 @@ function nextRelationshipId() {
     0,
   );
   return `R${String(max + 1).padStart(3, "0")}`;
+}
+
+function nextProvenanceId(items, prefix) {
+  const max = items.reduce(
+    (value, item) => Math.max(value, Number(item.id.slice(1)) || 0),
+    0,
+  );
+  return `${prefix}${String(max + 1).padStart(3, "0")}`;
 }
 
 function getPerson(id) {
@@ -461,6 +569,7 @@ function createPersonNode(person) {
   node.append(name, years, badges);
   node.addEventListener("click", () => {
     selectedId = person.id;
+    selectedProvenanceTarget = { kind: "person", id: person.id };
     render();
   });
   node.addEventListener("pointerdown", startDrag);
@@ -531,6 +640,11 @@ function renderInspector() {
     const jumpButton = item.querySelector(".relation-jump");
     jumpButton.addEventListener("click", () => jumpToPerson(other.id));
 
+    const provenanceButton = item.querySelector(".relation-provenance");
+    provenanceButton.addEventListener("click", () =>
+      selectRelationshipProvenance(relation.id),
+    );
+
     const removeButton = item.querySelector(".relation-remove");
     const lockedByArchive = person.archived || other.archived;
     removeButton.disabled = lockedByArchive;
@@ -542,6 +656,162 @@ function renderInspector() {
     );
     list.appendChild(item);
   });
+}
+
+function getProvenanceTarget() {
+  if (selectedProvenanceTarget) return selectedProvenanceTarget;
+  if (!selectedId) return null;
+  return { kind: "person", id: selectedId };
+}
+
+function getTargetCitations(target) {
+  if (!target) return [];
+  return state.citations.filter((citation) =>
+    target.kind === "person"
+      ? citation.personId === target.id
+      : citation.relationshipId === target.id,
+  );
+}
+
+function getTargetLabel(target) {
+  if (!target) return "Chưa chọn mục";
+  if (target.kind === "person") {
+    return getPerson(target.id)?.name ?? "Người không khả dụng";
+  }
+
+  const relation = state.relationships.find((item) => item.id === target.id);
+  if (!relation) return "Quan hệ không khả dụng";
+  const source = getPerson(relation.source)?.name ?? "?";
+  const targetName = getPerson(relation.target)?.name ?? "?";
+  return `${source} ↔ ${targetName}`;
+}
+
+function createProvenanceBadge(text) {
+  const badge = document.createElement("span");
+  badge.className = "provenance-badge";
+  badge.textContent = text;
+  return badge;
+}
+
+function renderSourceCards(sourceIds) {
+  const list = document.querySelector("#provenanceSources");
+  list.replaceChildren();
+
+  const sources = state.sources.filter((source) => sourceIds.has(source.id));
+  if (!sources.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Chưa có nguồn được dùng cho mục này.";
+    list.appendChild(empty);
+    return;
+  }
+
+  sources.forEach((source) => {
+    const card = document.createElement("div");
+    card.className = "provenance-card";
+    const title = document.createElement("strong");
+    title.textContent = source.title;
+    const meta = document.createElement("p");
+    meta.className = "muted";
+    meta.textContent = [
+      SOURCE_TYPE_LABELS[source.sourceType],
+      source.repositoryName,
+      source.referenceCode,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const edit = document.createElement("button");
+    edit.className = "link-button";
+    edit.type = "button";
+    edit.textContent = "Sửa nguồn";
+    edit.addEventListener("click", () => openSourceDialog(source.id));
+    card.append(title, meta, edit);
+    list.appendChild(card);
+  });
+}
+
+function renderCitationCards(citations) {
+  const list = document.querySelector("#provenanceCitations");
+  list.replaceChildren();
+
+  if (!citations.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Chưa có citation cho mục đang chọn.";
+    list.appendChild(empty);
+    return;
+  }
+
+  citations.forEach((citation) => {
+    const source = state.sources.find((item) => item.id === citation.sourceId);
+    const card = document.createElement("article");
+    card.className = "provenance-card";
+
+    const badges = document.createElement("div");
+    badges.className = "provenance-badges";
+    badges.append(
+      createProvenanceBadge(CLAIM_KIND_LABELS[citation.claimKind]),
+      createProvenanceBadge(CERTAINTY_LABELS[citation.certainty]),
+    );
+
+    const claim = document.createElement("p");
+    claim.className = "provenance-claim";
+    claim.textContent = citation.claimText;
+
+    const meta = document.createElement("p");
+    meta.className = "muted";
+    const dateText =
+      citation.dateText && citation.dateQualifier
+        ? `${DATE_QUALIFIER_LABELS[citation.dateQualifier]}: ${citation.dateText}`
+        : null;
+    meta.textContent = [
+      source?.title ?? "Nguồn không khả dụng",
+      citation.citationLocator,
+      dateText,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    card.append(badges, claim, meta);
+
+    if (citation.note) {
+      const note = document.createElement("p");
+      note.className = "provenance-note";
+      note.textContent = `Ghi chú: ${citation.note}`;
+      card.appendChild(note);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "provenance-actions";
+    const edit = document.createElement("button");
+    edit.className = "link-button";
+    edit.type = "button";
+    edit.textContent = "Sửa citation";
+    edit.addEventListener("click", () => openCitationDialog(citation.id));
+    const remove = document.createElement("button");
+    remove.className = "link-danger";
+    remove.type = "button";
+    remove.textContent = "Xóa citation";
+    remove.addEventListener("click", () => removeCitation(citation.id));
+    actions.append(edit, remove);
+    card.appendChild(actions);
+
+    list.appendChild(card);
+  });
+}
+
+function renderProvenance() {
+  const section = document.querySelector("#provenanceSection");
+  const target = getProvenanceTarget();
+  section.hidden = !selectedId;
+
+  if (!selectedId) return;
+
+  document.querySelector("#provenanceTarget").textContent =
+    getTargetLabel(target);
+  const citations = getTargetCitations(target);
+  renderCitationCards(citations);
+  renderSourceCards(new Set(citations.map((citation) => citation.sourceId)));
 }
 
 function renderArchiveImpact(selectedPerson, selectedArchived) {
@@ -625,6 +895,7 @@ function render() {
   renderEdges();
   renderNodes();
   renderInspector();
+  renderProvenance();
 
   const selectedPerson = getPerson(selectedId);
   const selectedArchived = renderSelectionControls(selectedPerson);
@@ -935,6 +1206,16 @@ function saveRelationshipFromDialog() {
 function removeRelationship(id) {
   const relation = state.relationships.find((item) => item.id === id);
   if (!relation) return;
+
+  const hasCitations = state.citations.some(
+    (citation) => citation.relationshipId === id,
+  );
+  if (hasCitations) {
+    window.alert(
+      "Quan hệ này đang có citation. Hãy xóa/review citation trước để không làm mất provenance.",
+    );
+    return;
+  }
   const source = getPerson(relation.source);
   const target = getPerson(relation.target);
   if (source?.archived || target?.archived) {
@@ -978,6 +1259,7 @@ function archiveSelected() {
 function focusPerson(person) {
   if (!person) return;
   selectedId = person.id;
+  selectedProvenanceTarget = { kind: "person", id: person.id };
   focusedId = person.id;
   render();
 }
@@ -1010,6 +1292,7 @@ function jumpToPerson(personId) {
   archiveFilter = person.archived ? "all" : "active";
   collapsedBranchIds = new Set();
   selectedId = person.id;
+  selectedProvenanceTarget = { kind: "person", id: person.id };
   focusedId = person.id;
 
   document.querySelector("#searchInput").value = "";
@@ -1017,6 +1300,175 @@ function jumpToPerson(personId) {
   document.querySelector("#visibilityFilter").value = "all";
   document.querySelector("#archiveFilter").value = archiveFilter;
   render();
+}
+
+function selectRelationshipProvenance(relationshipId) {
+  const relation = state.relationships.find((item) => item.id === relationshipId);
+  if (!relation) return;
+  selectedProvenanceTarget = { kind: "relationship", id: relationshipId };
+  renderProvenance();
+}
+
+function nullableFieldValue(selector) {
+  const value = document.querySelector(selector).value.trim();
+  return value.length > 0 ? value : null;
+}
+
+function openSourceDialog(sourceId = null) {
+  editingSourceId = sourceId;
+  const source = state.sources.find((item) => item.id === sourceId) ?? null;
+  document.querySelector("#sourceDialogTitle").textContent = source
+    ? "Sửa nguồn tư liệu"
+    : "Thêm nguồn tư liệu";
+  document.querySelector("#sourceTitle").value = source?.title ?? "";
+  document.querySelector("#sourceType").value =
+    source?.sourceType ?? "family_book";
+  document.querySelector("#sourceRepository").value =
+    source?.repositoryName ?? "";
+  document.querySelector("#sourceReference").value =
+    source?.referenceCode ?? "";
+  document.querySelector("#sourceUrl").value = source?.sourceUrl ?? "";
+  document.querySelector("#sourceDialog").showModal();
+}
+
+function saveSourceFromDialog() {
+  const title = document.querySelector("#sourceTitle").value.trim();
+  const sourceUrl = nullableFieldValue("#sourceUrl");
+  if (!title) return false;
+  if (sourceUrl && !/^https?:\/\//iu.test(sourceUrl)) {
+    window.alert("URL nguồn phải bắt đầu bằng http:// hoặc https://.");
+    return false;
+  }
+
+  const draft = {
+    title,
+    sourceType: document.querySelector("#sourceType").value,
+    repositoryName: nullableFieldValue("#sourceRepository"),
+    referenceCode: nullableFieldValue("#sourceReference"),
+    sourceUrl,
+  };
+
+  checkpoint();
+  const source = state.sources.find((item) => item.id === editingSourceId);
+  if (source) {
+    Object.assign(source, draft);
+  } else {
+    state.sources.push({
+      id: nextProvenanceId(state.sources, "S"),
+      ...draft,
+    });
+  }
+
+  editingSourceId = null;
+  persistState("Đã lưu nguồn tư liệu demo");
+  renderProvenance();
+  return true;
+}
+
+function populateCitationSourceOptions(selectedSourceId = null) {
+  const select = document.querySelector("#citationSource");
+  select.replaceChildren();
+  state.sources.forEach((source) => {
+    const option = document.createElement("option");
+    option.value = source.id;
+    option.textContent = source.title;
+    option.selected = source.id === selectedSourceId;
+    select.appendChild(option);
+  });
+}
+
+function openCitationDialog(citationId = null) {
+  const target = getProvenanceTarget();
+  if (!target) return;
+  if (!state.sources.length) {
+    window.alert("Hãy tạo ít nhất một nguồn tư liệu trước.");
+    return;
+  }
+
+  editingCitationId = citationId;
+  const citation =
+    state.citations.find((item) => item.id === citationId) ?? null;
+  document.querySelector("#citationDialogTitle").textContent = citation
+    ? "Sửa citation"
+    : "Thêm citation";
+  document.querySelector("#citationTarget").textContent = getTargetLabel(target);
+  populateCitationSourceOptions(citation?.sourceId ?? state.sources[0].id);
+  document.querySelector("#citationKind").value =
+    citation?.claimKind ?? "note";
+  document.querySelector("#citationClaim").value = citation?.claimText ?? "";
+  document.querySelector("#citationLocator").value =
+    citation?.citationLocator ?? "";
+  document.querySelector("#citationCertainty").value =
+    citation?.certainty ?? "unknown";
+  document.querySelector("#citationDateQualifier").value =
+    citation?.dateQualifier ?? "";
+  document.querySelector("#citationDateText").value = citation?.dateText ?? "";
+  document.querySelector("#citationNote").value = citation?.note ?? "";
+  document.querySelector("#citationDialog").showModal();
+}
+
+function buildCitationDraft() {
+  const target = getProvenanceTarget();
+  if (!target) return null;
+
+  const dateText = nullableFieldValue("#citationDateText");
+  const dateQualifier = document.querySelector("#citationDateQualifier").value || null;
+  if (Boolean(dateText) !== Boolean(dateQualifier)) {
+    window.alert(
+      "Biểu thức ngày và mức độ chính xác của ngày phải đi cùng nhau.",
+    );
+    return null;
+  }
+
+  const claimText = document.querySelector("#citationClaim").value.trim();
+  if (!claimText) return null;
+
+  return {
+    sourceId: document.querySelector("#citationSource").value,
+    personId: target.kind === "person" ? target.id : null,
+    relationshipId: target.kind === "relationship" ? target.id : null,
+    claimKind: document.querySelector("#citationKind").value,
+    claimText,
+    citationLocator: nullableFieldValue("#citationLocator"),
+    note: nullableFieldValue("#citationNote"),
+    certainty: document.querySelector("#citationCertainty").value,
+    dateText,
+    dateQualifier,
+  };
+}
+
+function saveCitationFromDialog() {
+  const draft = buildCitationDraft();
+  if (!draft) return false;
+
+  checkpoint();
+  const citation = state.citations.find(
+    (item) => item.id === editingCitationId,
+  );
+  if (citation) {
+    Object.assign(citation, draft);
+  } else {
+    state.citations.push({
+      id: nextProvenanceId(state.citations, "C"),
+      ...draft,
+    });
+  }
+
+  editingCitationId = null;
+  persistState("Đã lưu citation demo");
+  renderProvenance();
+  return true;
+}
+
+function removeCitation(citationId) {
+  if (!window.confirm("Xóa citation này? Nguồn tư liệu sẽ được giữ lại.")) {
+    return;
+  }
+
+  checkpoint();
+  state.citations = state.citations.filter((item) => item.id !== citationId);
+  persistState("Đã xóa citation demo");
+  renderProvenance();
 }
 
 function toggleSelectedBranch() {
@@ -1150,6 +1602,20 @@ document
   .addEventListener("click", autoLayoutSelectedBranch);
 document.querySelector("#layoutUndo").addEventListener("click", undoLayout);
 document.querySelector("#layoutRedo").addEventListener("click", redoLayout);
+document
+  .querySelector("#addSource")
+  .addEventListener("click", () => openSourceDialog());
+document
+  .querySelector("#addCitation")
+  .addEventListener("click", () => openCitationDialog());
+document.querySelector("#sourceForm").addEventListener("submit", (event) => {
+  if (event.submitter?.value === "cancel") return;
+  if (!saveSourceFromDialog()) event.preventDefault();
+});
+document.querySelector("#citationForm").addEventListener("submit", (event) => {
+  if (event.submitter?.value === "cancel") return;
+  if (!saveCitationFromDialog()) event.preventDefault();
+});
 document.querySelector("#clearFocus").addEventListener("click", () => {
   focusedId = null;
   render();
@@ -1210,6 +1676,9 @@ document.querySelector("#resetDemo").addEventListener("click", () => {
   lockedPersonIds = new Set();
   layoutHistory = [];
   layoutFuture = [];
+  selectedProvenanceTarget = null;
+  editingSourceId = null;
+  editingCitationId = null;
   resetFilterControls();
   localStorage.removeItem(STORAGE_KEY);
   render();

@@ -20,6 +20,7 @@ import {
   type Edge,
   type Node,
   type NodeProps,
+  type ReactFlowInstance,
   useNodesState,
 } from "@xyflow/react";
 
@@ -41,6 +42,14 @@ import type {
   PersonVisibility,
   UpdatePersonInput,
 } from "@/features/tree/person-input";
+import {
+  filterPeople,
+  getDirectRelativeIds,
+  getHiddenBranchIds,
+  type ArchiveFilter as ArchiveFilterValue,
+  type LifeFilter,
+  type VisibilityFilter,
+} from "@/features/tree/tree-navigation";
 
 export type EditorPerson = {
   id: string;
@@ -117,11 +126,13 @@ type SidebarProps = {
   formMode: PersonFormMode;
   onCancelForm: () => void;
   onPersonStateChanged: (personId: string, archived: boolean) => void;
+  onFocusPerson: (personId: string) => void;
+  onJumpToPerson: (personId: string) => void;
   onRelationshipChanged: (focusPersonId?: string) => void;
   onSaved: (personId: string) => void;
-  onShowArchivedChange: (showArchived: boolean) => void;
   onStartCreate: () => void;
   onStartEdit: () => void;
+  onToggleBranch: (personId: string) => void;
   people: EditorPerson[];
   readOnly: boolean;
   relationships: EditorRelationship[];
@@ -130,7 +141,7 @@ type SidebarProps = {
   selectedPerson: EditorPerson | null;
   selectedRelationship: EditorRelationship | null;
   selectedRelationshipCount: number;
-  showArchived: boolean;
+  collapsedBranchIds: ReadonlySet<string>;
   updatePerson: UpdatePerson | undefined;
 };
 
@@ -151,10 +162,6 @@ function countConnectedRelationships(
       relationship.sourcePersonId === personId ||
       relationship.targetPersonId === personId,
   ).length;
-}
-
-function getVisiblePeople(people: EditorPerson[], showArchived: boolean) {
-  return showArchived ? people : people.filter((person) => !isArchived(person));
 }
 
 function getVisibleRelationships(
@@ -299,6 +306,208 @@ function EmptySelection({ readOnly }: { readOnly: boolean }) {
   );
 }
 
+type TreeFilterPanelProps = {
+  archiveFilter: ArchiveFilterValue;
+  lifeFilter: LifeFilter;
+  matchCount: number;
+  onArchiveFilterChange: (value: ArchiveFilterValue) => void;
+  onClear: () => void;
+  onLifeFilterChange: (value: LifeFilter) => void;
+  onQueryChange: (value: string) => void;
+  onVisibilityFilterChange: (value: VisibilityFilter) => void;
+  query: string;
+  readOnly: boolean;
+  visibilityFilter: VisibilityFilter;
+};
+
+function TreeFilterPanel({
+  archiveFilter,
+  lifeFilter,
+  matchCount,
+  onArchiveFilterChange,
+  onClear,
+  onLifeFilterChange,
+  onQueryChange,
+  onVisibilityFilterChange,
+  query,
+  readOnly,
+  visibilityFilter,
+}: TreeFilterPanelProps) {
+  return (
+    <div className="absolute left-4 top-16 z-10 w-[min(22rem,calc(100%-2rem))] rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur">
+      <label className="block text-xs font-semibold text-card-foreground">
+        Tìm theo tên
+        <input
+          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="Nhập họ tên…"
+          type="search"
+          value={query}
+        />
+      </label>
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <label className="text-xs font-medium text-muted-foreground">
+          Sinh trạng
+          <select
+            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
+            onChange={(event) =>
+              onLifeFilterChange(event.target.value as LifeFilter)
+            }
+            value={lifeFilter}
+          >
+            <option value="all">Tất cả</option>
+            <option value="living">Còn sống</option>
+            <option value="deceased">Đã mất</option>
+          </select>
+        </label>
+
+        <label className="text-xs font-medium text-muted-foreground">
+          Hiển thị
+          <select
+            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
+            onChange={(event) =>
+              onVisibilityFilterChange(event.target.value as VisibilityFilter)
+            }
+            value={visibilityFilter}
+          >
+            <option value="all">Tất cả</option>
+            <option value="public">Công khai</option>
+            <option value="private">Riêng tư</option>
+          </select>
+        </label>
+      </div>
+
+      {readOnly ? null : (
+        <label className="mt-2 block text-xs font-medium text-muted-foreground">
+          Lưu trữ
+          <select
+            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
+            onChange={(event) =>
+              onArchiveFilterChange(event.target.value as ArchiveFilterValue)
+            }
+            value={archiveFilter}
+          >
+            <option value="active">Đang hoạt động</option>
+            <option value="all">Tất cả</option>
+            <option value="archived">Đã lưu trữ</option>
+          </select>
+        </label>
+      )}
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span aria-live="polite" className="text-xs text-muted-foreground">
+          {matchCount} người phù hợp
+        </span>
+        <Button onClick={onClear} size="sm" type="button" variant="ghost">
+          Xóa lọc
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function RelativeGroup({
+  label,
+  onJumpToPerson,
+  people,
+  personIds,
+}: {
+  label: string;
+  onJumpToPerson: (personId: string) => void;
+  people: EditorPerson[];
+  personIds: string[];
+}) {
+  if (personIds.length === 0) return null;
+
+  return (
+    <div className="mt-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {personIds.map((personId) => {
+          const person = people.find((candidate) => candidate.id === personId);
+          if (!person) return null;
+          return (
+            <Button
+              key={personId}
+              onClick={() => onJumpToPerson(personId)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {person.displayName}
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BranchNavigationControls({
+  collapsed,
+  onFocusPerson,
+  onJumpToPerson,
+  onToggleBranch,
+  people,
+  person,
+  relationships,
+}: {
+  collapsed: boolean;
+  onFocusPerson: (personId: string) => void;
+  onJumpToPerson: (personId: string) => void;
+  onToggleBranch: (personId: string) => void;
+  people: EditorPerson[];
+  person: EditorPerson;
+  relationships: EditorRelationship[];
+}) {
+  const relatives = getDirectRelativeIds(relationships, person.id);
+
+  return (
+    <section className="mt-5 border-t border-border pt-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Điều hướng nhánh
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button
+          onClick={() => onFocusPerson(person.id)}
+          type="button"
+          variant="outline"
+        >
+          Focus người
+        </Button>
+        <Button
+          onClick={() => onToggleBranch(person.id)}
+          type="button"
+          variant="outline"
+        >
+          {collapsed ? "Mở nhánh con" : "Thu nhánh con"}
+        </Button>
+      </div>
+      <RelativeGroup
+        label="Cha / mẹ"
+        onJumpToPerson={onJumpToPerson}
+        people={people}
+        personIds={relatives.parents}
+      />
+      <RelativeGroup
+        label="Con"
+        onJumpToPerson={onJumpToPerson}
+        people={people}
+        personIds={relatives.children}
+      />
+      <RelativeGroup
+        label="Hôn phối"
+        onJumpToPerson={onJumpToPerson}
+        people={people}
+        personIds={relatives.partners}
+      />
+    </section>
+  );
+}
+
 function SelectedPersonSummary({
   onStartEdit,
   readOnly,
@@ -336,31 +545,6 @@ function SelectedPersonSummary({
         </Button>
       )}
     </div>
-  );
-}
-
-function ArchiveFilter({
-  archivedCount,
-  onChange,
-  readOnly,
-  showArchived,
-}: {
-  archivedCount: number;
-  onChange: (showArchived: boolean) => void;
-  readOnly: boolean;
-  showArchived: boolean;
-}) {
-  if (readOnly || archivedCount === 0) return null;
-
-  return (
-    <label className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
-      <input
-        checked={showArchived}
-        onChange={(event) => onChange(event.target.checked)}
-        type="checkbox"
-      />
-      <span>Hiện hồ sơ đã lưu trữ ({archivedCount})</span>
-    </label>
   );
 }
 
@@ -526,6 +710,15 @@ function SelectedPersonDetails(props: SidebarProps) {
 
   return (
     <>
+      <BranchNavigationControls
+        collapsed={props.collapsedBranchIds.has(props.selectedPerson.id)}
+        onFocusPerson={props.onFocusPerson}
+        onJumpToPerson={props.onJumpToPerson}
+        onToggleBranch={props.onToggleBranch}
+        people={props.people}
+        person={props.selectedPerson}
+        relationships={props.relationships}
+      />
       {props.readOnly ? null : (
         <PersonArchiveControls
           archivePerson={props.archivePerson}
@@ -556,13 +749,6 @@ function DefaultEditorSidebar(props: SidebarProps) {
           Thêm người
         </Button>
       )}
-      <ArchiveFilter
-        archivedCount={props.archivedCount}
-        onChange={props.onShowArchivedChange}
-        readOnly={props.readOnly}
-        showArchived={props.showArchived}
-      />
-
       <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Đang chọn
       </p>
@@ -639,10 +825,36 @@ export function AdminTreeEditor({
   updatePerson,
 }: AdminTreeEditorProps) {
   const router = useRouter();
-  const [showArchived, setShowArchived] = useState(false);
+  const [query, setQuery] = useState("");
+  const [lifeFilter, setLifeFilter] = useState<LifeFilter>("all");
+  const [visibilityFilter, setVisibilityFilter] =
+    useState<VisibilityFilter>("all");
+  const [archiveFilter, setArchiveFilter] =
+    useState<ArchiveFilterValue>("active");
+  const [collapsedBranchIds, setCollapsedBranchIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const flowInstance = useRef<ReactFlowInstance<
+    PersonNode,
+    RelationshipEdge
+  > | null>(null);
+  const filteredPeople = useMemo(
+    () =>
+      filterPeople(people, {
+        query,
+        life: lifeFilter,
+        visibility: visibilityFilter,
+        archive: readOnly ? "active" : archiveFilter,
+      }),
+    [archiveFilter, lifeFilter, people, query, readOnly, visibilityFilter],
+  );
+  const hiddenBranchIds = useMemo(
+    () => getHiddenBranchIds(relationships, collapsedBranchIds),
+    [collapsedBranchIds, relationships],
+  );
   const visiblePeople = useMemo(
-    () => getVisiblePeople(people, showArchived),
-    [people, showArchived],
+    () => filteredPeople.filter((person) => !hiddenBranchIds.has(person.id)),
+    [filteredPeople, hiddenBranchIds],
   );
   const visibleRelationships = useMemo(
     () => getVisibleRelationships(relationships, visiblePeople),
@@ -761,16 +973,57 @@ export function AdminTreeEditor({
 
   function handlePersonStateChanged(personId: string, archived: boolean) {
     setSelectedRelationshipId(null);
-    setSelectedPersonId(archived && !showArchived ? null : personId);
+    setSelectedPersonId(
+      archived && archiveFilter === "active" ? null : personId,
+    );
     setFormMode(null);
     router.refresh();
   }
 
-  function handleShowArchivedChange(nextShowArchived: boolean) {
-    setSelectedPersonId(null);
-    setSelectedRelationshipId(null);
-    setFormMode(null);
-    setShowArchived(nextShowArchived);
+  function focusPerson(personId: string) {
+    handleNodeSelect(personId);
+    flowInstance.current?.fitView({
+      nodes: [{ id: personId }],
+      duration: 250,
+      maxZoom: 1.25,
+      padding: 1.2,
+    });
+  }
+
+  function revealAndFocusPerson(personId: string) {
+    const person = people.find((candidate) => candidate.id === personId);
+    if (!person) return;
+
+    setQuery("");
+    setLifeFilter("all");
+    setVisibilityFilter("all");
+    setArchiveFilter(isArchived(person) ? "all" : "active");
+    setCollapsedBranchIds(new Set());
+    handleNodeSelect(personId);
+    window.requestAnimationFrame(() => {
+      flowInstance.current?.fitView({
+        nodes: [{ id: personId }],
+        duration: 250,
+        maxZoom: 1.25,
+        padding: 1.2,
+      });
+    });
+  }
+
+  function toggleBranch(personId: string) {
+    setCollapsedBranchIds((current) => {
+      const next = new Set(current);
+      if (next.has(personId)) next.delete(personId);
+      else next.add(personId);
+      return next;
+    });
+  }
+
+  function clearFilters() {
+    setQuery("");
+    setLifeFilter("all");
+    setVisibilityFilter("all");
+    setArchiveFilter("active");
   }
 
   return (
@@ -778,6 +1031,9 @@ export function AdminTreeEditor({
       <section className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card">
         <ReactFlow<PersonNode, RelationshipEdge>
           nodes={nodes}
+          onInit={(instance) => {
+            flowInstance.current = instance;
+          }}
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
@@ -803,35 +1059,50 @@ export function AdminTreeEditor({
 
         <div
           aria-live="polite"
-          className="pointer-events-none absolute left-4 top-4 rounded-full border border-border bg-background/90 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur"
+          className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-border bg-background/90 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur"
         >
           {statusMessage}
         </div>
+        <TreeFilterPanel
+          archiveFilter={archiveFilter}
+          lifeFilter={lifeFilter}
+          matchCount={visiblePeople.length}
+          onArchiveFilterChange={setArchiveFilter}
+          onClear={clearFilters}
+          onLifeFilterChange={setLifeFilter}
+          onQueryChange={setQuery}
+          onVisibilityFilterChange={setVisibilityFilter}
+          query={query}
+          readOnly={readOnly}
+          visibilityFilter={visibilityFilter}
+        />
       </section>
 
       <EditorSidebar
         archivePerson={archivePerson}
         archivedCount={archivedCount}
+        collapsedBranchIds={collapsedBranchIds}
         createParentChildRelationship={createParentChildRelationship}
         createPartnership={createPartnership}
         createPerson={createPerson}
         formMode={formMode}
         onCancelForm={() => setFormMode(null)}
+        onFocusPerson={focusPerson}
+        onJumpToPerson={revealAndFocusPerson}
         onPersonStateChanged={handlePersonStateChanged}
         onRelationshipChanged={handleRelationshipChanged}
         onSaved={handleSaved}
-        onShowArchivedChange={handleShowArchivedChange}
         onStartCreate={() => setFormMode("create")}
         onStartEdit={() => setFormMode("edit")}
-        people={visiblePeople}
+        onToggleBranch={toggleBranch}
+        people={people}
         readOnly={readOnly}
-        relationships={visibleRelationships}
+        relationships={relationships}
         removeRelationship={removeRelationship}
         restorePerson={restorePerson}
         selectedPerson={selectedPerson}
         selectedRelationship={selectedRelationship}
         selectedRelationshipCount={selectedRelationshipCount}
-        showArchived={showArchived}
         updatePerson={updatePerson}
       />
     </div>

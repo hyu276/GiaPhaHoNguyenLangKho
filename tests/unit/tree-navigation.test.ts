@@ -112,8 +112,8 @@ describe("tree navigation", () => {
   });
 
   it("hides descendants of every collapsed branch root", () => {
-    expect(
-      [...getHiddenBranchIds(relationships, new Set(["P1", "P2"]))].sort(),
-    ).toEqual(["P2", "P3"]);
+    expect([
+      ...getHiddenBranchIds(relationships, new Set(["P1", "P2"])),
+    ].sort()).toEqual(["P2", "P3"]);
   });
 });

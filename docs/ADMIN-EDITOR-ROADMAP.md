@@ -146,21 +146,27 @@ Tests:
 
 ## Step 6 — Genealogical notes and provenance
 
+**Status: in progress in GitHub development stack; schema/domain/server commands implemented, inspector UI and preview pending.**
+
 Goal: distinguish recorded facts from evidence and uncertainty.
 
 Schema/design:
 
-- sources/citations;
-- notes;
-- confidence/certainty where appropriate;
-- approximate/unknown dates without fabricating exact values.
+- reusable `genealogy_sources` records for family books, civil records, archives, oral history, photos, publications, web sources, and other source types;
+- `genealogy_citations` linking exactly one source to exactly one person or canonical relationship;
+- claim kind + claim text + locator + research note;
+- explicit certainty values: certain / probable / possible / unknown;
+- optional date expression + qualifier for exact/about/before/after/range/unknown dates without coercing uncertain dates into canonical exact year fields;
+- conflicting citations intentionally coexist; no uniqueness rule silently chooses a winner.
 
 Add:
 
 - source list per person/relationship;
+- create/update reusable source metadata;
 - add/edit/remove citation;
 - display provenance in inspector;
-- preserve conflicting claims instead of destructive overwrite where supported.
+- preserve conflicting claims instead of destructive overwrite;
+- prevent relationship deletion from silently discarding attached citations.
 
 ## Step 7 — Duplicate detection and merge review
 

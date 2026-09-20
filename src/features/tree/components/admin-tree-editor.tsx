@@ -21,6 +21,7 @@ import "@xyflow/react/dist/style.css";
 
 import { Button } from "@/components/ui/button";
 import { PersonEditorForm } from "@/features/tree/components/person-editor-form";
+import { ProvenancePanel } from "@/features/tree/components/provenance-panel";
 import {
   PersonRelationshipSection,
   RelationshipInspector,
@@ -853,6 +854,12 @@ function SelectedPersonDetails(props: SidebarProps) {
         person={props.selectedPerson}
         readOnly={props.readOnly}
       />
+      <ProvenancePanel
+        key={`person-${props.selectedPerson.id}`}
+        personId={props.selectedPerson.id}
+        readOnly={props.readOnly}
+        relationshipId={null}
+      />
       {props.readOnly ? null : (
         <PersonArchiveControls
           archivePerson={props.archivePerson}
@@ -912,6 +919,12 @@ function EditorSidebar(props: SidebarProps) {
           }
           relationship={props.selectedRelationship}
           removeRelationship={props.removeRelationship}
+        />
+        <ProvenancePanel
+          key={`relationship-${props.selectedRelationship.id}`}
+          personId={null}
+          readOnly={props.readOnly}
+          relationshipId={props.selectedRelationship.id}
         />
       </aside>
     );

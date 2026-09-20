@@ -146,7 +146,7 @@ Tests:
 
 ## Step 6 — Genealogical notes and provenance
 
-**Status: in progress in GitHub development stack; schema/domain/server commands implemented, inspector UI and preview pending.**
+**Status: in progress in GitHub development stack; schema/domain/server commands and authenticated inspector UI implemented, static preview pending.**
 
 Goal: distinguish recorded facts from evidence and uncertainty.
 

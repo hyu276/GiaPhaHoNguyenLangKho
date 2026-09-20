@@ -138,6 +138,8 @@ function checkpoint() {
 
 function restoreSnapshot(snapshot, message) {
   state = clone(snapshot);
+  layoutHistory = [];
+  layoutFuture = [];
   persistState(message);
   render();
 }
@@ -973,9 +975,6 @@ function showWholeTree() {
   archiveFilter = "active";
   focusedId = null;
   collapsedBranchIds = new Set();
-  lockedPersonIds = new Set();
-  layoutHistory = [];
-  layoutFuture = [];
   resetFilterControls();
   render();
 }
@@ -1187,6 +1186,9 @@ document.querySelector("#resetDemo").addEventListener("click", () => {
   archiveFilter = "active";
   focusedId = null;
   collapsedBranchIds = new Set();
+  lockedPersonIds = new Set();
+  layoutHistory = [];
+  layoutFuture = [];
   resetFilterControls();
   localStorage.removeItem(STORAGE_KEY);
   render();

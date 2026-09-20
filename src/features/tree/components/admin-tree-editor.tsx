@@ -1083,6 +1083,7 @@ export function AdminTreeEditor({
       requestedPositions: ReadonlyMap<string, LayoutPosition>,
       recordHistory = true,
     ) => {
+      if (!saveLayouts) return false;
       if (
         !canStartLayoutMutation(
           readOnly,

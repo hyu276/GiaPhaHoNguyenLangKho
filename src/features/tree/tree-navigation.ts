@@ -35,10 +35,7 @@ function normalizeName(value: string) {
   return value.trim().toLocaleLowerCase("vi-VN");
 }
 
-function matchesLifeFilter(
-  person: NavigablePerson,
-  lifeFilter: LifeFilter,
-) {
+function matchesLifeFilter(person: NavigablePerson, lifeFilter: LifeFilter) {
   if (lifeFilter === "all") return true;
   const isLiving = person.deathYear === null;
   return lifeFilter === "living" ? isLiving : !isLiving;
@@ -60,7 +57,9 @@ export function filterPeople<T extends NavigablePerson>(
   const query = normalizeName(filters.query);
 
   return people.filter((person) => {
-    if (query && !normalizeName(person.displayName).includes(query)) return false;
+    if (query && !normalizeName(person.displayName).includes(query)) {
+      return false;
+    }
     if (!matchesLifeFilter(person, filters.life)) return false;
     if (
       filters.visibility !== "all" &&

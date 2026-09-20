@@ -97,6 +97,9 @@ let visibilityFilter = "all";
 let archiveFilter = "active";
 let focusedId = null;
 let collapsedBranchIds = new Set();
+let lockedPersonIds = new Set();
+let layoutHistory = [];
+let layoutFuture = [];
 let dragContext = null;
 
 const canvas = document.querySelector("#canvas");
@@ -157,6 +160,132 @@ function nextRelationshipId() {
 
 function getPerson(id) {
   return state.people.find((person) => person.id === id) ?? null;
+}
+
+function getFallbackPosition(index) {
+  const column = index % 4;
+  const row = Math.floor(index / 4);
+  return { x: 80 + column * 260, y: 80 + row * 180 };
+}
+
+function getBranchPersonIds(rootId) {
+  return new Set([rootId, ...descendantsOf(rootId)]);
+}
+
+function getFallbackLayoutPositions(targetIds) {
+  const positions = new Map();
+
+  state.people.forEach((person, index) => {
+    if (!targetIds.has(person.id) || lockedPersonIds.has(person.id)) return;
+    positions.set(person.id, getFallbackPosition(index));
+  });
+
+  return positions;
+}
+
+function buildChildAdjacency() {
+  const childrenByParent = new Map();
+
+  state.relationships.forEach((relation) => {
+    if (relation.kind !== "parent_child") return;
+    const children = childrenByParent.get(relation.source) ?? [];
+    if (children.includes(relation.target)) return;
+    children.push(relation.target);
+    childrenByParent.set(relation.source, children);
+  });
+
+  return childrenByParent;
+}
+
+function getBranchDepths(rootId) {
+  const childrenByParent = buildChildAdjacency();
+  const depths = new Map([[rootId, 0]]);
+  const queue = [rootId];
+
+  while (queue.length) {
+    const personId = queue.shift();
+    const nextDepth = (depths.get(personId) ?? 0) + 1;
+
+    for (const childId of childrenByParent.get(personId) ?? []) {
+      if (depths.has(childId)) continue;
+      depths.set(childId, nextDepth);
+      queue.push(childId);
+    }
+  }
+
+  return depths;
+}
+
+function getAutoLayoutPositions(rootId) {
+  const root = getPerson(rootId);
+  if (!root) return new Map();
+
+  const branchIds = getBranchPersonIds(rootId);
+  const depths = getBranchDepths(rootId);
+  const idsByDepth = new Map();
+
+  state.people.forEach((person) => {
+    if (
+      person.id === rootId ||
+      !branchIds.has(person.id) ||
+      lockedPersonIds.has(person.id)
+    ) {
+      return;
+    }
+
+    const depth = depths.get(person.id);
+    if (depth === undefined) return;
+    const ids = idsByDepth.get(depth) ?? [];
+    ids.push(person.id);
+    idsByDepth.set(depth, ids);
+  });
+
+  const positions = new Map();
+  idsByDepth.forEach((personIds, depth) => {
+    const centerOffset = (personIds.length - 1) / 2;
+    personIds.forEach((personId, index) => {
+      positions.set(personId, {
+        x: root.x + (index - centerOffset) * 260,
+        y: root.y + depth * 180,
+      });
+    });
+  });
+
+  return positions;
+}
+
+function pushLayoutHistory(before, after) {
+  layoutHistory.push({ before: [...before], after: [...after] });
+  if (layoutHistory.length > 50) layoutHistory.shift();
+  layoutFuture = [];
+}
+
+function applyLayoutPositions(positions, message, recordHistory = true) {
+  const before = new Map();
+  const after = new Map();
+
+  positions.forEach((position, personId) => {
+    const person = getPerson(personId);
+    if (!person || person.archived) return;
+    if (person.x === position.x && person.y === position.y) return;
+
+    before.set(personId, { x: person.x, y: person.y });
+    after.set(personId, position);
+  });
+
+  if (!after.size) return false;
+  if (recordHistory) checkpoint();
+
+  after.forEach((position, personId) => {
+    const person = getPerson(personId);
+    person.x = position.x;
+    person.y = position.y;
+  });
+
+  if (recordHistory) pushLayoutHistory(before, after);
+  persistState(message);
+  render();
+  return true;
 }
 
 function hiddenBranchIds() {
@@ -298,6 +427,15 @@ function appendArchivedBadge(badges, person) {
   badges.appendChild(archivedBadge);
 }
 
+function appendLockedBadge(badges, person) {
+  if (!lockedPersonIds.has(person.id)) return;
+
+  const lockedBadge = document.createElement("span");
+  lockedBadge.className = "node-badge";
+  lockedBadge.textContent = "Khóa vị trí";
+  badges.appendChild(lockedBadge);
+}
+
 function createPersonNode(person) {
   const node = document.createElement("button");
   node.type = "button";
@@ -316,6 +454,7 @@ function createPersonNode(person) {
   badges.className = "node-badges";
   badges.appendChild(createVisibilityBadge(person));
   appendArchivedBadge(badges, person);
+  appendLockedBadge(badges, person);
 
   node.append(name, years, badges);
   node.addEventListener("click", () => {
@@ -433,6 +572,9 @@ function render() {
   const selectedArchived = Boolean(selectedPerson?.archived);
   const hasSelection = Boolean(selectedPerson);
   const mutableSelection = hasSelection && !selectedArchived;
+  const selectedLocked = Boolean(
+    selectedPerson && lockedPersonIds.has(selectedPerson.id),
+  );
   const archiveButton = document.querySelector("#archivePerson");
 
   document.querySelector("#editPerson").disabled = !mutableSelection;
@@ -450,6 +592,16 @@ function render() {
   document.querySelector("#clearFocus").disabled = focusedId === null;
   document.querySelector("#undoButton").disabled = history.length === 0;
   document.querySelector("#redoButton").disabled = future.length === 0;
+  document.querySelector("#layoutLock").disabled = !mutableSelection;
+  document.querySelector("#layoutLock").textContent = selectedLocked
+    ? "Mở khóa vị trí"
+    : "Khóa vị trí";
+  document.querySelector("#resetPersonLayout").disabled =
+    !mutableSelection || selectedLocked;
+  document.querySelector("#resetBranchLayout").disabled = !mutableSelection;
+  document.querySelector("#autoLayoutBranch").disabled = !mutableSelection;
+  document.querySelector("#layoutUndo").disabled = layoutHistory.length === 0;
+  document.querySelector("#layoutRedo").disabled = layoutFuture.length === 0;
   filterStatus.textContent = `${visiblePeople().length} người phù hợp`;
 
   renderArchiveImpact(selectedPerson, selectedArchived);
@@ -459,7 +611,7 @@ function startDrag(event) {
   if (event.button !== 0) return;
   const id = event.currentTarget.dataset.personId;
   const person = getPerson(id);
-  if (!person || person.archived) return;
+  if (!person || person.archived || lockedPersonIds.has(id)) return;
   selectedId = id;
   checkpoint();
   dragContext = {
@@ -497,6 +649,23 @@ function moveDrag(event) {
 function endDrag(event) {
   if (!dragContext) return;
   event.currentTarget.removeEventListener("pointermove", moveDrag);
+  const person = getPerson(dragContext.id);
+
+  if (
+    person &&
+    (person.x !== dragContext.personX || person.y !== dragContext.personY)
+  ) {
+    pushLayoutHistory(
+      new Map([
+        [
+          person.id,
+          { x: dragContext.personX, y: dragContext.personY },
+        ],
+      ]),
+      new Map([[person.id, { x: person.x, y: person.y }]]),
+    );
+  }
+
   dragContext = null;
   persistState("Đã lưu vị trí demo");
   render();
@@ -804,6 +973,9 @@ function showWholeTree() {
   archiveFilter = "active";
   focusedId = null;
   collapsedBranchIds = new Set();
+  lockedPersonIds = new Set();
+  layoutHistory = [];
+  layoutFuture = [];
   resetFilterControls();
   render();
 }
@@ -839,6 +1011,85 @@ function toggleSelectedBranch() {
   render();
 }
 
+function toggleLayoutLock() {
+  const person = getPerson(selectedId);
+  if (!person || person.archived) return;
+
+  if (lockedPersonIds.has(person.id)) {
+    lockedPersonIds.delete(person.id);
+  } else {
+    lockedPersonIds.add(person.id);
+  }
+  render();
+}
+
+function resetSelectedPersonLayout() {
+  const person = getPerson(selectedId);
+  if (!person || person.archived || lockedPersonIds.has(person.id)) return;
+
+  const index = state.people.findIndex((candidate) => candidate.id === person.id);
+  applyLayoutPositions(
+    new Map([[person.id, getFallbackPosition(index)]]),
+    "Đã đặt lại vị trí demo",
+  );
+}
+
+function resetSelectedBranchLayout() {
+  const person = getPerson(selectedId);
+  if (!person || person.archived) return;
+
+  applyLayoutPositions(
+    getFallbackLayoutPositions(getBranchPersonIds(person.id)),
+    "Đã đặt lại bố cục nhánh demo",
+  );
+}
+
+function autoLayoutSelectedBranch() {
+  const person = getPerson(selectedId);
+  if (!person || person.archived) return;
+
+  applyLayoutPositions(
+    getAutoLayoutPositions(person.id),
+    "Đã tự sắp xếp nhánh demo",
+  );
+}
+
+function undoLayout() {
+  const entry = layoutHistory.at(-1);
+  if (!entry) return;
+
+  if (
+    applyLayoutPositions(
+      new Map(entry.before),
+      "Đã hoàn tác vị trí demo",
+      false,
+    )
+  ) {
+    layoutHistory.pop();
+    layoutFuture.push(entry);
+    if (layoutFuture.length > 50) layoutFuture.shift();
+    render();
+  }
+}
+
+function redoLayout() {
+  const entry = layoutFuture.at(-1);
+  if (!entry) return;
+
+  if (
+    applyLayoutPositions(
+      new Map(entry.after),
+      "Đã làm lại vị trí demo",
+      false,
+    )
+  ) {
+    layoutFuture.pop();
+    layoutHistory.push(entry);
+    if (layoutHistory.length > 50) layoutHistory.shift();
+    render();
+  }
+}
+
 document
   .querySelector("#descriptionField")
   .addEventListener("input", updateDescriptionCount);
@@ -867,6 +1118,18 @@ document
 document
   .querySelector("#toggleBranch")
   .addEventListener("click", toggleSelectedBranch);
+document.querySelector("#layoutLock").addEventListener("click", toggleLayoutLock);
+document
+  .querySelector("#resetPersonLayout")
+  .addEventListener("click", resetSelectedPersonLayout);
+document
+  .querySelector("#resetBranchLayout")
+  .addEventListener("click", resetSelectedBranchLayout);
+document
+  .querySelector("#autoLayoutBranch")
+  .addEventListener("click", autoLayoutSelectedBranch);
+document.querySelector("#layoutUndo").addEventListener("click", undoLayout);
+document.querySelector("#layoutRedo").addEventListener("click", redoLayout);
 document.querySelector("#clearFocus").addEventListener("click", () => {
   focusedId = null;
   render();

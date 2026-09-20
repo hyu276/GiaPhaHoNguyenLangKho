@@ -32,7 +32,9 @@ create table public.genealogy_sources (
   constraint genealogy_sources_reference_length
     check (reference_code is null or char_length(reference_code) <= 200),
   constraint genealogy_sources_url_length
-    check (source_url is null or char_length(source_url) <= 2048)
+    check (source_url is null or char_length(source_url) <= 2048),
+  constraint genealogy_sources_url_scheme
+    check (source_url is null or source_url ~* '^https?://')
 );
 
 create table public.genealogy_citations (

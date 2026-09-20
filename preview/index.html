@@ -27,9 +27,9 @@
     </header>
 
     <div class="notice">
-      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Search, filter,
-      focus và collapse chỉ thay đổi cách nhìn; không có thao tác nào ghi vào
-      database production.
+      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Search/focus chỉ
+      thay đổi cách nhìn; lock, reset, auto-layout và layout undo/redo chỉ lưu
+      trong browser local, không ghi vào database production.
     </div>
 
     <main class="workspace">
@@ -129,8 +129,8 @@
             <li class="done">Relationship CRUD</li>
             <li class="done">Archive / restore</li>
             <li class="done">Search & branch focus</li>
-            <li class="active">Layout administration</li>
-            <li>Sources & provenance</li>
+            <li class="done">Layout administration</li>
+            <li class="active">Sources & provenance</li>
             <li>Merge duplicates</li>
             <li>Audit / conflict / undo</li>
           </ol>
@@ -212,6 +212,46 @@
               </button>
               <button class="button secondary" id="clearFocus" type="button">
                 Bỏ focus
+              </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <p class="eyebrow">Quản trị bố cục</p>
+            <p class="muted">
+              Lock chỉ tồn tại trong phiên demo. Reset, auto-layout và layout
+              undo/redo chỉ thay đổi tọa độ trình bày.
+            </p>
+            <div class="branch-actions">
+              <button class="button secondary" id="layoutLock" type="button">
+                Khóa vị trí
+              </button>
+              <button
+                class="button secondary"
+                id="resetPersonLayout"
+                type="button"
+              >
+                Đặt lại vị trí
+              </button>
+              <button
+                class="button secondary"
+                id="resetBranchLayout"
+                type="button"
+              >
+                Đặt lại nhánh
+              </button>
+              <button
+                class="button secondary"
+                id="autoLayoutBranch"
+                type="button"
+              >
+                Tự sắp xếp nhánh
+              </button>
+              <button class="button secondary" id="layoutUndo" type="button">
+                Hoàn tác vị trí
+              </button>
+              <button class="button secondary" id="layoutRedo" type="button">
+                Làm lại vị trí
               </button>
             </div>
 

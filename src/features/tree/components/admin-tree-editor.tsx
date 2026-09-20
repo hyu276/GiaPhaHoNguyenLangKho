@@ -950,7 +950,7 @@ export function AdminTreeEditor({
   people,
   relationships,
   readOnly,
-  saveLayout,
+  saveLayouts,
   createParentChildRelationship,
   createPartnership,
   createPerson,
@@ -968,12 +968,18 @@ export function AdminTreeEditor({
   const [collapsedBranchIds, setCollapsedBranchIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [lockedPersonIds, setLockedPersonIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [layoutHistory, setLayoutHistory] = useState<LayoutHistoryEntry[]>([]);
+  const [layoutFuture, setLayoutFuture] = useState<LayoutHistoryEntry[]>([]);
   const [pendingFocusPersonId, setPendingFocusPersonId] = useState<
     string | null
   >(null);
   const flowInstance = useRef<
     ReactFlowInstance<PersonNode, RelationshipEdge> | null
   >(null);
+  const layoutMutationInFlight = useRef(false);
   const filteredPeople = useMemo(
     () =>
       filterPeople(people, {
@@ -997,8 +1003,8 @@ export function AdminTreeEditor({
     [relationships, visiblePeople],
   );
   const initialNodes = useMemo(
-    () => createNodes(visiblePeople),
-    [visiblePeople],
+    () => createNodes(visiblePeople, lockedPersonIds),
+    [lockedPersonIds, visiblePeople],
   );
   const edges = useMemo(
     () => createEdges(visibleRelationships),
@@ -1012,7 +1018,6 @@ export function AdminTreeEditor({
   >(null);
   const [formMode, setFormMode] = useState<PersonFormMode>(null);
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
-  const [, startTransition] = useTransition();
   const persistedPositions = useRef(
     new Map(people.map((person) => [person.id, person.position])),
   );
@@ -1030,11 +1035,16 @@ export function AdminTreeEditor({
   const statusMessage = getStatusMessage(readOnly, saveState);
 
   useEffect(() => {
-    setNodes(createNodes(visiblePeople));
     persistedPositions.current = new Map(
       people.map((person) => [person.id, person.position]),
     );
-  }, [people, setNodes, visiblePeople]);
+  }, [people]);
+
+  useEffect(() => {
+    setNodes(
+      createNodes(visiblePeople, lockedPersonIds, persistedPositions.current),
+    );
+  }, [lockedPersonIds, setNodes, visiblePeople]);
 
   useEffect(() => {
     if (!pendingFocusPersonId) return;
@@ -1051,49 +1061,100 @@ export function AdminTreeEditor({
     setPendingFocusPersonId(null);
   }, [pendingFocusPersonId, visiblePeople]);
 
-  const restorePosition = useCallback(
-    (personId: string) => {
-      const persisted = persistedPositions.current.get(personId);
-      if (!persisted) return;
+  const applyLayoutPositions = useCallback(
+    async (
+      requestedPositions: ReadonlyMap<string, LayoutPosition>,
+      recordHistory = true,
+    ) => {
+      if (
+        readOnly ||
+        !saveLayouts ||
+        requestedPositions.size === 0 ||
+        layoutMutationInFlight.current
+      ) {
+        return false;
+      }
 
+      const before = new Map<string, LayoutPosition>();
+      const after = new Map<string, LayoutPosition>();
+
+      requestedPositions.forEach((position, personId) => {
+        const person = people.find((candidate) => candidate.id === personId);
+        if (!person || isArchived(person)) return;
+
+        const currentPosition =
+          persistedPositions.current.get(personId) ?? person.position;
+        if (
+          currentPosition.x === position.x &&
+          currentPosition.y === position.y
+        ) {
+          return;
+        }
+
+        before.set(personId, currentPosition);
+        after.set(personId, position);
+      });
+
+      if (after.size === 0) return true;
+
+      const firstPersonId = after.keys().next().value as string;
+      layoutMutationInFlight.current = true;
+      setSaveState({ status: "saving", personId: firstPersonId });
       setNodes((currentNodes) =>
-        currentNodes.map((node) =>
-          node.id === personId ? { ...node, position: persisted } : node,
-        ),
+        currentNodes.map((node) => {
+          const position = after.get(node.id);
+          return position ? { ...node, position } : node;
+        }),
       );
+
+      const result = await saveLayouts(
+        [...after].map(([personId, position]) => ({
+          personId,
+          positionX: position.x,
+          positionY: position.y,
+        })),
+      );
+
+      if (!result.ok) {
+        setNodes((currentNodes) =>
+          currentNodes.map((node) => {
+            const position = before.get(node.id);
+            return position ? { ...node, position } : node;
+          }),
+        );
+        setSaveState({
+          status: "error",
+          personId: firstPersonId,
+          message: result.message,
+        });
+        layoutMutationInFlight.current = false;
+        return false;
+      }
+
+      after.forEach((position, personId) => {
+        persistedPositions.current.set(personId, position);
+      });
+
+      if (recordHistory) {
+        setLayoutHistory((current) =>
+          [...current, { before, after }].slice(-50),
+        );
+        setLayoutFuture([]);
+      }
+
+      setSaveState({ status: "saved", personId: firstPersonId });
+      layoutMutationInFlight.current = false;
+      return true;
     },
-    [setNodes],
+    [people, readOnly, saveLayouts, setNodes],
   );
 
   const persistNodePosition = useCallback(
     (node: PersonNode) => {
-      if (readOnly || !saveLayout || node.data.archived) return;
-
-      const previousPosition = persistedPositions.current.get(node.id);
-      setSaveState({ status: "saving", personId: node.id });
-
-      startTransition(async () => {
-        const result = await saveLayout({
-          personId: node.id,
-          positionX: node.position.x,
-          positionY: node.position.y,
-        });
-
-        if (!result.ok) {
-          if (previousPosition) restorePosition(node.id);
-          setSaveState({
-            status: "error",
-            personId: node.id,
-            message: result.message,
-          });
-          return;
-        }
-
-        persistedPositions.current.set(node.id, node.position);
-        setSaveState({ status: "saved", personId: node.id });
-      });
+      if (node.data.archived || node.data.locked) return;
+      void applyLayoutPositions(new Map([[node.id, node.position]]));
     },
-    [readOnly, restorePosition, saveLayout],
+    [applyLayoutPositions],
   );
 
   function handleNodeSelect(personId: string) {

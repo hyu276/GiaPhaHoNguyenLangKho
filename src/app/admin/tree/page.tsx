@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { createPerson, updatePerson } from "@/app/admin/tree/actions";
+import {
+  archivePerson,
+  createPerson,
+  restorePerson,
+  updatePerson,
+} from "@/app/admin/tree/actions";
 import {
   createParentChildRelationship,
   createPartnership,
@@ -31,6 +36,7 @@ const personRowSchema = z.object({
   death_year: z.number().nullable(),
   sex: z.enum(["male", "female"]).nullable(),
   visibility: z.enum(["public", "private"]),
+  archived_at: z.string().nullable(),
 });
 
 const relationshipRowSchema = z.object({
@@ -123,18 +129,22 @@ function getAdminMutations(role: TreeViewerRole) {
     return {
       createParentChildRelationship: undefined,
       createPartnership: undefined,
+      archivePerson: undefined,
       createPerson: undefined,
       removeRelationship: undefined,
+      restorePerson: undefined,
       updatePerson: undefined,
       saveLayout: undefined,
     };
   }
 
   return {
+    archivePerson,
     createParentChildRelationship,
     createPartnership,
     createPerson,
     removeRelationship,
+    restorePerson,
     updatePerson,
     saveLayout: savePersonLayout,
   };
@@ -158,7 +168,7 @@ export default async function AdminTreePage() {
     supabase
       .from("people")
       .select(
-        "id, display_name, description, birth_year, death_year, sex, visibility",
+        "id, display_name, description, birth_year, death_year, sex, visibility, archived_at",
       )
       .order("display_name"),
     supabase
@@ -192,6 +202,7 @@ export default async function AdminTreePage() {
     deathYear: person.death_year,
     sex: person.sex,
     visibility: person.visibility,
+    archivedAt: person.archived_at,
     position: layoutByPersonId.get(person.id) ?? getFallbackPosition(index),
   }));
 
@@ -228,6 +239,7 @@ export default async function AdminTreePage() {
       </header>
 
       <AdminTreeEditor
+        archivePerson={mutations.archivePerson}
         createParentChildRelationship={mutations.createParentChildRelationship}
         createPartnership={mutations.createPartnership}
         createPerson={mutations.createPerson}
@@ -235,6 +247,7 @@ export default async function AdminTreePage() {
         readOnly={readOnly}
         relationships={relationships}
         removeRelationship={mutations.removeRelationship}
+        restorePerson={mutations.restorePerson}
         saveLayout={mutations.saveLayout}
         updatePerson={mutations.updatePerson}
       />

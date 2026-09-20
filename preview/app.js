@@ -565,18 +565,13 @@ function renderArchiveImpact(selectedPerson, selectedArchived) {
     : `Impact preview: ${connected} quan hệ trực tiếp và vị trí sẽ được giữ nguyên khi lưu trữ.`;
 }
 
-function render() {
-  renderEdges();
-  renderNodes();
-  renderInspector();
-
-  const selectedPerson = getPerson(selectedId);
+function renderSelectionControls(selectedPerson) {
   const selectedArchived = Boolean(selectedPerson?.archived);
   const hasSelection = Boolean(selectedPerson);
   const mutableSelection = hasSelection && !selectedArchived;
-  const selectedLocked = Boolean(
-    selectedPerson && lockedPersonIds.has(selectedPerson.id),
-  );
+  const selectedLocked = selectedPerson
+    ? lockedPersonIds.has(selectedPerson.id)
+    : false;
   const archiveButton = document.querySelector("#archivePerson");
 
   document.querySelector("#editPerson").disabled = !mutableSelection;
@@ -604,6 +599,17 @@ function render() {
   document.querySelector("#autoLayoutBranch").disabled = !mutableSelection;
   document.querySelector("#layoutUndo").disabled = layoutHistory.length === 0;
   document.querySelector("#layoutRedo").disabled = layoutFuture.length === 0;
+
+  return selectedArchived;
+}
+
+function render() {
+  renderEdges();
+  renderNodes();
+  renderInspector();
+
+  const selectedPerson = getPerson(selectedId);
+  const selectedArchived = renderSelectionControls(selectedPerson);
   filterStatus.textContent = `${visiblePeople().length} người phù hợp`;
 
   renderArchiveImpact(selectedPerson, selectedArchived);

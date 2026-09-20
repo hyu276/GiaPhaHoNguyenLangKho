@@ -128,6 +128,14 @@ export async function removeRelationship(
     .single();
 
   if (error || !data) {
+    if (error?.code === "23503") {
+      return {
+        ok: false,
+        message:
+          "Quan hệ này đang có citation. Hãy review/xóa citation trước khi xóa quan hệ để không làm mất provenance.",
+      };
+    }
+
     return { ok: false, message: "Không thể xóa quan hệ này." };
   }
 

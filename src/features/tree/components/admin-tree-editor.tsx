@@ -985,9 +985,6 @@ export function AdminTreeEditor({
   );
   const [layoutHistory, setLayoutHistory] = useState<LayoutHistoryEntry[]>([]);
   const [layoutFuture, setLayoutFuture] = useState<LayoutHistoryEntry[]>([]);
-  const [pendingFocusPersonId, setPendingFocusPersonId] = useState<
-    string | null
-  >(null);
   const flowInstance = useRef<ReactFlowInstance<
     PersonNode,
     RelationshipEdge
@@ -1058,25 +1055,6 @@ export function AdminTreeEditor({
       createNodes(visiblePeople, lockedPersonIds, persistedPositions.current),
     );
   }, [lockedPersonIds, setNodes, visiblePeople]);
-
-  useEffect(() => {
-    if (!pendingFocusPersonId) return;
-    if (!visiblePeople.some((person) => person.id === pendingFocusPersonId)) {
-      return;
-    }
-
-    flowInstance.current?.fitView({
-      nodes: [{ id: pendingFocusPersonId }],
-      duration: 250,
-      maxZoom: 1.25,
-      padding: 1.2,
-    });
-
-    const frameId = window.requestAnimationFrame(() => {
-      setPendingFocusPersonId(null);
-    });
-    return () => window.cancelAnimationFrame(frameId);
-  }, [pendingFocusPersonId, visiblePeople]);
 
   const applyLayoutPositions = useCallback(
     async (
@@ -1232,7 +1210,14 @@ export function AdminTreeEditor({
     setArchiveFilter(isArchived(person) ? "all" : "active");
     setCollapsedBranchIds(new Set());
     handleNodeSelect(personId);
-    setPendingFocusPersonId(personId);
+    window.requestAnimationFrame(() => {
+      flowInstance.current?.fitView({
+        nodes: [{ id: personId }],
+        duration: 250,
+        maxZoom: 1.25,
+        padding: 1.2,
+      });
+    });
   }
 
   function toggleBranch(personId: string) {

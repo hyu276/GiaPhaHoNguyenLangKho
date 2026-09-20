@@ -32,11 +32,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Print Prettier patch
-        run: |
-          npx prettier --write src/features/tree/components/admin-tree-editor.tsx tests/unit/tree-navigation.test.ts
-          git diff -- src/features/tree/components/admin-tree-editor.tsx tests/unit/tree-navigation.test.ts
-          exit 1
+      - name: Check formatting
+        run: npm run format:check
 
       - name: Lint
         run: npm run lint

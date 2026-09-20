@@ -26,6 +26,10 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { Button } from "@/components/ui/button";
+import {
+  PersonArchiveControls,
+  type PersonStateMutation,
+} from "@/features/tree/components/person-archive-controls";
 import { PersonEditorForm } from "@/features/tree/components/person-editor-form";
 import {
   PersonRelationshipSection,
@@ -49,6 +53,7 @@ export type EditorPerson = {
   deathYear: number | null;
   sex: PersonSex | null;
   visibility: PersonVisibility;
+  archivedAt: string | null;
   position: { x: number; y: number };
 };
 
@@ -73,6 +78,7 @@ type CreatePerson = (input: CreatePersonInput) => Promise<PersonMutationResult>;
 type UpdatePerson = (input: UpdatePersonInput) => Promise<PersonMutationResult>;
 
 type AdminTreeEditorProps = {
+  archivePerson: PersonStateMutation | undefined;
   people: EditorPerson[];
   relationships: EditorRelationship[];
   readOnly: boolean;
@@ -81,13 +87,16 @@ type AdminTreeEditorProps = {
   createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
   removeRelationship: RemoveRelationship | undefined;
+  restorePerson: PersonStateMutation | undefined;
   updatePerson: UpdatePerson | undefined;
+  onPersonStateChanged: () => void;
 };
 
 type PersonNodeData = {
   displayName: string;
   years: string;
   visibility: PersonVisibility;
+  archived: boolean;
 };
 
 type PersonNode = Node<PersonNodeData, "person">;
@@ -101,6 +110,7 @@ type SaveState =
   | { status: "error"; personId: string; message: string };
 
 type SidebarProps = {
+  archivePerson: PersonStateMutation | undefined;
   createParentChildRelationship: CreateParentChildRelationship | undefined;
   createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
@@ -114,6 +124,7 @@ type SidebarProps = {
   readOnly: boolean;
   relationships: EditorRelationship[];
   removeRelationship: RemoveRelationship | undefined;
+  restorePerson: PersonStateMutation | undefined;
   selectedPerson: EditorPerson | null;
   selectedRelationship: EditorRelationship | null;
   updatePerson: UpdatePerson | undefined;
@@ -157,6 +168,11 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
       <p className="text-sm font-semibold text-card-foreground">
         {data.displayName}
       </p>
+      {data.archived ? (
+        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Đã lưu trữ
+        </p>
+      ) : null}
       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
         <span>{data.years}</span>
         <span aria-hidden="true">·</span>
@@ -181,7 +197,9 @@ function createNodes(people: EditorPerson[]): PersonNode[] {
       displayName: person.displayName,
       years: formatYears(person),
       visibility: person.visibility,
+      archived: person.archivedAt !== null,
     },
+    className: person.archivedAt ? "opacity-55" : undefined,
   }));
 }
 
@@ -259,7 +277,7 @@ function SelectedPersonSummary({
         {selectedPerson.description ?? "Chưa có mô tả."}
       </p>
 
-      {readOnly ? null : (
+      {readOnly || selectedPerson.archivedAt ? null : (
         <Button className="mt-6 w-full" onClick={onStartEdit} variant="outline">
           Sửa hồ sơ
         </Button>
@@ -378,7 +396,17 @@ function EditorSidebar(props: SidebarProps) {
         readOnly={props.readOnly}
         selectedPerson={props.selectedPerson}
       />
-      {props.selectedPerson ? (
+      {props.selectedPerson && !props.readOnly ? (
+        <PersonArchiveControls
+          archivePerson={props.archivePerson}
+          onChanged={props.onPersonStateChanged}
+          people={props.people}
+          person={props.selectedPerson}
+          relationships={props.relationships}
+          restorePerson={props.restorePerson}
+        />
+      ) : null}
+      {props.selectedPerson && !props.selectedPerson.archivedAt ? (
         <PersonRelationshipSection
           createParentChildRelationship={props.createParentChildRelationship}
           createPartnership={props.createPartnership}
@@ -394,6 +422,7 @@ function EditorSidebar(props: SidebarProps) {
 }
 
 export function AdminTreeEditor({
+  archivePerson,
   people,
   relationships,
   readOnly,
@@ -402,11 +431,33 @@ export function AdminTreeEditor({
   createPartnership,
   createPerson,
   removeRelationship,
+  restorePerson,
   updatePerson,
 }: AdminTreeEditorProps) {
   const router = useRouter();
-  const initialNodes = useMemo(() => createNodes(people), [people]);
-  const edges = useMemo(() => createEdges(relationships), [relationships]);
+  const [showArchived, setShowArchived] = useState(false);
+  const visiblePeople = useMemo(
+    () => people.filter((person) => showArchived || !person.archivedAt),
+    [people, showArchived],
+  );
+  const visiblePersonIds = useMemo(
+    () => new Set(visiblePeople.map((person) => person.id)),
+    [visiblePeople],
+  );
+  const visibleRelationships = useMemo(
+    () =>
+      relationships.filter(
+        (relationship) =>
+          visiblePersonIds.has(relationship.sourcePersonId) &&
+          visiblePersonIds.has(relationship.targetPersonId),
+      ),
+    [relationships, visiblePersonIds],
+  );
+  const initialNodes = useMemo(() => createNodes(visiblePeople), [visiblePeople]);
+  const edges = useMemo(
+    () => createEdges(visibleRelationships),
+    [visibleRelationships],
+  );
   const [nodes, setNodes, onNodesChange] =
     useNodesState<PersonNode>(initialNodes);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
@@ -429,11 +480,11 @@ export function AdminTreeEditor({
   const statusMessage = getStatusMessage(readOnly, saveState);
 
   useEffect(() => {
-    setNodes(createNodes(people));
+    setNodes(createNodes(visiblePeople));
     persistedPositions.current = new Map(
       people.map((person) => [person.id, person.position]),
     );
-  }, [people, setNodes]);
+  }, [people, setNodes, visiblePeople]);
 
   const restorePosition = useCallback(
     (personId: string) => {
@@ -506,6 +557,23 @@ export function AdminTreeEditor({
     router.refresh();
   }
 
+  function handlePersonStateChanged() {
+    setSelectedPersonId(null);
+    setSelectedRelationshipId(null);
+    setFormMode(null);
+    router.refresh();
+  }
+
+  function toggleArchived() {
+    const nextShowArchived = !showArchived;
+    setShowArchived(nextShowArchived);
+    setSelectedRelationshipId(null);
+
+    if (!nextShowArchived && selectedPerson?.archivedAt) {
+      setSelectedPersonId(null);
+    }
+  }
+
   return (
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card">
@@ -540,14 +608,26 @@ export function AdminTreeEditor({
         >
           {statusMessage}
         </div>
+        {readOnly ? null : (
+          <Button
+            className="absolute right-4 top-4"
+            onClick={toggleArchived}
+            type="button"
+            variant="outline"
+          >
+            {showArchived ? "Ẩn đã lưu trữ" : "Hiện đã lưu trữ"}
+          </Button>
+        )}
       </section>
 
       <EditorSidebar
+        archivePerson={archivePerson}
         createParentChildRelationship={createParentChildRelationship}
         createPartnership={createPartnership}
         createPerson={createPerson}
         formMode={formMode}
         onCancelForm={() => setFormMode(null)}
+        onPersonStateChanged={handlePersonStateChanged}
         onRelationshipChanged={handleRelationshipChanged}
         onSaved={handleSaved}
         onStartCreate={() => setFormMode("create")}
@@ -556,6 +636,7 @@ export function AdminTreeEditor({
         readOnly={readOnly}
         relationships={relationships}
         removeRelationship={removeRelationship}
+        restorePerson={restorePerson}
         selectedPerson={selectedPerson}
         selectedRelationship={selectedRelationship}
         updatePerson={updatePerson}

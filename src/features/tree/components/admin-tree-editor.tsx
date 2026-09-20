@@ -1362,15 +1362,28 @@ export function AdminTreeEditor({
         createPartnership={createPartnership}
         createPerson={createPerson}
         formMode={formMode}
+        layoutCanRedo={
+          layoutFuture.length > 0 && saveState.status !== "saving"
+        }
+        layoutCanUndo={
+          layoutHistory.length > 0 && saveState.status !== "saving"
+        }
+        lockedPersonIds={lockedPersonIds}
+        onAutoLayoutBranch={autoLayoutBranch}
         onCancelForm={() => setFormMode(null)}
         onFocusPerson={focusPerson}
         onJumpToPerson={revealAndFocusPerson}
         onPersonStateChanged={handlePersonStateChanged}
+        onRedoLayout={() => void redoLayout()}
         onRelationshipChanged={handleRelationshipChanged}
+        onResetBranchLayout={resetBranchLayout}
+        onResetPersonPosition={resetPersonPosition}
         onSaved={handleSaved}
         onStartCreate={() => setFormMode("create")}
         onStartEdit={() => setFormMode("edit")}
         onToggleBranch={toggleBranch}
+        onToggleLayoutLock={toggleLayoutLock}
+        onUndoLayout={() => void undoLayout()}
         people={people}
         readOnly={readOnly}
         relationships={relationships}

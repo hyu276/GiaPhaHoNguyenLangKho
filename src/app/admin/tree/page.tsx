@@ -21,6 +21,7 @@ import {
   type SaveLayoutInput,
   type SaveLayoutResult,
 } from "@/features/tree/components/admin-tree-editor";
+import { getFallbackPosition } from "@/features/tree/tree-layout";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -58,18 +59,14 @@ const saveLayoutSchema = z.object({
   positionY: z.number().finite().min(-1_000_000).max(1_000_000),
 });
 
+const saveLayoutsSchema = z.array(saveLayoutSchema).min(1).max(500);
+
 function getTreeViewerRole(value: unknown): TreeViewerRole | null {
   return value === "admin" || value === "spectator" ? value : null;
 }
 
 function getViewerLabel(role: TreeViewerRole) {
   return role === "spectator" ? "Spectator · chỉ xem" : "Admin editor";
-}
-
-function getFallbackPosition(index: number) {
-  const column = index % 4;
-  const row = Math.floor(index / 4);
-  return { x: 80 + column * 260, y: 80 + row * 180 };
 }
 
 async function requireTreeViewer() {
@@ -92,31 +89,36 @@ async function requireTreeViewer() {
   return { supabase, user, role };
 }
 
-async function savePersonLayout(
-  input: SaveLayoutInput,
+async function savePersonLayouts(
+  inputs: SaveLayoutInput[],
 ): Promise<SaveLayoutResult> {
   "use server";
 
-  const parsed = saveLayoutSchema.safeParse(input);
+  const parsed = saveLayoutsSchema.safeParse(inputs);
   if (!parsed.success) {
     return { ok: false, message: "Vị trí không hợp lệ." };
   }
 
+  const uniquePersonIds = new Set(parsed.data.map((input) => input.personId));
+  if (uniquePersonIds.size !== parsed.data.length) {
+    return { ok: false, message: "Danh sách vị trí chứa người bị lặp." };
+  }
+
   const { supabase, user } = await requireAdmin();
   const { error } = await supabase.from("person_layouts").upsert(
-    {
-      person_id: parsed.data.personId,
-      position_x: parsed.data.positionX,
-      position_y: parsed.data.positionY,
+    parsed.data.map((input) => ({
+      person_id: input.personId,
+      position_x: input.positionX,
+      position_y: input.positionY,
       updated_by: user.id,
-    },
+    })),
     { onConflict: "person_id" },
   );
 
   if (error) {
     return {
       ok: false,
-      message: "Không thể lưu vị trí. Sơ đồ đã khôi phục vị trí trước đó.",
+      message: "Không thể lưu bố cục. Sơ đồ đã khôi phục vị trí trước đó.",
     };
   }
 
@@ -134,7 +136,7 @@ function getAdminMutations(role: TreeViewerRole) {
       removeRelationship: undefined,
       restorePerson: undefined,
       updatePerson: undefined,
-      saveLayout: undefined,
+      saveLayouts: undefined,
     };
   }
 
@@ -146,7 +148,7 @@ function getAdminMutations(role: TreeViewerRole) {
     removeRelationship,
     restorePerson,
     updatePerson,
-    saveLayout: savePersonLayout,
+    saveLayouts: savePersonLayouts,
   };
 }
 
@@ -253,7 +255,7 @@ export default async function AdminTreePage() {
         relationships={relationships}
         removeRelationship={mutations.removeRelationship}
         restorePerson={mutations.restorePerson}
-        saveLayout={mutations.saveLayout}
+        saveLayouts={mutations.saveLayouts}
         updatePerson={mutations.updatePerson}
       />
     </main>

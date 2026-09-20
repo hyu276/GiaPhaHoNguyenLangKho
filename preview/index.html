@@ -27,9 +27,9 @@
     </header>
 
     <div class="notice">
-      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Archive/restore giữ
-      nguyên quan hệ và vị trí; không có thao tác nào ghi vào database
-      production.
+      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Search, filter,
+      focus và collapse chỉ thay đổi cách nhìn; không có thao tác nào ghi vào
+      database production.
     </div>
 
     <main class="workspace">
@@ -46,6 +46,36 @@
             <span>Tìm người</span>
             <input id="searchInput" type="search" placeholder="Nhập tên..." />
           </label>
+
+          <div class="filter-grid">
+            <label class="field compact-field">
+              <span>Sinh trạng</span>
+              <select id="lifeFilter">
+                <option value="all">Tất cả</option>
+                <option value="living">Còn sống</option>
+                <option value="deceased">Đã mất</option>
+              </select>
+            </label>
+            <label class="field compact-field">
+              <span>Hiển thị</span>
+              <select id="visibilityFilter">
+                <option value="all">Tất cả</option>
+                <option value="public">Công khai</option>
+                <option value="private">Riêng tư</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field compact-field">
+            <span>Lưu trữ</span>
+            <select id="archiveFilter">
+              <option value="active">Đang hoạt động</option>
+              <option value="all">Tất cả</option>
+              <option value="archived">Đã lưu trữ</option>
+            </select>
+          </label>
+
+          <p class="muted filter-status" id="filterStatus"></p>
 
           <div class="button-grid">
             <button class="button primary" id="addPerson" type="button">
@@ -86,14 +116,9 @@
               ↷
             </button>
             <button class="button secondary grow" id="fitButton" type="button">
-              Focus toàn cây
+              Hiện toàn cây
             </button>
           </div>
-
-          <label class="toggle-row">
-            <input id="showArchived" type="checkbox" />
-            <span>Hiện người đã lưu trữ</span>
-          </label>
         </section>
 
         <section class="panel compact">
@@ -103,7 +128,8 @@
             <li class="done">Person CRUD</li>
             <li class="done">Relationship CRUD</li>
             <li class="done">Archive / restore</li>
-            <li class="active">Search & branch focus</li>
+            <li class="done">Search & branch focus</li>
+            <li class="active">Layout administration</li>
             <li>Sources & provenance</li>
             <li>Merge duplicates</li>
             <li>Audit / conflict / undo</li>
@@ -179,6 +205,15 @@
             </dl>
 
             <p class="archive-impact" id="archiveImpact" hidden></p>
+
+            <div class="branch-actions">
+              <button class="button secondary" id="toggleBranch" type="button">
+                Thu nhánh con
+              </button>
+              <button class="button secondary" id="clearFocus" type="button">
+                Bỏ focus
+              </button>
+            </div>
 
             <div class="divider"></div>
 
@@ -282,9 +317,14 @@
           <strong class="relation-name"></strong>
           <span class="relation-kind"></span>
         </div>
-        <button class="link-danger relation-remove" type="button">
-          Xóa quan hệ
-        </button>
+        <div class="relation-actions">
+          <button class="link-button relation-jump" type="button">
+            Đi tới
+          </button>
+          <button class="link-danger relation-remove" type="button">
+            Xóa quan hệ
+          </button>
+        </div>
       </div>
     </template>
 

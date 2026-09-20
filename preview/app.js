@@ -92,7 +92,11 @@ let history = [];
 let future = [];
 let relationshipMode = null;
 let searchTerm = "";
-let showArchived = false;
+let lifeFilter = "all";
+let visibilityFilter = "all";
+let archiveFilter = "active";
+let focusedId = null;
+let collapsedBranchIds = new Set();
 let dragContext = null;
 
 const canvas = document.querySelector("#canvas");
@@ -100,6 +104,7 @@ const nodesLayer = document.querySelector("#nodes");
 const edgesSvg = document.querySelector("#edges");
 const saveStatus = document.querySelector("#saveStatus");
 const emptySearch = document.querySelector("#emptySearch");
+const filterStatus = document.querySelector("#filterStatus");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -154,12 +159,49 @@ function getPerson(id) {
   return state.people.find((person) => person.id === id) ?? null;
 }
 
-function visiblePeople() {
-  return state.people.filter((person) => {
-    if (!showArchived && person.archived) return false;
-    if (!searchTerm) return true;
-    return person.name.toLowerCase().includes(searchTerm);
+function hiddenBranchIds() {
+  const hidden = new Set();
+  collapsedBranchIds.forEach((rootId) => {
+    descendantsOf(rootId).forEach((personId) => hidden.add(personId));
   });
+  return hidden;
+}
+
+function matchesArchiveFilter(person) {
+  if (archiveFilter === "active") return !person.archived;
+  if (archiveFilter === "archived") return person.archived;
+  return true;
+}
+
+function matchesLifeFilter(person) {
+  const isLiving = person.death === null;
+  if (lifeFilter === "living") return isLiving;
+  if (lifeFilter === "deceased") return !isLiving;
+  return true;
+}
+
+function matchesVisibilityFilter(person) {
+  return visibilityFilter === "all" || person.visibility === visibilityFilter;
+}
+
+function matchesSearchTerm(person) {
+  if (!searchTerm) return true;
+  return person.name.toLocaleLowerCase("vi-VN").includes(searchTerm);
+}
+
+function isVisiblePerson(person, hidden) {
+  return (
+    !hidden.has(person.id) &&
+    matchesArchiveFilter(person) &&
+    matchesLifeFilter(person) &&
+    matchesVisibilityFilter(person) &&
+    matchesSearchTerm(person)
+  );
+}
+
+function visiblePeople() {
+  const hidden = hiddenBranchIds();
+  return state.people.filter((person) => isVisiblePerson(person, hidden));
 }
 
 function nodeCenter(person) {
@@ -221,60 +263,76 @@ function renderEdges() {
   });
 }
 
+function getNodeClassName(person) {
+  return [
+    "person-node",
+    person.id === selectedId ? "selected" : "",
+    person.visibility === "private" ? "private" : "",
+    person.archived ? "archived" : "",
+    person.id === focusedId ? "focused" : "",
+    focusedId && person.id !== focusedId ? "deemphasized" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function createVisibilityBadge(person) {
+  const badge = document.createElement("span");
+  badge.className = [
+    "node-badge",
+    person.visibility === "private" ? "private" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  badge.textContent =
+    person.visibility === "private" ? "Riêng tư" : "Công khai";
+  return badge;
+}
+
+function appendArchivedBadge(badges, person) {
+  if (!person.archived) return;
+
+  const archivedBadge = document.createElement("span");
+  archivedBadge.className = "node-badge private";
+  archivedBadge.textContent = "Đã lưu trữ";
+  badges.appendChild(archivedBadge);
+}
+
+function createPersonNode(person) {
+  const node = document.createElement("button");
+  node.type = "button";
+  node.className = getNodeClassName(person);
+  node.style.left = `${person.x}px`;
+  node.style.top = `${person.y}px`;
+  node.dataset.personId = person.id;
+
+  const name = document.createElement("strong");
+  name.textContent = person.name;
+
+  const years = document.createElement("small");
+  years.textContent = formatYears(person);
+
+  const badges = document.createElement("span");
+  badges.className = "node-badges";
+  badges.appendChild(createVisibilityBadge(person));
+  appendArchivedBadge(badges, person);
+
+  node.append(name, years, badges);
+  node.addEventListener("click", () => {
+    selectedId = person.id;
+    render();
+  });
+  node.addEventListener("pointerdown", startDrag);
+
+  return node;
+}
+
 function renderNodes() {
   nodesLayer.replaceChildren();
   const displayed = visiblePeople();
 
   displayed.forEach((person) => {
-    const node = document.createElement("button");
-    node.type = "button";
-    node.className = [
-      "person-node",
-      person.id === selectedId ? "selected" : "",
-      person.visibility === "private" ? "private" : "",
-      person.archived ? "archived" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    node.style.left = `${person.x}px`;
-    node.style.top = `${person.y}px`;
-    node.dataset.personId = person.id;
-
-    const name = document.createElement("strong");
-    name.textContent = person.name;
-
-    const years = document.createElement("small");
-    years.textContent = formatYears(person);
-
-    const badges = document.createElement("span");
-    badges.className = "node-badges";
-
-    const visibilityBadge = document.createElement("span");
-    visibilityBadge.className = [
-      "node-badge",
-      person.visibility === "private" ? "private" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    visibilityBadge.textContent =
-      person.visibility === "private" ? "Riêng tư" : "Công khai";
-    badges.appendChild(visibilityBadge);
-
-    if (person.archived) {
-      const archivedBadge = document.createElement("span");
-      archivedBadge.className = "node-badge private";
-      archivedBadge.textContent = "Đã lưu trữ";
-      badges.appendChild(archivedBadge);
-    }
-
-    node.append(name, years, badges);
-
-    node.addEventListener("click", () => {
-      selectedId = person.id;
-      render();
-    });
-    node.addEventListener("pointerdown", startDrag);
-    nodesLayer.appendChild(node);
+    nodesLayer.appendChild(createPersonNode(person));
   });
 
   emptySearch.hidden = displayed.length > 0;
@@ -329,6 +387,9 @@ function renderInspector() {
       relation,
       person.id,
     );
+    const jumpButton = item.querySelector(".relation-jump");
+    jumpButton.addEventListener("click", () => jumpToPerson(other.id));
+
     const removeButton = item.querySelector(".relation-remove");
     const lockedByArchive = person.archived || other.archived;
     removeButton.disabled = lockedByArchive;
@@ -380,9 +441,16 @@ function render() {
   document.querySelector("#addPartner").disabled = !mutableSelection;
   archiveButton.disabled = !hasSelection;
   archiveButton.textContent = selectedArchived ? "Khôi phục" : "Lưu trữ";
-  document.querySelector("#focusSelected").disabled = !mutableSelection;
+  document.querySelector("#focusSelected").disabled = !hasSelection;
+  document.querySelector("#toggleBranch").disabled = !hasSelection;
+  document.querySelector("#toggleBranch").textContent =
+    hasSelection && collapsedBranchIds.has(selectedPerson.id)
+      ? "Mở nhánh con"
+      : "Thu nhánh con";
+  document.querySelector("#clearFocus").disabled = focusedId === null;
   document.querySelector("#undoButton").disabled = history.length === 0;
   document.querySelector("#redoButton").disabled = future.length === 0;
+  filterStatus.textContent = `${visiblePeople().length} người phù hợp`;
 
   renderArchiveImpact(selectedPerson, selectedArchived);
 }
@@ -595,8 +663,10 @@ function wouldDuplicate(kind, source, target) {
 }
 
 function descendantsOf(personId) {
-  const visited = new Set();
+  const visited = new Set([personId]);
+  const descendants = new Set();
   const queue = [personId];
+
   while (queue.length) {
     const current = queue.shift();
     state.relationships
@@ -605,13 +675,14 @@ function descendantsOf(personId) {
           relation.kind === "parent_child" && relation.source === current,
       )
       .forEach((relation) => {
-        if (!visited.has(relation.target)) {
-          visited.add(relation.target);
-          queue.push(relation.target);
-        }
+        if (visited.has(relation.target)) return;
+        visited.add(relation.target);
+        descendants.add(relation.target);
+        queue.push(relation.target);
       });
   }
-  return visited;
+
+  return descendants;
 }
 
 function hasRelationshipSelection(selected, target, mode) {
@@ -706,7 +777,7 @@ function archiveSelected() {
       ? "Đã lưu trữ người trong demo"
       : "Đã khôi phục người trong demo",
   );
-  if (person.archived && !showArchived) {
+  if (person.archived && archiveFilter === "active") {
     selectedId = null;
   }
   render();
@@ -714,11 +785,57 @@ function archiveSelected() {
 
 function focusPerson(person) {
   if (!person) return;
-  const bounds = canvas.getBoundingClientRect();
-  checkpoint();
-  person.x = Math.max(20, bounds.width / 2 - 89);
-  person.y = Math.max(20, bounds.height / 2 - 39);
-  persistState("Đã focus người trong demo");
+  selectedId = person.id;
+  focusedId = person.id;
+  render();
+}
+
+function resetFilterControls() {
+  document.querySelector("#searchInput").value = "";
+  document.querySelector("#lifeFilter").value = "all";
+  document.querySelector("#visibilityFilter").value = "all";
+  document.querySelector("#archiveFilter").value = "active";
+}
+
+function showWholeTree() {
+  searchTerm = "";
+  lifeFilter = "all";
+  visibilityFilter = "all";
+  archiveFilter = "active";
+  focusedId = null;
+  collapsedBranchIds = new Set();
+  resetFilterControls();
+  render();
+}
+
+function jumpToPerson(personId) {
+  const person = getPerson(personId);
+  if (!person) return;
+
+  searchTerm = "";
+  lifeFilter = "all";
+  visibilityFilter = "all";
+  archiveFilter = person.archived ? "all" : "active";
+  collapsedBranchIds = new Set();
+  selectedId = person.id;
+  focusedId = person.id;
+
+  document.querySelector("#searchInput").value = "";
+  document.querySelector("#lifeFilter").value = "all";
+  document.querySelector("#visibilityFilter").value = "all";
+  document.querySelector("#archiveFilter").value = archiveFilter;
+  render();
+}
+
+function toggleSelectedBranch() {
+  const person = getPerson(selectedId);
+  if (!person) return;
+
+  if (collapsedBranchIds.has(person.id)) {
+    collapsedBranchIds.delete(person.id);
+  } else {
+    collapsedBranchIds.add(person.id);
+  }
   render();
 }
 
@@ -747,6 +864,13 @@ document
 document
   .querySelector("#focusSelected")
   .addEventListener("click", () => focusPerson(getPerson(selectedId)));
+document
+  .querySelector("#toggleBranch")
+  .addEventListener("click", toggleSelectedBranch);
+document.querySelector("#clearFocus").addEventListener("click", () => {
+  focusedId = null;
+  render();
+});
 
 document.querySelector("#personForm").addEventListener("submit", (event) => {
   if (event.submitter?.value === "cancel") return;
@@ -761,15 +885,28 @@ document
   });
 
 document.querySelector("#searchInput").addEventListener("input", (event) => {
-  searchTerm = event.target.value.trim().toLowerCase();
+  searchTerm = event.target.value.trim().toLocaleLowerCase("vi-VN");
   render();
 });
 
-document.querySelector("#showArchived").addEventListener("change", (event) => {
-  showArchived = event.target.checked;
+document.querySelector("#lifeFilter").addEventListener("change", (event) => {
+  lifeFilter = event.target.value;
+  render();
+});
+
+document
+  .querySelector("#visibilityFilter")
+  .addEventListener("change", (event) => {
+    visibilityFilter = event.target.value;
+    render();
+  });
+
+document.querySelector("#archiveFilter").addEventListener("change", (event) => {
+  archiveFilter = event.target.value;
   const selectedPerson = getPerson(selectedId);
-  if (!showArchived && selectedPerson?.archived) {
+  if (archiveFilter === "active" && selectedPerson?.archived) {
     selectedId = null;
+    focusedId = null;
   }
   render();
 });
@@ -781,6 +918,13 @@ document.querySelector("#resetDemo").addEventListener("click", () => {
   future = [];
   state = clone(initialState);
   selectedId = null;
+  searchTerm = "";
+  lifeFilter = "all";
+  visibilityFilter = "all";
+  archiveFilter = "active";
+  focusedId = null;
+  collapsedBranchIds = new Set();
+  resetFilterControls();
   localStorage.removeItem(STORAGE_KEY);
   render();
 });
@@ -797,32 +941,7 @@ document.querySelector("#redoButton").addEventListener("click", () => {
   restoreSnapshot(future.pop(), "Đã làm lại demo");
 });
 
-document.querySelector("#fitButton").addEventListener("click", () => {
-  checkpoint();
-  const positions = [
-    [90, 70],
-    [390, 70],
-    [240, 250],
-    [540, 250],
-    [240, 450],
-    [540, 450],
-    [90, 630],
-    [390, 630],
-    [690, 630],
-  ];
-  state.people
-    .filter((person) => !person.archived)
-    .forEach((person, index) => {
-      const position = positions[index] ?? [
-        90 + (index % 3) * 300,
-        70 + Math.floor(index / 3) * 180,
-      ];
-      person.x = position[0];
-      person.y = position[1];
-    });
-  persistState("Đã sắp xếp lại demo");
-  render();
-});
+document.querySelector("#fitButton").addEventListener("click", showWholeTree);
 
 window.addEventListener("resize", renderEdges);
 render();

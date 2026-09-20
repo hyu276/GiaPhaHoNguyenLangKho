@@ -335,7 +335,9 @@ function renderInspector() {
     removeButton.textContent = lockedByArchive
       ? "Giữ nguyên khi lưu trữ"
       : "Xóa quan hệ";
-    removeButton.addEventListener("click", () => removeRelationship(relation.id));
+    removeButton.addEventListener("click", () =>
+      removeRelationship(relation.id),
+    );
     list.appendChild(item);
   });
 }

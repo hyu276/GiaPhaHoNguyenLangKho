@@ -837,9 +837,10 @@ export function AdminTreeEditor({
   const [pendingFocusPersonId, setPendingFocusPersonId] = useState<
     string | null
   >(null);
-  const flowInstance = useRef<
-    ReactFlowInstance<PersonNode, RelationshipEdge> | null
-  >(null);
+  const flowInstance = useRef<ReactFlowInstance<
+    PersonNode,
+    RelationshipEdge
+  > | null>(null);
   const filteredPeople = useMemo(
     () =>
       filterPeople(people, {

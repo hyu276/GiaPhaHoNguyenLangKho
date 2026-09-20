@@ -914,9 +914,7 @@ document.querySelector("#redoButton").addEventListener("click", () => {
   restoreSnapshot(future.pop(), "Đã làm lại demo");
 });
 
-document
-  .querySelector("#fitButton")
-  .addEventListener("click", showWholeTree);
+document.querySelector("#fitButton").addEventListener("click", showWholeTree);
 
 window.addEventListener("resize", renderEdges);
 render();

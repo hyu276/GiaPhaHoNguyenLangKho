@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { createPerson, updatePerson } from "@/app/admin/tree/actions";
+import {
+  archivePerson,
+  createPerson,
+  restorePerson,
+  updatePerson,
+} from "@/app/admin/tree/actions";
 import {
   createParentChildRelationship,
   createPartnership,
@@ -31,6 +36,7 @@ const personRowSchema = z.object({
   death_year: z.number().nullable(),
   sex: z.enum(["male", "female"]).nullable(),
   visibility: z.enum(["public", "private"]),
+  archived_at: z.string().nullable(),
 });
 
 const relationshipRowSchema = z.object({
@@ -121,20 +127,24 @@ async function savePersonLayout(
 function getAdminMutations(role: TreeViewerRole) {
   if (role === "spectator") {
     return {
+      archivePerson: undefined,
       createParentChildRelationship: undefined,
       createPartnership: undefined,
       createPerson: undefined,
       removeRelationship: undefined,
+      restorePerson: undefined,
       updatePerson: undefined,
       saveLayout: undefined,
     };
   }
 
   return {
+    archivePerson,
     createParentChildRelationship,
     createPartnership,
     createPerson,
     removeRelationship,
+    restorePerson,
     updatePerson,
     saveLayout: savePersonLayout,
   };
@@ -158,7 +168,7 @@ export default async function AdminTreePage() {
     supabase
       .from("people")
       .select(
-        "id, display_name, description, birth_year, death_year, sex, visibility",
+        "id, display_name, description, birth_year, death_year, sex, visibility, archived_at",
       )
       .order("display_name"),
     supabase
@@ -192,6 +202,7 @@ export default async function AdminTreePage() {
     deathYear: person.death_year,
     sex: person.sex,
     visibility: person.visibility,
+    archivedAt: person.archived_at,
     position: layoutByPersonId.get(person.id) ?? getFallbackPosition(index),
   }));
 
@@ -204,6 +215,11 @@ export default async function AdminTreePage() {
     }),
   );
 
+  const activePeopleCount = people.filter(
+    (person) => person.archivedAt === null,
+  ).length;
+  const archivedPeopleCount = people.length - activePeopleCount;
+
   return (
     <main className="flex min-h-svh flex-col bg-background px-4 py-4 sm:px-6 sm:py-6">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card px-5 py-4">
@@ -215,8 +231,8 @@ export default async function AdminTreePage() {
             Sơ đồ gia phả
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {people.length} người · {relationships.length} quan hệ ·{" "}
-            {user.email}
+            {activePeopleCount} hiện hành · {archivedPeopleCount} lưu trữ ·{" "}
+            {relationships.length} quan hệ · {user.email}
           </p>
         </div>
 
@@ -228,6 +244,7 @@ export default async function AdminTreePage() {
       </header>
 
       <AdminTreeEditor
+        archivePerson={mutations.archivePerson}
         createParentChildRelationship={mutations.createParentChildRelationship}
         createPartnership={mutations.createPartnership}
         createPerson={mutations.createPerson}
@@ -235,6 +252,7 @@ export default async function AdminTreePage() {
         readOnly={readOnly}
         relationships={relationships}
         removeRelationship={mutations.removeRelationship}
+        restorePerson={mutations.restorePerson}
         saveLayout={mutations.saveLayout}
         updatePerson={mutations.updatePerson}
       />

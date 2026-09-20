@@ -22,6 +22,7 @@ export type RelationshipPerson = {
   birthYear: number | null;
   deathYear: number | null;
   sex: PersonSex | null;
+  archivedAt: string | null;
 };
 
 export type RelationshipMutationResult =
@@ -377,7 +378,7 @@ function RelationshipCreationControls({
   }
 
   const availablePeople = people.filter(
-    (person) => person.id !== focalPerson.id,
+    (person) => person.id !== focalPerson.id && person.archivedAt === null,
   );
 
   if (!intent) {

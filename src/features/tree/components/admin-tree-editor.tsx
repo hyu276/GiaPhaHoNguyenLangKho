@@ -37,6 +37,7 @@ import {
 import type {
   CreatePersonInput,
   PersonSex,
+  PersonStateInput,
   PersonVisibility,
   UpdatePersonInput,
 } from "@/features/tree/person-input";
@@ -49,6 +50,7 @@ export type EditorPerson = {
   deathYear: number | null;
   sex: PersonSex | null;
   visibility: PersonVisibility;
+  archivedAt: string | null;
   position: { x: number; y: number };
 };
 
@@ -71,8 +73,12 @@ type PersonMutationResult =
 type SaveLayout = (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
 type CreatePerson = (input: CreatePersonInput) => Promise<PersonMutationResult>;
 type UpdatePerson = (input: UpdatePersonInput) => Promise<PersonMutationResult>;
+type PersonStateMutation = (
+  input: PersonStateInput,
+) => Promise<PersonMutationResult>;
 
 type AdminTreeEditorProps = {
+  archivePerson: PersonStateMutation | undefined;
   people: EditorPerson[];
   relationships: EditorRelationship[];
   readOnly: boolean;
@@ -81,10 +87,12 @@ type AdminTreeEditorProps = {
   createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
   removeRelationship: RemoveRelationship | undefined;
+  restorePerson: PersonStateMutation | undefined;
   updatePerson: UpdatePerson | undefined;
 };
 
 type PersonNodeData = {
+  archived: boolean;
   displayName: string;
   years: string;
   visibility: PersonVisibility;
@@ -101,23 +109,78 @@ type SaveState =
   | { status: "error"; personId: string; message: string };
 
 type SidebarProps = {
+  archivePerson: PersonStateMutation | undefined;
+  archivedCount: number;
   createParentChildRelationship: CreateParentChildRelationship | undefined;
   createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
   formMode: PersonFormMode;
   onCancelForm: () => void;
+  onPersonStateChanged: (personId: string, archived: boolean) => void;
   onRelationshipChanged: (focusPersonId?: string) => void;
   onSaved: (personId: string) => void;
+  onShowArchivedChange: (showArchived: boolean) => void;
   onStartCreate: () => void;
   onStartEdit: () => void;
   people: EditorPerson[];
   readOnly: boolean;
   relationships: EditorRelationship[];
   removeRelationship: RemoveRelationship | undefined;
+  restorePerson: PersonStateMutation | undefined;
   selectedPerson: EditorPerson | null;
   selectedRelationship: EditorRelationship | null;
+  selectedRelationshipCount: number;
+  showArchived: boolean;
   updatePerson: UpdatePerson | undefined;
 };
+
+function isArchived(person: EditorPerson) {
+  return person.archivedAt !== null;
+}
+
+function countArchivedPeople(people: EditorPerson[]) {
+  return people.filter(isArchived).length;
+}
+
+function countConnectedRelationships(
+  relationships: EditorRelationship[],
+  personId: string,
+) {
+  return relationships.filter(
+    (relationship) =>
+      relationship.sourcePersonId === personId ||
+      relationship.targetPersonId === personId,
+  ).length;
+}
+
+function getVisiblePeople(people: EditorPerson[], showArchived: boolean) {
+  return showArchived ? people : people.filter((person) => !isArchived(person));
+}
+
+function getVisibleRelationships(
+  relationships: EditorRelationship[],
+  visiblePeople: EditorPerson[],
+) {
+  const visiblePersonIds = new Set(visiblePeople.map((person) => person.id));
+  return relationships.filter(
+    (relationship) =>
+      visiblePersonIds.has(relationship.sourcePersonId) &&
+      visiblePersonIds.has(relationship.targetPersonId),
+  );
+}
+
+function relationshipTouchesArchivedPerson(
+  relationship: EditorRelationship,
+  people: EditorPerson[],
+) {
+  const archivedPersonIds = new Set(
+    people.filter(isArchived).map((person) => person.id),
+  );
+  return (
+    archivedPersonIds.has(relationship.sourcePersonId) ||
+    archivedPersonIds.has(relationship.targetPersonId)
+  );
+}
 
 function formatYears(person: EditorPerson) {
   const birth = person.birthYear?.toString() ?? "?";
@@ -151,7 +214,7 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
     <div
       className={`min-w-48 rounded-2xl border bg-card px-4 py-3 shadow-sm transition-[transform,opacity] ${
         selected ? "border-primary ring-2 ring-primary/20" : "border-border"
-      }`}
+      } ${data.archived ? "border-dashed opacity-65" : ""}`}
     >
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <p className="text-sm font-semibold text-card-foreground">
@@ -161,6 +224,12 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
         <span>{data.years}</span>
         <span aria-hidden="true">·</span>
         <span>{data.visibility === "private" ? "Riêng tư" : "Công khai"}</span>
+        {data.archived ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>Đã lưu trữ</span>
+          </>
+        ) : null}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -177,7 +246,9 @@ function createNodes(people: EditorPerson[]): PersonNode[] {
     type: "person",
     position: person.position,
     deletable: false,
+    draggable: !isArchived(person),
     data: {
+      archived: isArchived(person),
       displayName: person.displayName,
       years: formatYears(person),
       visibility: person.visibility,
@@ -259,11 +330,136 @@ function SelectedPersonSummary({
         {selectedPerson.description ?? "Chưa có mô tả."}
       </p>
 
-      {readOnly ? null : (
+      {readOnly || isArchived(selectedPerson) ? null : (
         <Button className="mt-6 w-full" onClick={onStartEdit} variant="outline">
           Sửa hồ sơ
         </Button>
       )}
+    </div>
+  );
+}
+
+function ArchiveFilter({
+  archivedCount,
+  onChange,
+  readOnly,
+  showArchived,
+}: {
+  archivedCount: number;
+  onChange: (showArchived: boolean) => void;
+  readOnly: boolean;
+  showArchived: boolean;
+}) {
+  if (readOnly || archivedCount === 0) return null;
+
+  return (
+    <label className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+      <input
+        checked={showArchived}
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+      <span>Hiện hồ sơ đã lưu trữ ({archivedCount})</span>
+    </label>
+  );
+}
+
+function getPersonStateMutation(
+  archived: boolean,
+  archivePerson: PersonStateMutation | undefined,
+  restorePerson: PersonStateMutation | undefined,
+) {
+  return archived ? restorePerson : archivePerson;
+}
+
+function getArchiveTitle(archived: boolean) {
+  return archived ? "Hồ sơ đã lưu trữ" : "Ảnh hưởng khi lưu trữ";
+}
+
+function getArchiveDescription(archived: boolean, relationshipCount: number) {
+  if (archived) {
+    return "Hồ sơ đang bị ẩn khỏi chế độ xem thông thường. Quan hệ và vị trí sơ đồ vẫn được giữ nguyên.";
+  }
+
+  return `${relationshipCount} quan hệ trực tiếp và vị trí sơ đồ sẽ được giữ nguyên; chỉ hồ sơ bị ẩn khỏi chế độ xem thông thường.`;
+}
+
+function getArchiveButtonLabel(archived: boolean, saving: boolean) {
+  if (saving) return "Đang xử lý…";
+  return archived ? "Khôi phục hồ sơ" : "Lưu trữ hồ sơ";
+}
+
+function confirmArchive(
+  nextArchived: boolean,
+  person: EditorPerson,
+  relationshipCount: number,
+) {
+  if (!nextArchived) return true;
+
+  return window.confirm(
+    `Lưu trữ ${person.displayName}? ${relationshipCount} quan hệ trực tiếp và vị trí sơ đồ sẽ được giữ nguyên.`,
+  );
+}
+
+function PersonArchiveControls({
+  archivePerson,
+  onChanged,
+  person,
+  relationshipCount,
+  restorePerson,
+}: {
+  archivePerson: PersonStateMutation | undefined;
+  onChanged: (personId: string, archived: boolean) => void;
+  person: EditorPerson;
+  relationshipCount: number;
+  restorePerson: PersonStateMutation | undefined;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const archived = isArchived(person);
+  const mutation = getPersonStateMutation(
+    archived,
+    archivePerson,
+    restorePerson,
+  );
+
+  async function submit(nextArchived: boolean) {
+    if (!mutation) return;
+    if (!confirmArchive(nextArchived, person, relationshipCount)) return;
+
+    setSaving(true);
+    setErrorMessage(null);
+    const result = await mutation({ personId: person.id });
+    setSaving(false);
+
+    if (!result.ok) {
+      setErrorMessage(result.message);
+      return;
+    }
+
+    onChanged(person.id, nextArchived);
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-muted/35 p-3">
+      <p className="text-xs font-semibold text-card-foreground">
+        {getArchiveTitle(archived)}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+        {getArchiveDescription(archived, relationshipCount)}
+      </p>
+      <Button
+        className="mt-3 w-full"
+        disabled={saving || !mutation}
+        onClick={() => submit(!archived)}
+        type="button"
+        variant="outline"
+      >
+        {getArchiveButtonLabel(archived, saving)}
+      </Button>
+      {errorMessage ? (
+        <p className="mt-2 text-xs text-destructive">{errorMessage}</p>
+      ) : null}
     </div>
   );
 }
@@ -322,6 +518,64 @@ function EditPersonPanel({
   );
 }
 
+function SelectedPersonDetails(props: SidebarProps) {
+  if (!props.selectedPerson) return null;
+
+  const relationshipReadOnly =
+    props.readOnly || isArchived(props.selectedPerson);
+
+  return (
+    <>
+      {props.readOnly ? null : (
+        <PersonArchiveControls
+          archivePerson={props.archivePerson}
+          onChanged={props.onPersonStateChanged}
+          person={props.selectedPerson}
+          relationshipCount={props.selectedRelationshipCount}
+          restorePerson={props.restorePerson}
+        />
+      )}
+      <PersonRelationshipSection
+        createParentChildRelationship={props.createParentChildRelationship}
+        createPartnership={props.createPartnership}
+        focalPerson={props.selectedPerson}
+        onChanged={props.onRelationshipChanged}
+        people={props.people}
+        readOnly={relationshipReadOnly}
+        relationships={props.relationships}
+      />
+    </>
+  );
+}
+
+function DefaultEditorSidebar(props: SidebarProps) {
+  return (
+    <aside className="rounded-3xl border border-border bg-card p-5">
+      {props.readOnly ? null : (
+        <Button className="w-full" onClick={props.onStartCreate}>
+          Thêm người
+        </Button>
+      )}
+      <ArchiveFilter
+        archivedCount={props.archivedCount}
+        onChange={props.onShowArchivedChange}
+        readOnly={props.readOnly}
+        showArchived={props.showArchived}
+      />
+
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Đang chọn
+      </p>
+      <SelectedPersonSummary
+        onStartEdit={props.onStartEdit}
+        readOnly={props.readOnly}
+        selectedPerson={props.selectedPerson}
+      />
+      <SelectedPersonDetails {...props} />
+    </aside>
+  );
+}
+
 function EditorSidebar(props: SidebarProps) {
   if (props.selectedRelationship) {
     return (
@@ -329,7 +583,13 @@ function EditorSidebar(props: SidebarProps) {
         <RelationshipInspector
           onChanged={props.onRelationshipChanged}
           people={props.people}
-          readOnly={props.readOnly}
+          readOnly={
+            props.readOnly ||
+            relationshipTouchesArchivedPerson(
+              props.selectedRelationship,
+              props.people,
+            )
+          }
           relationship={props.selectedRelationship}
           removeRelationship={props.removeRelationship}
         />
@@ -362,38 +622,11 @@ function EditorSidebar(props: SidebarProps) {
     );
   }
 
-  return (
-    <aside className="rounded-3xl border border-border bg-card p-5">
-      {props.readOnly ? null : (
-        <Button className="w-full" onClick={props.onStartCreate}>
-          Thêm người
-        </Button>
-      )}
-
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Đang chọn
-      </p>
-      <SelectedPersonSummary
-        onStartEdit={props.onStartEdit}
-        readOnly={props.readOnly}
-        selectedPerson={props.selectedPerson}
-      />
-      {props.selectedPerson ? (
-        <PersonRelationshipSection
-          createParentChildRelationship={props.createParentChildRelationship}
-          createPartnership={props.createPartnership}
-          focalPerson={props.selectedPerson}
-          onChanged={props.onRelationshipChanged}
-          people={props.people}
-          readOnly={props.readOnly}
-          relationships={props.relationships}
-        />
-      ) : null}
-    </aside>
-  );
+  return <DefaultEditorSidebar {...props} />;
 }
 
 export function AdminTreeEditor({
+  archivePerson,
   people,
   relationships,
   readOnly,
@@ -402,11 +635,27 @@ export function AdminTreeEditor({
   createPartnership,
   createPerson,
   removeRelationship,
+  restorePerson,
   updatePerson,
 }: AdminTreeEditorProps) {
   const router = useRouter();
-  const initialNodes = useMemo(() => createNodes(people), [people]);
-  const edges = useMemo(() => createEdges(relationships), [relationships]);
+  const [showArchived, setShowArchived] = useState(false);
+  const visiblePeople = useMemo(
+    () => getVisiblePeople(people, showArchived),
+    [people, showArchived],
+  );
+  const visibleRelationships = useMemo(
+    () => getVisibleRelationships(relationships, visiblePeople),
+    [relationships, visiblePeople],
+  );
+  const initialNodes = useMemo(
+    () => createNodes(visiblePeople),
+    [visiblePeople],
+  );
+  const edges = useMemo(
+    () => createEdges(visibleRelationships),
+    [visibleRelationships],
+  );
   const [nodes, setNodes, onNodesChange] =
     useNodesState<PersonNode>(initialNodes);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
@@ -423,17 +672,21 @@ export function AdminTreeEditor({
   const selectedPerson =
     people.find((person) => person.id === selectedPersonId) ?? null;
   const selectedRelationship =
-    relationships.find(
+    visibleRelationships.find(
       (relationship) => relationship.id === selectedRelationshipId,
     ) ?? null;
+  const archivedCount = countArchivedPeople(people);
+  const selectedRelationshipCount = selectedPerson
+    ? countConnectedRelationships(relationships, selectedPerson.id)
+    : 0;
   const statusMessage = getStatusMessage(readOnly, saveState);
 
   useEffect(() => {
-    setNodes(createNodes(people));
+    setNodes(createNodes(visiblePeople));
     persistedPositions.current = new Map(
       people.map((person) => [person.id, person.position]),
     );
-  }, [people, setNodes]);
+  }, [people, setNodes, visiblePeople]);
 
   const restorePosition = useCallback(
     (personId: string) => {
@@ -451,7 +704,7 @@ export function AdminTreeEditor({
 
   const persistNodePosition = useCallback(
     (node: PersonNode) => {
-      if (readOnly || !saveLayout) return;
+      if (readOnly || !saveLayout || node.data.archived) return;
 
       const previousPosition = persistedPositions.current.get(node.id);
       setSaveState({ status: "saving", personId: node.id });
@@ -506,6 +759,20 @@ export function AdminTreeEditor({
     router.refresh();
   }
 
+  function handlePersonStateChanged(personId: string, archived: boolean) {
+    setSelectedRelationshipId(null);
+    setSelectedPersonId(archived && !showArchived ? null : personId);
+    setFormMode(null);
+    router.refresh();
+  }
+
+  function handleShowArchivedChange(nextShowArchived: boolean) {
+    setSelectedPersonId(null);
+    setSelectedRelationshipId(null);
+    setFormMode(null);
+    setShowArchived(nextShowArchived);
+  }
+
   return (
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card">
@@ -543,21 +810,28 @@ export function AdminTreeEditor({
       </section>
 
       <EditorSidebar
+        archivePerson={archivePerson}
+        archivedCount={archivedCount}
         createParentChildRelationship={createParentChildRelationship}
         createPartnership={createPartnership}
         createPerson={createPerson}
         formMode={formMode}
         onCancelForm={() => setFormMode(null)}
+        onPersonStateChanged={handlePersonStateChanged}
         onRelationshipChanged={handleRelationshipChanged}
         onSaved={handleSaved}
+        onShowArchivedChange={handleShowArchivedChange}
         onStartCreate={() => setFormMode("create")}
         onStartEdit={() => setFormMode("edit")}
-        people={people}
+        people={visiblePeople}
         readOnly={readOnly}
-        relationships={relationships}
+        relationships={visibleRelationships}
         removeRelationship={removeRelationship}
+        restorePerson={restorePerson}
         selectedPerson={selectedPerson}
         selectedRelationship={selectedRelationship}
+        selectedRelationshipCount={selectedRelationshipCount}
+        showArchived={showArchived}
         updatePerson={updatePerson}
       />
     </div>

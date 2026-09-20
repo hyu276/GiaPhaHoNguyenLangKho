@@ -36,6 +36,9 @@ export type ProvenanceLoadResult =
   | { ok: false; message: string };
 
 type ViewerRole = "admin" | "spectator";
+type SupabaseServerClient = Awaited<
+  ReturnType<typeof createSupabaseServerClient>
+>;
 
 type SourceRow = {
   id: string;
@@ -106,6 +109,49 @@ async function getProvenanceViewer() {
   return { supabase, role: role as ViewerRole };
 }
 
+async function fetchCitationRows(
+  supabase: SupabaseServerClient,
+  target: { personId: string | null; relationshipId: string | null },
+) {
+  const targetColumn =
+    target.personId !== null ? "person_id" : "relationship_id";
+  const targetId = target.personId ?? target.relationshipId;
+
+  const result = await supabase
+    .from("genealogy_citations")
+    .select(
+      "id, source_id, person_id, relationship_id, claim_kind, claim_text, citation_locator, note, certainty, date_text, date_qualifier",
+    )
+    .eq(targetColumn, targetId as string)
+    .order("created_at", { ascending: false });
+
+  if (result.error) return null;
+  return (result.data ?? []) as CitationRow[];
+}
+
+async function fetchSourceRows(
+  supabase: SupabaseServerClient,
+  role: ViewerRole,
+  citationRows: CitationRow[],
+) {
+  const sourceIds = [...new Set(citationRows.map((row) => row.source_id))];
+  if (role === "spectator" && sourceIds.length === 0) return [];
+
+  let query = supabase
+    .from("genealogy_sources")
+    .select(
+      "id, title, source_type, repository_name, reference_code, source_url",
+    );
+
+  if (role === "spectator") {
+    query = query.in("id", sourceIds);
+  }
+
+  const result = await query.order("title");
+  if (result.error) return null;
+  return (result.data ?? []) as SourceRow[];
+}
+
 export async function loadProvenance(
   input: ProvenanceTargetInput,
 ): Promise<ProvenanceLoadResult> {
@@ -119,53 +165,23 @@ export async function loadProvenance(
     return { ok: false, message: "Không có quyền xem provenance." };
   }
 
-  let citationQuery = viewer.supabase
-    .from("genealogy_citations")
-    .select(
-      "id, source_id, person_id, relationship_id, claim_kind, claim_text, citation_locator, note, certainty, date_text, date_qualifier",
-    );
-
-  citationQuery =
-    parsed.data.personId !== null
-      ? citationQuery.eq("person_id", parsed.data.personId)
-      : citationQuery.eq("relationship_id", parsed.data.relationshipId);
-
-  const citationResult = await citationQuery.order("created_at", {
-    ascending: false,
-  });
-
-  if (citationResult.error) {
+  const citationRows = await fetchCitationRows(viewer.supabase, parsed.data);
+  if (citationRows === null) {
     return { ok: false, message: "Không thể tải citation." };
   }
 
-  const citationRows = (citationResult.data ?? []) as CitationRow[];
-  const sourceIds = [...new Set(citationRows.map((row) => row.source_id))];
-
-  let sourceQuery = viewer.supabase
-    .from("genealogy_sources")
-    .select(
-      "id, title, source_type, repository_name, reference_code, source_url",
-    );
-
-  if (viewer.role === "spectator") {
-    if (sourceIds.length === 0) {
-      return {
-        ok: true,
-        sources: [],
-        citations: citationRows.map(mapCitation),
-      };
-    }
-    sourceQuery = sourceQuery.in("id", sourceIds);
-  }
-
-  const sourceResult = await sourceQuery.order("title");
-  if (sourceResult.error) {
+  const sourceRows = await fetchSourceRows(
+    viewer.supabase,
+    viewer.role,
+    citationRows,
+  );
+  if (sourceRows === null) {
     return { ok: false, message: "Không thể tải nguồn tư liệu." };
   }
 
   return {
     ok: true,
-    sources: ((sourceResult.data ?? []) as SourceRow[]).map(mapSource),
+    sources: sourceRows.map(mapSource),
     citations: citationRows.map(mapCitation),
   };
 }

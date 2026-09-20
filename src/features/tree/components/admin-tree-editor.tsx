@@ -1,14 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -42,6 +35,12 @@ import type {
   PersonVisibility,
   UpdatePersonInput,
 } from "@/features/tree/person-input";
+import {
+  getAutoLayoutPositions,
+  getBranchPersonIds,
+  getFallbackLayoutPositions,
+  type LayoutPosition,
+} from "@/features/tree/tree-layout";
 import {
   filterPeople,
   getDirectRelativeIds,
@@ -79,7 +78,7 @@ export type SaveLayoutInput = {
 export type SaveLayoutResult = { ok: true } | { ok: false; message: string };
 type PersonMutationResult =
   { ok: true; personId: string } | { ok: false; message: string };
-type SaveLayout = (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
+type SaveLayouts = (inputs: SaveLayoutInput[]) => Promise<SaveLayoutResult>;
 type CreatePerson = (input: CreatePersonInput) => Promise<PersonMutationResult>;
 type UpdatePerson = (input: UpdatePersonInput) => Promise<PersonMutationResult>;
 type PersonStateMutation = (
@@ -91,7 +90,7 @@ type AdminTreeEditorProps = {
   people: EditorPerson[];
   relationships: EditorRelationship[];
   readOnly: boolean;
-  saveLayout: SaveLayout | undefined;
+  saveLayouts: SaveLayouts | undefined;
   createParentChildRelationship: CreateParentChildRelationship | undefined;
   createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
@@ -103,6 +102,7 @@ type AdminTreeEditorProps = {
 type PersonNodeData = {
   archived: boolean;
   displayName: string;
+  locked: boolean;
   years: string;
   visibility: PersonVisibility;
 };
@@ -110,6 +110,11 @@ type PersonNodeData = {
 type PersonNode = Node<PersonNodeData, "person">;
 type RelationshipEdge = Edge<{ kind: EditorRelationship["kind"] }>;
 type PersonFormMode = "create" | "edit" | null;
+
+type LayoutHistoryEntry = {
+  before: Map<string, LayoutPosition>;
+  after: Map<string, LayoutPosition>;
+};
 
 type SaveState =
   | { status: "idle" }
@@ -127,12 +132,21 @@ type SidebarProps = {
   onCancelForm: () => void;
   onPersonStateChanged: (personId: string, archived: boolean) => void;
   onFocusPerson: (personId: string) => void;
+  layoutCanRedo: boolean;
+  layoutCanUndo: boolean;
+  lockedPersonIds: ReadonlySet<string>;
+  onAutoLayoutBranch: (personId: string) => void;
   onJumpToPerson: (personId: string) => void;
+  onRedoLayout: () => void;
   onRelationshipChanged: (focusPersonId?: string) => void;
+  onResetBranchLayout: (personId: string) => void;
+  onResetPersonPosition: (personId: string) => void;
   onSaved: (personId: string) => void;
   onStartCreate: () => void;
   onStartEdit: () => void;
   onToggleBranch: (personId: string) => void;
+  onToggleLayoutLock: (personId: string) => void;
+  onUndoLayout: () => void;
   people: EditorPerson[];
   readOnly: boolean;
   relationships: EditorRelationship[];
@@ -200,9 +214,9 @@ function getStatusMessage(readOnly: boolean, saveState: SaveState) {
 
   switch (saveState.status) {
     case "saving":
-      return "Đang lưu vị trí…";
+      return "Đang lưu bố cục…";
     case "saved":
-      return "Đã lưu vị trí";
+      return "Đã lưu bố cục";
     case "error":
       return saveState.message;
     default:
@@ -237,6 +251,12 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
             <span>Đã lưu trữ</span>
           </>
         ) : null}
+        {data.locked ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>Khóa vị trí</span>
+          </>
+        ) : null}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -247,20 +267,29 @@ const nodeTypes = {
   person: PersonNodeCard,
 };
 
-function createNodes(people: EditorPerson[]): PersonNode[] {
-  return people.map((person) => ({
-    id: person.id,
-    type: "person",
-    position: person.position,
-    deletable: false,
-    draggable: !isArchived(person),
-    data: {
-      archived: isArchived(person),
-      displayName: person.displayName,
-      years: formatYears(person),
-      visibility: person.visibility,
-    },
-  }));
+function createNodes(
+  people: EditorPerson[],
+  lockedPersonIds: ReadonlySet<string>,
+  positions?: ReadonlyMap<string, LayoutPosition>,
+): PersonNode[] {
+  return people.map((person) => {
+    const locked = lockedPersonIds.has(person.id);
+
+    return {
+      id: person.id,
+      type: "person",
+      position: positions?.get(person.id) ?? person.position,
+      deletable: false,
+      draggable: !isArchived(person) && !locked,
+      data: {
+        archived: isArchived(person),
+        displayName: person.displayName,
+        locked,
+        years: formatYears(person),
+        visibility: person.visibility,
+      },
+    };
+  });
 }
 
 function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
@@ -508,6 +537,98 @@ function BranchNavigationControls({
   );
 }
 
+function LayoutAdministrationControls({
+  canRedo,
+  canUndo,
+  locked,
+  onAutoLayoutBranch,
+  onRedo,
+  onResetBranch,
+  onResetPerson,
+  onToggleLock,
+  onUndo,
+  person,
+  readOnly,
+}: {
+  canRedo: boolean;
+  canUndo: boolean;
+  locked: boolean;
+  onAutoLayoutBranch: (personId: string) => void;
+  onRedo: () => void;
+  onResetBranch: (personId: string) => void;
+  onResetPerson: (personId: string) => void;
+  onToggleLock: (personId: string) => void;
+  onUndo: () => void;
+  person: EditorPerson;
+  readOnly: boolean;
+}) {
+  if (readOnly) return null;
+
+  const archived = isArchived(person);
+
+  return (
+    <section className="mt-5 border-t border-border pt-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Quản trị bố cục
+      </p>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+        Khóa vị trí áp dụng trong phiên editor. Reset và auto-layout chỉ thay
+        đổi tọa độ trình bày, không thay đổi quan hệ gia phả.
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button
+          disabled={archived}
+          onClick={() => onToggleLock(person.id)}
+          type="button"
+          variant="outline"
+        >
+          {locked ? "Mở khóa vị trí" : "Khóa vị trí"}
+        </Button>
+        <Button
+          disabled={archived || locked}
+          onClick={() => onResetPerson(person.id)}
+          type="button"
+          variant="outline"
+        >
+          Đặt lại vị trí
+        </Button>
+        <Button
+          disabled={archived}
+          onClick={() => onResetBranch(person.id)}
+          type="button"
+          variant="outline"
+        >
+          Đặt lại nhánh
+        </Button>
+        <Button
+          disabled={archived}
+          onClick={() => onAutoLayoutBranch(person.id)}
+          type="button"
+          variant="outline"
+        >
+          Tự sắp xếp nhánh
+        </Button>
+        <Button
+          disabled={!canUndo}
+          onClick={onUndo}
+          type="button"
+          variant="outline"
+        >
+          Hoàn tác vị trí
+        </Button>
+        <Button
+          disabled={!canRedo}
+          onClick={onRedo}
+          type="button"
+          variant="outline"
+        >
+          Làm lại vị trí
+        </Button>
+      </div>
+    </section>
+  );
+}
+
 function SelectedPersonSummary({
   onStartEdit,
   readOnly,
@@ -719,6 +840,19 @@ function SelectedPersonDetails(props: SidebarProps) {
         person={props.selectedPerson}
         relationships={props.relationships}
       />
+      <LayoutAdministrationControls
+        canRedo={props.layoutCanRedo}
+        canUndo={props.layoutCanUndo}
+        locked={props.lockedPersonIds.has(props.selectedPerson.id)}
+        onAutoLayoutBranch={props.onAutoLayoutBranch}
+        onRedo={props.onRedoLayout}
+        onResetBranch={props.onResetBranchLayout}
+        onResetPerson={props.onResetPersonPosition}
+        onToggleLock={props.onToggleLayoutLock}
+        onUndo={props.onUndoLayout}
+        person={props.selectedPerson}
+        readOnly={props.readOnly}
+      />
       {props.readOnly ? null : (
         <PersonArchiveControls
           archivePerson={props.archivePerson}
@@ -811,12 +945,24 @@ function EditorSidebar(props: SidebarProps) {
   return <DefaultEditorSidebar {...props} />;
 }
 
+function canStartLayoutMutation(
+  readOnly: boolean,
+  saveLayouts: SaveLayouts | undefined,
+  requestedCount: number,
+  mutationInFlight: boolean,
+) {
+  if (readOnly) return false;
+  if (!saveLayouts) return false;
+  if (requestedCount === 0) return false;
+  return !mutationInFlight;
+}
+
 export function AdminTreeEditor({
   archivePerson,
   people,
   relationships,
   readOnly,
-  saveLayout,
+  saveLayouts,
   createParentChildRelationship,
   createPartnership,
   createPerson,
@@ -834,10 +980,19 @@ export function AdminTreeEditor({
   const [collapsedBranchIds, setCollapsedBranchIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [lockedPersonIds, setLockedPersonIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [layoutHistory, setLayoutHistory] = useState<LayoutHistoryEntry[]>([]);
+  const [layoutFuture, setLayoutFuture] = useState<LayoutHistoryEntry[]>([]);
+  const [pendingFocusPersonId, setPendingFocusPersonId] = useState<
+    string | null
+  >(null);
   const flowInstance = useRef<ReactFlowInstance<
     PersonNode,
     RelationshipEdge
   > | null>(null);
+  const layoutMutationInFlight = useRef(false);
   const filteredPeople = useMemo(
     () =>
       filterPeople(people, {
@@ -861,8 +1016,8 @@ export function AdminTreeEditor({
     [relationships, visiblePeople],
   );
   const initialNodes = useMemo(
-    () => createNodes(visiblePeople),
-    [visiblePeople],
+    () => createNodes(visiblePeople, lockedPersonIds),
+    [lockedPersonIds, visiblePeople],
   );
   const edges = useMemo(
     () => createEdges(visibleRelationships),
@@ -876,7 +1031,6 @@ export function AdminTreeEditor({
   >(null);
   const [formMode, setFormMode] = useState<PersonFormMode>(null);
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
-  const [, startTransition] = useTransition();
   const persistedPositions = useRef(
     new Map(people.map((person) => [person.id, person.position])),
   );
@@ -894,55 +1048,133 @@ export function AdminTreeEditor({
   const statusMessage = getStatusMessage(readOnly, saveState);
 
   useEffect(() => {
-    setNodes(createNodes(visiblePeople));
     persistedPositions.current = new Map(
       people.map((person) => [person.id, person.position]),
     );
-  }, [people, setNodes, visiblePeople]);
+  }, [people]);
 
-  const restorePosition = useCallback(
-    (personId: string) => {
-      const persisted = persistedPositions.current.get(personId);
-      if (!persisted) return;
+  useEffect(() => {
+    setNodes(
+      createNodes(visiblePeople, lockedPersonIds, persistedPositions.current),
+    );
+  }, [lockedPersonIds, setNodes, visiblePeople]);
 
+  useEffect(() => {
+    if (!pendingFocusPersonId) return;
+    if (!visiblePeople.some((person) => person.id === pendingFocusPersonId)) {
+      return;
+    }
+
+    flowInstance.current?.fitView({
+      nodes: [{ id: pendingFocusPersonId }],
+      duration: 250,
+      maxZoom: 1.25,
+      padding: 1.2,
+    });
+
+    const frameId = window.requestAnimationFrame(() => {
+      setPendingFocusPersonId(null);
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [pendingFocusPersonId, visiblePeople]);
+
+  const applyLayoutPositions = useCallback(
+    async (
+      requestedPositions: ReadonlyMap<string, LayoutPosition>,
+      recordHistory = true,
+    ) => {
+      if (!saveLayouts) return false;
+      if (
+        !canStartLayoutMutation(
+          readOnly,
+          saveLayouts,
+          requestedPositions.size,
+          layoutMutationInFlight.current,
+        )
+      ) {
+        return false;
+      }
+
+      const before = new Map<string, LayoutPosition>();
+      const after = new Map<string, LayoutPosition>();
+
+      requestedPositions.forEach((position, personId) => {
+        const person = people.find((candidate) => candidate.id === personId);
+        if (!person || isArchived(person)) return;
+
+        const currentPosition =
+          persistedPositions.current.get(personId) ?? person.position;
+        if (
+          currentPosition.x === position.x &&
+          currentPosition.y === position.y
+        ) {
+          return;
+        }
+
+        before.set(personId, currentPosition);
+        after.set(personId, position);
+      });
+
+      if (after.size === 0) return true;
+
+      const firstPersonId = after.keys().next().value as string;
+      layoutMutationInFlight.current = true;
+      setSaveState({ status: "saving", personId: firstPersonId });
       setNodes((currentNodes) =>
-        currentNodes.map((node) =>
-          node.id === personId ? { ...node, position: persisted } : node,
-        ),
+        currentNodes.map((node) => {
+          const position = after.get(node.id);
+          return position ? { ...node, position } : node;
+        }),
       );
+
+      const result = await saveLayouts(
+        [...after].map(([personId, position]) => ({
+          personId,
+          positionX: position.x,
+          positionY: position.y,
+        })),
+      );
+
+      if (!result.ok) {
+        setNodes((currentNodes) =>
+          currentNodes.map((node) => {
+            const position = before.get(node.id);
+            return position ? { ...node, position } : node;
+          }),
+        );
+        setSaveState({
+          status: "error",
+          personId: firstPersonId,
+          message: result.message,
+        });
+        layoutMutationInFlight.current = false;
+        return false;
+      }
+
+      after.forEach((position, personId) => {
+        persistedPositions.current.set(personId, position);
+      });
+
+      if (recordHistory) {
+        setLayoutHistory((current) =>
+          [...current, { before, after }].slice(-50),
+        );
+        setLayoutFuture([]);
+      }
+
+      setSaveState({ status: "saved", personId: firstPersonId });
+      layoutMutationInFlight.current = false;
+      return true;
     },
-    [setNodes],
+    [people, readOnly, saveLayouts, setNodes],
   );
 
   const persistNodePosition = useCallback(
     (node: PersonNode) => {
-      if (readOnly || !saveLayout || node.data.archived) return;
-
-      const previousPosition = persistedPositions.current.get(node.id);
-      setSaveState({ status: "saving", personId: node.id });
-
-      startTransition(async () => {
-        const result = await saveLayout({
-          personId: node.id,
-          positionX: node.position.x,
-          positionY: node.position.y,
-        });
-
-        if (!result.ok) {
-          if (previousPosition) restorePosition(node.id);
-          setSaveState({
-            status: "error",
-            personId: node.id,
-            message: result.message,
-          });
-          return;
-        }
-
-        persistedPositions.current.set(node.id, node.position);
-        setSaveState({ status: "saved", personId: node.id });
-      });
+      if (node.data.archived || node.data.locked) return;
+      void applyLayoutPositions(new Map([[node.id, node.position]]));
     },
-    [readOnly, restorePosition, saveLayout],
+    [applyLayoutPositions],
   );
 
   function handleNodeSelect(personId: string) {
@@ -1000,14 +1232,7 @@ export function AdminTreeEditor({
     setArchiveFilter(isArchived(person) ? "all" : "active");
     setCollapsedBranchIds(new Set());
     handleNodeSelect(personId);
-    window.requestAnimationFrame(() => {
-      flowInstance.current?.fitView({
-        nodes: [{ id: personId }],
-        duration: 250,
-        maxZoom: 1.25,
-        padding: 1.2,
-      });
-    });
+    setPendingFocusPersonId(personId);
   }
 
   function toggleBranch(personId: string) {
@@ -1017,6 +1242,77 @@ export function AdminTreeEditor({
       else next.add(personId);
       return next;
     });
+  }
+
+  function toggleLayoutLock(personId: string) {
+    const person = people.find((candidate) => candidate.id === personId);
+    if (!person || isArchived(person)) return;
+
+    setLockedPersonIds((current) => {
+      const next = new Set(current);
+      if (next.has(personId)) next.delete(personId);
+      else next.add(personId);
+      return next;
+    });
+  }
+
+  function removeArchivedPositions(positions: Map<string, LayoutPosition>) {
+    people.forEach((person) => {
+      if (isArchived(person)) positions.delete(person.id);
+    });
+    return positions;
+  }
+
+  function resetPersonPosition(personId: string) {
+    const positions = getFallbackLayoutPositions(
+      people,
+      new Set([personId]),
+      lockedPersonIds,
+    );
+    void applyLayoutPositions(removeArchivedPositions(positions));
+  }
+
+  function resetBranchLayout(personId: string) {
+    const branchIds = getBranchPersonIds(relationships, personId);
+    const positions = getFallbackLayoutPositions(
+      people,
+      branchIds,
+      lockedPersonIds,
+    );
+    void applyLayoutPositions(removeArchivedPositions(positions));
+  }
+
+  function autoLayoutBranch(personId: string) {
+    const positions = getAutoLayoutPositions(
+      people,
+      relationships,
+      personId,
+      persistedPositions.current,
+      lockedPersonIds,
+    );
+    void applyLayoutPositions(removeArchivedPositions(positions));
+  }
+
+  async function undoLayout() {
+    const entry = layoutHistory.at(-1);
+    if (!entry) return;
+
+    const saved = await applyLayoutPositions(entry.before, false);
+    if (!saved) return;
+
+    setLayoutHistory((current) => current.slice(0, -1));
+    setLayoutFuture((current) => [...current, entry].slice(-50));
+  }
+
+  async function redoLayout() {
+    const entry = layoutFuture.at(-1);
+    if (!entry) return;
+
+    const saved = await applyLayoutPositions(entry.after, false);
+    if (!saved) return;
+
+    setLayoutFuture((current) => current.slice(0, -1));
+    setLayoutHistory((current) => [...current, entry].slice(-50));
   }
 
   function clearFilters() {
@@ -1086,15 +1382,26 @@ export function AdminTreeEditor({
         createPartnership={createPartnership}
         createPerson={createPerson}
         formMode={formMode}
+        layoutCanRedo={layoutFuture.length > 0 && saveState.status !== "saving"}
+        layoutCanUndo={
+          layoutHistory.length > 0 && saveState.status !== "saving"
+        }
+        lockedPersonIds={lockedPersonIds}
+        onAutoLayoutBranch={autoLayoutBranch}
         onCancelForm={() => setFormMode(null)}
         onFocusPerson={focusPerson}
         onJumpToPerson={revealAndFocusPerson}
         onPersonStateChanged={handlePersonStateChanged}
+        onRedoLayout={() => void redoLayout()}
         onRelationshipChanged={handleRelationshipChanged}
+        onResetBranchLayout={resetBranchLayout}
+        onResetPersonPosition={resetPersonPosition}
         onSaved={handleSaved}
         onStartCreate={() => setFormMode("create")}
         onStartEdit={() => setFormMode("edit")}
         onToggleBranch={toggleBranch}
+        onToggleLayoutLock={toggleLayoutLock}
+        onUndoLayout={() => void undoLayout()}
         people={people}
         readOnly={readOnly}
         relationships={relationships}

@@ -243,6 +243,27 @@ button {
   font-size: 13px;
 }
 
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.compact-field {
+  margin-top: 8px;
+}
+
+.filter-status {
+  margin: 8px 0 0;
+}
+
+.branch-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .roadmap-list {
   margin: 12px 0 0;
   padding-left: 22px;
@@ -389,6 +410,17 @@ button {
   filter: grayscale(0.7);
 }
 
+.person-node.focused {
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 4px rgba(49, 95, 70, 0.16),
+    0 12px 28px rgba(44, 50, 45, 0.16);
+}
+
+.person-node.deemphasized {
+  opacity: 0.22;
+}
+
 .person-node.search-hidden {
   display: none;
 }
@@ -511,12 +543,23 @@ button {
   color: var(--muted);
 }
 
+.relation-actions {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.link-button,
 .link-danger {
   border: 0;
   background: transparent;
   padding: 0;
   font-size: 10px;
   font-weight: 800;
+}
+
+.link-button {
+  color: var(--primary);
 }
 
 dialog {

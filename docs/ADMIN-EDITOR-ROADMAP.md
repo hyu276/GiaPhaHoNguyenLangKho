@@ -146,7 +146,7 @@ Tests:
 
 ## Step 6 — Genealogical notes and provenance
 
-**Status: in progress in GitHub development stack; schema/domain/server commands and authenticated inspector UI implemented, static preview pending.**
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
 
 Goal: distinguish recorded facts from evidence and uncertainty.
 

@@ -1,0 +1,32 @@
+name: Format provenance preview helper
+
+on:
+  push:
+    branches:
+      - chore/format-provenance-preview
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx prettier --write src/features/tree/components/provenance-panel.tsx preview/app.js preview/index.html preview/styles.css
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/tree/components/provenance-panel.tsx preview/app.js preview/index.html preview/styles.css
+          git commit -m "style(provenance): Format preview"
+          git push

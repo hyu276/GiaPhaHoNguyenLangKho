@@ -15,6 +15,7 @@ import {
   removeProvenanceCitation,
   updateProvenanceCitation,
   updateProvenanceSource,
+  type ProvenanceLoadResult,
 } from "@/app/admin/tree/provenance-actions";
 import { Button } from "@/components/ui/button";
 import type {
@@ -36,6 +37,29 @@ type EditorState =
   | { kind: "source"; source: ProvenanceSourceRecord | null }
   | { kind: "citation"; citation: ProvenanceCitationRecord | null }
   | null;
+
+type SourceFormValues = {
+  title: string;
+  sourceType: ProvenanceSourceType;
+  repositoryName: string;
+  referenceCode: string;
+  sourceUrl: string;
+  heading: string;
+  description: string;
+  submitLabel: string;
+};
+
+type CitationFormValues = {
+  sourceId: string;
+  claimKind: ProvenanceClaimKind;
+  claimText: string;
+  citationLocator: string;
+  certainty: ProvenanceCertainty;
+  dateQualifier: string;
+  dateText: string;
+  note: string;
+  heading: string;
+};
 
 const SOURCE_TYPE_LABELS: Record<ProvenanceSourceType, string> = {
   family_book: "Gia phả / tộc phả",
@@ -91,6 +115,116 @@ function getSourceSecondaryText(source: ProvenanceSourceRecord) {
     .join(" · ");
 }
 
+function getSourceFormValues(
+  source: ProvenanceSourceRecord | null,
+): SourceFormValues {
+  if (source) {
+    return {
+      title: source.title,
+      sourceType: source.sourceType,
+      repositoryName: source.repositoryName ?? "",
+      referenceCode: source.referenceCode ?? "",
+      sourceUrl: source.sourceUrl ?? "",
+      heading: "Sửa nguồn tư liệu",
+      description:
+        "Nguồn có thể được dùng bởi nhiều citation; sửa metadata nguồn sẽ hiển thị ở tất cả citation tham chiếu đến nguồn này.",
+      submitLabel: "Lưu nguồn",
+    };
+  }
+
+  return {
+    title: "",
+    sourceType: "family_book",
+    repositoryName: "",
+    referenceCode: "",
+    sourceUrl: "",
+    heading: "Thêm nguồn tư liệu",
+    description:
+      "Tạo nguồn dùng lại được cho một hoặc nhiều citation. Không đưa dữ liệu private vào nguồn công khai ngoài chủ đích.",
+    submitLabel: "Thêm nguồn",
+  };
+}
+
+function getCitationFormValues(
+  citation: ProvenanceCitationRecord | null,
+  sources: ProvenanceSourceRecord[],
+): CitationFormValues {
+  if (citation) {
+    return {
+      sourceId: citation.sourceId,
+      claimKind: citation.claimKind,
+      claimText: citation.claimText,
+      citationLocator: citation.citationLocator ?? "",
+      certainty: citation.certainty,
+      dateQualifier: citation.dateQualifier ?? "",
+      dateText: citation.dateText ?? "",
+      note: citation.note ?? "",
+      heading: "Sửa citation",
+    };
+  }
+
+  return {
+    sourceId: sources[0]?.id ?? "",
+    claimKind: "note",
+    claimText: "",
+    citationLocator: "",
+    certainty: "unknown",
+    dateQualifier: "",
+    dateText: "",
+    note: "",
+    heading: "Thêm citation",
+  };
+}
+
+function isCitationSubmitDisabled(saving: boolean, sourceCount: number) {
+  if (saving) return true;
+  return sourceCount === 0;
+}
+
+function formatCitationDate(citation: ProvenanceCitationRecord) {
+  if (!citation.dateText) return null;
+  if (!citation.dateQualifier) return null;
+  return `${DATE_QUALIFIER_LABELS[citation.dateQualifier]}: ${citation.dateText}`;
+}
+
+function SourceLink({ sourceUrl }: { sourceUrl: string | null }) {
+  if (!sourceUrl) return null;
+
+  return (
+    <a
+      className="mt-2 inline-flex text-xs font-medium text-primary underline-offset-4 hover:underline"
+      href={sourceUrl}
+      rel="noreferrer"
+      target="_blank"
+    >
+      Mở nguồn
+    </a>
+  );
+}
+
+function SourceEditButton({
+  onEdit,
+  readOnly,
+  source,
+}: {
+  onEdit: (source: ProvenanceSourceRecord) => void;
+  readOnly: boolean;
+  source: ProvenanceSourceRecord;
+}) {
+  if (readOnly) return null;
+
+  return (
+    <Button
+      onClick={() => onEdit(source)}
+      size="sm"
+      type="button"
+      variant="ghost"
+    >
+      Sửa nguồn
+    </Button>
+  );
+}
+
 function SourceSummary({
   onEdit,
   readOnly,
@@ -114,27 +248,74 @@ function SourceSummary({
             {secondary ? ` · ${secondary}` : ""}
           </p>
         </div>
-        {readOnly ? null : (
-          <Button
-            onClick={() => onEdit(source)}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            Sửa nguồn
-          </Button>
-        )}
+        <SourceEditButton onEdit={onEdit} readOnly={readOnly} source={source} />
       </div>
-      {source.sourceUrl ? (
-        <a
-          className="mt-2 inline-flex text-xs font-medium text-primary underline-offset-4 hover:underline"
-          href={source.sourceUrl}
-          rel="noreferrer"
-          target="_blank"
-        >
-          Mở nguồn
-        </a>
-      ) : null}
+      <SourceLink sourceUrl={source.sourceUrl} />
+    </div>
+  );
+}
+
+function CitationDate({ citation }: { citation: ProvenanceCitationRecord }) {
+  const dateLabel = formatCitationDate(citation);
+  if (!dateLabel) return null;
+
+  return (
+    <p className="mt-2 text-xs font-medium text-muted-foreground">
+      Ngày ghi nhận: {dateLabel}
+    </p>
+  );
+}
+
+function CitationLocator({
+  citationLocator,
+}: {
+  citationLocator: string | null;
+}) {
+  if (!citationLocator) return null;
+  return <p className="mt-1">Vị trí trích dẫn: {citationLocator}</p>;
+}
+
+function CitationNote({ note }: { note: string | null }) {
+  if (!note) return null;
+
+  return (
+    <p className="mt-2 whitespace-pre-wrap leading-5">
+      Ghi chú nghiên cứu: {note}
+    </p>
+  );
+}
+
+function CitationActions({
+  citation,
+  onEdit,
+  onRemove,
+  readOnly,
+}: {
+  citation: ProvenanceCitationRecord;
+  onEdit: (citation: ProvenanceCitationRecord) => void;
+  onRemove: (citationId: string) => void;
+  readOnly: boolean;
+}) {
+  if (readOnly) return null;
+
+  return (
+    <div className="mt-3 flex gap-2">
+      <Button
+        onClick={() => onEdit(citation)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        Sửa citation
+      </Button>
+      <Button
+        onClick={() => onRemove(citation.id)}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        Xóa citation
+      </Button>
     </div>
   );
 }
@@ -152,10 +333,7 @@ function CitationCard({
   readOnly: boolean;
   source: ProvenanceSourceRecord | undefined;
 }) {
-  const dateLabel =
-    citation.dateText && citation.dateQualifier
-      ? `${DATE_QUALIFIER_LABELS[citation.dateQualifier]}: ${citation.dateText}`
-      : null;
+  const sourceTitle = source?.title ?? "Nguồn không khả dụng";
 
   return (
     <article className="rounded-2xl border border-border bg-background p-3">
@@ -171,47 +349,20 @@ function CitationCard({
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-card-foreground">
         {citation.claimText}
       </p>
-
-      {dateLabel ? (
-        <p className="mt-2 text-xs font-medium text-muted-foreground">
-          Ngày ghi nhận: {dateLabel}
-        </p>
-      ) : null}
+      <CitationDate citation={citation} />
 
       <div className="mt-3 rounded-xl bg-muted/35 p-3 text-xs text-muted-foreground">
-        <p className="font-semibold text-card-foreground">
-          {source?.title ?? "Nguồn không khả dụng"}
-        </p>
-        {citation.citationLocator ? (
-          <p className="mt-1">Vị trí trích dẫn: {citation.citationLocator}</p>
-        ) : null}
-        {citation.note ? (
-          <p className="mt-2 whitespace-pre-wrap leading-5">
-            Ghi chú nghiên cứu: {citation.note}
-          </p>
-        ) : null}
+        <p className="font-semibold text-card-foreground">{sourceTitle}</p>
+        <CitationLocator citationLocator={citation.citationLocator} />
+        <CitationNote note={citation.note} />
       </div>
 
-      {readOnly ? null : (
-        <div className="mt-3 flex gap-2">
-          <Button
-            onClick={() => onEdit(citation)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            Sửa citation
-          </Button>
-          <Button
-            onClick={() => onRemove(citation.id)}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            Xóa citation
-          </Button>
-        </div>
-      )}
+      <CitationActions
+        citation={citation}
+        onEdit={onEdit}
+        onRemove={onRemove}
+        readOnly={readOnly}
+      />
     </article>
   );
 }
@@ -227,6 +378,8 @@ function SourceForm({
   onCancel: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const values = getSourceFormValues(source);
+
   return (
     <form
       className="mt-3 rounded-2xl border border-border bg-muted/20 p-3"
@@ -234,20 +387,17 @@ function SourceForm({
       onSubmit={onSubmit}
     >
       <p className="text-sm font-semibold text-card-foreground">
-        {source ? "Sửa nguồn tư liệu" : "Thêm nguồn tư liệu"}
+        {values.heading}
       </p>
-      {source ? (
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          Nguồn có thể được dùng bởi nhiều citation; sửa metadata nguồn sẽ hiển
-          thị ở tất cả citation tham chiếu đến nguồn này.
-        </p>
-      ) : null}
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+        {values.description}
+      </p>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Tên nguồn
         <input
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={source?.title ?? ""}
+          defaultValue={values.title}
           maxLength={200}
           name="title"
           required
@@ -258,7 +408,7 @@ function SourceForm({
         Loại nguồn
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={source?.sourceType ?? "family_book"}
+          defaultValue={values.sourceType}
           name="sourceType"
         >
           {Object.entries(SOURCE_TYPE_LABELS).map(([value, label]) => (
@@ -273,7 +423,7 @@ function SourceForm({
         Nơi lưu trữ / cơ quan
         <input
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={source?.repositoryName ?? ""}
+          defaultValue={values.repositoryName}
           maxLength={200}
           name="repositoryName"
         />
@@ -283,7 +433,7 @@ function SourceForm({
         Mã hồ sơ / ký hiệu
         <input
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={source?.referenceCode ?? ""}
+          defaultValue={values.referenceCode}
           maxLength={200}
           name="referenceCode"
         />
@@ -293,7 +443,7 @@ function SourceForm({
         URL nguồn
         <input
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={source?.sourceUrl ?? ""}
+          defaultValue={values.sourceUrl}
           maxLength={2048}
           name="sourceUrl"
           placeholder="https://..."
@@ -303,7 +453,7 @@ function SourceForm({
 
       <div className="mt-3 flex gap-2">
         <Button disabled={saving} size="sm" type="submit">
-          {saving ? "Đang lưu…" : "Lưu nguồn"}
+          {values.submitLabel}
         </Button>
         <Button
           disabled={saving}
@@ -332,6 +482,9 @@ function CitationForm({
   onCancel: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const values = getCitationFormValues(citation, sources);
+  const submitDisabled = isCitationSubmitDisabled(saving, sources.length);
+
   return (
     <form
       className="mt-3 rounded-2xl border border-border bg-muted/20 p-3"
@@ -339,7 +492,7 @@ function CitationForm({
       onSubmit={onSubmit}
     >
       <p className="text-sm font-semibold text-card-foreground">
-        {citation ? "Sửa citation" : "Thêm citation"}
+        {values.heading}
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
         Claim chưa chắc chắn hoặc mâu thuẫn được lưu riêng tại đây; form này
@@ -350,7 +503,7 @@ function CitationForm({
         Nguồn tư liệu
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={citation?.sourceId ?? sources[0]?.id ?? ""}
+          defaultValue={values.sourceId}
           name="sourceId"
           required
         >
@@ -366,7 +519,7 @@ function CitationForm({
         Loại claim
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={citation?.claimKind ?? "note"}
+          defaultValue={values.claimKind}
           name="claimKind"
         >
           {Object.entries(CLAIM_KIND_LABELS).map(([value, label]) => (
@@ -381,7 +534,7 @@ function CitationForm({
         Nội dung claim
         <textarea
           className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={citation?.claimText ?? ""}
+          defaultValue={values.claimText}
           maxLength={2000}
           name="claimText"
           required
@@ -392,7 +545,7 @@ function CitationForm({
         Vị trí trích dẫn
         <input
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={citation?.citationLocator ?? ""}
+          defaultValue={values.citationLocator}
           maxLength={240}
           name="citationLocator"
           placeholder="Trang, folio, mục, số hồ sơ…"
@@ -403,7 +556,7 @@ function CitationForm({
         Mức độ chắc chắn
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={citation?.certainty ?? "unknown"}
+          defaultValue={values.certainty}
           name="certainty"
         >
           {Object.entries(CERTAINTY_LABELS).map(([value, label]) => (
@@ -419,7 +572,7 @@ function CitationForm({
           Dạng ngày
           <select
             className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-            defaultValue={citation?.dateQualifier ?? ""}
+            defaultValue={values.dateQualifier}
             name="dateQualifier"
           >
             <option value="">Không gắn ngày</option>
@@ -434,7 +587,7 @@ function CitationForm({
           Biểu thức ngày
           <input
             className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-            defaultValue={citation?.dateText ?? ""}
+            defaultValue={values.dateText}
             maxLength={80}
             name="dateText"
             placeholder="VD: khoảng 1900–1905"
@@ -450,19 +603,15 @@ function CitationForm({
         Ghi chú nghiên cứu
         <textarea
           className="mt-1 min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
-          defaultValue={citation?.note ?? ""}
+          defaultValue={values.note}
           maxLength={2000}
           name="note"
         />
       </label>
 
       <div className="mt-3 flex gap-2">
-        <Button
-          disabled={saving || sources.length === 0}
-          size="sm"
-          type="submit"
-        >
-          {saving ? "Đang lưu…" : "Lưu citation"}
+        <Button disabled={submitDisabled} size="sm" type="submit">
+          Lưu citation
         </Button>
         <Button
           disabled={saving}
@@ -476,6 +625,201 @@ function CitationForm({
       </div>
     </form>
   );
+}
+
+function ProvenanceToolbar({
+  onAddCitation,
+  onAddSource,
+  readOnly,
+  sourceCount,
+}: {
+  onAddCitation: () => void;
+  onAddSource: () => void;
+  readOnly: boolean;
+  sourceCount: number;
+}) {
+  if (readOnly) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      <Button onClick={onAddSource} size="sm" type="button" variant="outline">
+        + Nguồn
+      </Button>
+      <Button
+        disabled={sourceCount === 0}
+        onClick={onAddCitation}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        + Citation
+      </Button>
+    </div>
+  );
+}
+
+function ProvenanceMessages({
+  errorMessage,
+  loading,
+  statusMessage,
+}: {
+  errorMessage: string | null;
+  loading: boolean;
+  statusMessage: string | null;
+}) {
+  return (
+    <>
+      {loading ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Đang tải provenance…
+        </p>
+      ) : null}
+      {errorMessage ? (
+        <p className="mt-3 text-xs text-destructive">{errorMessage}</p>
+      ) : null}
+      {statusMessage ? (
+        <p aria-live="polite" className="mt-3 text-xs text-primary">
+          {statusMessage}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function ProvenanceEditor({
+  editor,
+  onCancel,
+  onCitationSubmit,
+  onSourceSubmit,
+  saving,
+  sources,
+}: {
+  editor: EditorState;
+  onCancel: () => void;
+  onCitationSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSourceSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  saving: boolean;
+  sources: ProvenanceSourceRecord[];
+}) {
+  if (!editor) return null;
+
+  if (editor.kind === "source") {
+    return (
+      <SourceForm
+        onCancel={onCancel}
+        onSubmit={onSourceSubmit}
+        saving={saving}
+        source={editor.source}
+      />
+    );
+  }
+
+  return (
+    <CitationForm
+      citation={editor.citation}
+      onCancel={onCancel}
+      onSubmit={onCitationSubmit}
+      saving={saving}
+      sources={sources}
+    />
+  );
+}
+
+function UsedSourcesList({
+  onEdit,
+  readOnly,
+  sources,
+}: {
+  onEdit: (source: ProvenanceSourceRecord) => void;
+  readOnly: boolean;
+  sources: ProvenanceSourceRecord[];
+}) {
+  if (sources.length === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        Nguồn đã dùng
+      </p>
+      <div className="mt-2 grid gap-2">
+        {sources.map((source) => (
+          <SourceSummary
+            key={source.id}
+            onEdit={onEdit}
+            readOnly={readOnly}
+            source={source}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CitationList({
+  citations,
+  loading,
+  onEdit,
+  onRemove,
+  readOnly,
+  sourceById,
+}: {
+  citations: ProvenanceCitationRecord[];
+  loading: boolean;
+  onEdit: (citation: ProvenanceCitationRecord) => void;
+  onRemove: (citationId: string) => void;
+  readOnly: boolean;
+  sourceById: ReadonlyMap<string, ProvenanceSourceRecord>;
+}) {
+  if (loading) return null;
+
+  if (citations.length === 0) {
+    return (
+      <div className="mt-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Citations
+        </p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          Chưa có citation cho mục đang chọn.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        Citations
+      </p>
+      <div className="mt-2 grid gap-2">
+        {citations.map((citation) => (
+          <CitationCard
+            citation={citation}
+            key={citation.id}
+            onEdit={onEdit}
+            onRemove={onRemove}
+            readOnly={readOnly}
+            source={sourceById.get(citation.sourceId)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function applyLoadResult(
+  result: ProvenanceLoadResult,
+  setSources: (sources: ProvenanceSourceRecord[]) => void,
+  setCitations: (citations: ProvenanceCitationRecord[]) => void,
+  setErrorMessage: (message: string | null) => void,
+) {
+  if (!result.ok) {
+    setErrorMessage(result.message);
+    return;
+  }
+
+  setSources(result.sources);
+  setCitations(result.citations);
+  setErrorMessage(null);
 }
 
 export function ProvenancePanel({
@@ -501,25 +845,26 @@ export function ProvenancePanel({
     return sources.filter((source) => usedIds.has(source.id));
   }, [citations, sources]);
 
-  const refresh = useCallback(async () => {
+  const refreshAfterMutation = useCallback(async () => {
     setLoading(true);
-    setErrorMessage(null);
     const result = await loadProvenance({ personId, relationshipId });
-
-    if (!result.ok) {
-      setErrorMessage(result.message);
-      setLoading(false);
-      return;
-    }
-
-    setSources(result.sources);
-    setCitations(result.citations);
+    applyLoadResult(result, setSources, setCitations, setErrorMessage);
     setLoading(false);
   }, [personId, relationshipId]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let active = true;
+
+    void loadProvenance({ personId, relationshipId }).then((result) => {
+      if (!active) return;
+      applyLoadResult(result, setSources, setCitations, setErrorMessage);
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [personId, relationshipId]);
 
   async function submitSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -540,22 +885,19 @@ export function ProvenancePanel({
     setStatusMessage(null);
 
     const result = editor.source
-      ? await updateProvenanceSource({
-          sourceId: editor.source.id,
-          ...input,
-        })
+      ? await updateProvenanceSource({ sourceId: editor.source.id, ...input })
       : await createProvenanceSource(input);
 
     setSaving(false);
-
     if (!result.ok) {
       setErrorMessage(result.message);
       return;
     }
 
+    const status = editor.source ? "Đã cập nhật nguồn." : "Đã thêm nguồn.";
     setEditor(null);
-    setStatusMessage(editor.source ? "Đã cập nhật nguồn." : "Đã thêm nguồn.");
-    await refresh();
+    setStatusMessage(status);
+    await refreshAfterMutation();
   }
 
   async function submitCitation(event: FormEvent<HTMLFormElement>) {
@@ -589,17 +931,17 @@ export function ProvenancePanel({
       : await createProvenanceCitation(input);
 
     setSaving(false);
-
     if (!result.ok) {
       setErrorMessage(result.message);
       return;
     }
 
+    const status = editor.citation
+      ? "Đã cập nhật citation."
+      : "Đã thêm citation.";
     setEditor(null);
-    setStatusMessage(
-      editor.citation ? "Đã cập nhật citation." : "Đã thêm citation.",
-    );
-    await refresh();
+    setStatusMessage(status);
+    await refreshAfterMutation();
   }
 
   async function removeCitation(citationId: string) {
@@ -620,130 +962,53 @@ export function ProvenancePanel({
 
     setEditor(null);
     setStatusMessage("Đã xóa citation.");
-    await refresh();
+    await refreshAfterMutation();
   }
 
   return (
     <section className="mt-5 border-t border-border pt-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Notes & provenance
-          </p>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Nguồn, citation và claim chưa chắc chắn được lưu tách khỏi dữ liệu
-            canonical. Claim mâu thuẫn có thể cùng tồn tại để review.
-          </p>
-        </div>
-      </div>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Notes & provenance
+      </p>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+        Nguồn, citation và claim chưa chắc chắn được lưu tách khỏi dữ liệu
+        canonical. Claim mâu thuẫn có thể cùng tồn tại để review.
+      </p>
 
-      {readOnly ? null : (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
-            onClick={() => setEditor({ kind: "source", source: null })}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            + Nguồn
-          </Button>
-          <Button
-            disabled={sources.length === 0}
-            onClick={() => setEditor({ kind: "citation", citation: null })}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            + Citation
-          </Button>
-        </div>
-      )}
-
-      {loading ? (
-        <p className="mt-3 text-xs text-muted-foreground">
-          Đang tải provenance…
-        </p>
-      ) : null}
-
-      {errorMessage ? (
-        <p className="mt-3 text-xs text-destructive">{errorMessage}</p>
-      ) : null}
-
-      {statusMessage ? (
-        <p aria-live="polite" className="mt-3 text-xs text-primary">
-          {statusMessage}
-        </p>
-      ) : null}
-
-      {editor?.kind === "source" ? (
-        <SourceForm
-          onCancel={() => setEditor(null)}
-          onSubmit={submitSource}
-          saving={saving}
-          source={editor.source}
-        />
-      ) : null}
-
-      {editor?.kind === "citation" ? (
-        <CitationForm
-          citation={editor.citation}
-          onCancel={() => setEditor(null)}
-          onSubmit={submitCitation}
-          saving={saving}
-          sources={sources}
-        />
-      ) : null}
-
-      {!loading && usedSources.length > 0 ? (
-        <div className="mt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Nguồn đã dùng
-          </p>
-          <div className="mt-2 grid gap-2">
-            {usedSources.map((source) => (
-              <SourceSummary
-                key={source.id}
-                onEdit={(selectedSource) =>
-                  setEditor({ kind: "source", source: selectedSource })
-                }
-                readOnly={readOnly}
-                source={source}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {!loading ? (
-        <div className="mt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Citations
-          </p>
-          {citations.length === 0 ? (
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              Chưa có citation cho mục đang chọn.
-            </p>
-          ) : (
-            <div className="mt-2 grid gap-2">
-              {citations.map((citation) => (
-                <CitationCard
-                  citation={citation}
-                  key={citation.id}
-                  onEdit={(selectedCitation) =>
-                    setEditor({
-                      kind: "citation",
-                      citation: selectedCitation,
-                    })
-                  }
-                  onRemove={(citationId) => void removeCitation(citationId)}
-                  readOnly={readOnly}
-                  source={sourceById.get(citation.sourceId)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : null}
+      <ProvenanceToolbar
+        onAddCitation={() =>
+          setEditor({ kind: "citation", citation: null })
+        }
+        onAddSource={() => setEditor({ kind: "source", source: null })}
+        readOnly={readOnly}
+        sourceCount={sources.length}
+      />
+      <ProvenanceMessages
+        errorMessage={errorMessage}
+        loading={loading}
+        statusMessage={statusMessage}
+      />
+      <ProvenanceEditor
+        editor={editor}
+        onCancel={() => setEditor(null)}
+        onCitationSubmit={submitCitation}
+        onSourceSubmit={submitSource}
+        saving={saving}
+        sources={sources}
+      />
+      <UsedSourcesList
+        onEdit={(source) => setEditor({ kind: "source", source })}
+        readOnly={readOnly}
+        sources={usedSources}
+      />
+      <CitationList
+        citations={citations}
+        loading={loading}
+        onEdit={(citation) => setEditor({ kind: "citation", citation })}
+        onRemove={(citationId) => void removeCitation(citationId)}
+        readOnly={readOnly}
+        sourceById={sourceById}
+      />
     </section>
   );
 }

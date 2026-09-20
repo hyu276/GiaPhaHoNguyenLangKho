@@ -89,7 +89,6 @@ type AdminTreeEditorProps = {
   removeRelationship: RemoveRelationship | undefined;
   restorePerson: PersonStateMutation | undefined;
   updatePerson: UpdatePerson | undefined;
-  onPersonStateChanged: () => void;
 };
 
 type PersonNodeData = {
@@ -193,6 +192,7 @@ function createNodes(people: EditorPerson[]): PersonNode[] {
     type: "person",
     position: person.position,
     deletable: false,
+    draggable: person.archivedAt === null,
     data: {
       displayName: person.displayName,
       years: formatYears(person),
@@ -412,7 +412,7 @@ function EditorSidebar(props: SidebarProps) {
           createPartnership={props.createPartnership}
           focalPerson={props.selectedPerson}
           onChanged={props.onRelationshipChanged}
-          people={props.people}
+          people={props.people.filter((person) => !person.archivedAt)}
           readOnly={props.readOnly}
           relationships={props.relationships}
         />

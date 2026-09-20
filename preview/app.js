@@ -1,4 +1,4 @@
-const STORAGE_KEY = "giapha-admin-demo-v3";
+const STORAGE_KEY = "giapha-admin-demo-v4";
 
 const initialState = {
   people: [
@@ -329,32 +329,69 @@ function renderInspector() {
       relation,
       person.id,
     );
-    item
-      .querySelector(".relation-remove")
-      .addEventListener("click", () => removeRelationship(relation.id));
+    const removeButton = item.querySelector(".relation-remove");
+    const lockedByArchive = person.archived || other.archived;
+    removeButton.disabled = lockedByArchive;
+    removeButton.textContent = lockedByArchive
+      ? "Giữ nguyên khi lưu trữ"
+      : "Xóa quan hệ";
+    removeButton.addEventListener("click", () =>
+      removeRelationship(relation.id),
+    );
     list.appendChild(item);
   });
+}
+
+function renderArchiveImpact(selectedPerson, selectedArchived) {
+  const impact = document.querySelector("#archiveImpact");
+  if (!impact) return;
+
+  if (!selectedPerson) {
+    impact.hidden = true;
+    return;
+  }
+
+  const connected = state.relationships.filter(
+    (relation) =>
+      relation.source === selectedPerson.id ||
+      relation.target === selectedPerson.id,
+  ).length;
+
+  impact.hidden = false;
+  impact.textContent = selectedArchived
+    ? `Hồ sơ đang lưu trữ. ${connected} quan hệ và vị trí vẫn được giữ nguyên.`
+    : `Impact preview: ${connected} quan hệ trực tiếp và vị trí sẽ được giữ nguyên khi lưu trữ.`;
 }
 
 function render() {
   renderEdges();
   renderNodes();
   renderInspector();
-  document.querySelector("#editPerson").disabled = !selectedId;
-  document.querySelector("#addParent").disabled = !selectedId;
-  document.querySelector("#addChild").disabled = !selectedId;
-  document.querySelector("#addPartner").disabled = !selectedId;
-  document.querySelector("#archivePerson").disabled = !selectedId;
-  document.querySelector("#focusSelected").disabled = !selectedId;
+
+  const selectedPerson = getPerson(selectedId);
+  const selectedArchived = Boolean(selectedPerson?.archived);
+  const hasSelection = Boolean(selectedPerson);
+  const mutableSelection = hasSelection && !selectedArchived;
+  const archiveButton = document.querySelector("#archivePerson");
+
+  document.querySelector("#editPerson").disabled = !mutableSelection;
+  document.querySelector("#addParent").disabled = !mutableSelection;
+  document.querySelector("#addChild").disabled = !mutableSelection;
+  document.querySelector("#addPartner").disabled = !mutableSelection;
+  archiveButton.disabled = !hasSelection;
+  archiveButton.textContent = selectedArchived ? "Khôi phục" : "Lưu trữ";
+  document.querySelector("#focusSelected").disabled = !mutableSelection;
   document.querySelector("#undoButton").disabled = history.length === 0;
   document.querySelector("#redoButton").disabled = future.length === 0;
+
+  renderArchiveImpact(selectedPerson, selectedArchived);
 }
 
 function startDrag(event) {
   if (event.button !== 0) return;
   const id = event.currentTarget.dataset.personId;
   const person = getPerson(id);
-  if (!person) return;
+  if (!person || person.archived) return;
   selectedId = id;
   checkpoint();
   dragContext = {
@@ -404,6 +441,7 @@ function getPersonField(person, field, fallback = "") {
 }
 
 function openPersonDialog(person = null) {
+  if (person?.archived) return;
   const dialog = document.querySelector("#personDialog");
   const title = person ? "Sửa người" : "Thêm người";
 
@@ -510,7 +548,7 @@ function savePersonFromDialog() {
 
 function openRelationshipDialog(mode) {
   const source = getPerson(selectedId);
-  if (!source) return;
+  if (!source || source.archived) return;
   relationshipMode = mode;
 
   const labels = {
@@ -634,6 +672,12 @@ function saveRelationshipFromDialog() {
 function removeRelationship(id) {
   const relation = state.relationships.find((item) => item.id === id);
   if (!relation) return;
+  const source = getPerson(relation.source);
+  const target = getPerson(relation.target);
+  if (source?.archived || target?.archived) {
+    window.alert("Hãy khôi phục hồ sơ đã lưu trữ trước khi sửa quan hệ này.");
+    return;
+  }
   if (!window.confirm("Xóa quan hệ này? Hai người sẽ không bị xóa.")) return;
   checkpoint();
   state.relationships = state.relationships.filter((item) => item.id !== id);
@@ -662,6 +706,9 @@ function archiveSelected() {
       ? "Đã lưu trữ người trong demo"
       : "Đã khôi phục người trong demo",
   );
+  if (person.archived && !showArchived) {
+    selectedId = null;
+  }
   render();
 }
 
@@ -720,6 +767,10 @@ document.querySelector("#searchInput").addEventListener("input", (event) => {
 
 document.querySelector("#showArchived").addEventListener("change", (event) => {
   showArchived = event.target.checked;
+  const selectedPerson = getPerson(selectedId);
+  if (!showArchived && selectedPerson?.archived) {
+    selectedId = null;
+  }
   render();
 });
 

@@ -27,8 +27,9 @@
     </header>
 
     <div class="notice">
-      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Không có thao tác
-      nào ghi vào database production.
+      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Archive/restore giữ
+      nguyên quan hệ và vị trí; không có thao tác nào ghi vào database
+      production.
     </div>
 
     <main class="workspace">
@@ -101,8 +102,8 @@
             <li class="done">Drag layout</li>
             <li class="done">Person CRUD</li>
             <li class="done">Relationship CRUD</li>
-            <li class="active">Archive / restore</li>
-            <li>Search & branch focus</li>
+            <li class="done">Archive / restore</li>
+            <li class="active">Search & branch focus</li>
             <li>Sources & provenance</li>
             <li>Merge duplicates</li>
             <li>Audit / conflict / undo</li>
@@ -176,6 +177,8 @@
                 <dd id="personPosition"></dd>
               </div>
             </dl>
+
+            <p class="archive-impact" id="archiveImpact" hidden></p>
 
             <div class="divider"></div>
 

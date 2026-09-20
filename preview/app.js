@@ -342,6 +342,27 @@ function renderInspector() {
   });
 }
 
+function renderArchiveImpact(selectedPerson, selectedArchived) {
+  const impact = document.querySelector("#archiveImpact");
+  if (!impact) return;
+
+  if (!selectedPerson) {
+    impact.hidden = true;
+    return;
+  }
+
+  const connected = state.relationships.filter(
+    (relation) =>
+      relation.source === selectedPerson.id ||
+      relation.target === selectedPerson.id,
+  ).length;
+
+  impact.hidden = false;
+  impact.textContent = selectedArchived
+    ? `Hồ sơ đang lưu trữ. ${connected} quan hệ và vị trí vẫn được giữ nguyên.`
+    : `Impact preview: ${connected} quan hệ trực tiếp và vị trí sẽ được giữ nguyên khi lưu trữ.`;
+}
+
 function render() {
   renderEdges();
   renderNodes();
@@ -363,20 +384,7 @@ function render() {
   document.querySelector("#undoButton").disabled = history.length === 0;
   document.querySelector("#redoButton").disabled = future.length === 0;
 
-  const impact = document.querySelector("#archiveImpact");
-  if (impact && selectedPerson) {
-    const connected = state.relationships.filter(
-      (relation) =>
-        relation.source === selectedPerson.id ||
-        relation.target === selectedPerson.id,
-    ).length;
-    impact.hidden = false;
-    impact.textContent = selectedArchived
-      ? `Hồ sơ đang lưu trữ. ${connected} quan hệ và vị trí vẫn được giữ nguyên.`
-      : `Impact preview: ${connected} quan hệ trực tiếp và vị trí sẽ được giữ nguyên khi lưu trữ.`;
-  } else if (impact) {
-    impact.hidden = true;
-  }
+  renderArchiveImpact(selectedPerson, selectedArchived);
 }
 
 function startDrag(event) {

@@ -976,9 +976,7 @@ export function ProvenancePanel({
       </p>
 
       <ProvenanceToolbar
-        onAddCitation={() =>
-          setEditor({ kind: "citation", citation: null })
-        }
+        onAddCitation={() => setEditor({ kind: "citation", citation: null })}
         onAddSource={() => setEditor({ kind: "source", source: null })}
         readOnly={readOnly}
         sourceCount={sources.length}

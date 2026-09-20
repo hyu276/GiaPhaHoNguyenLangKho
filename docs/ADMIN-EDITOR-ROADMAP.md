@@ -119,18 +119,30 @@ Current life-status filter semantics use the existing model: a recorded death ye
 
 ## Step 5 — Layout administration
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Goal: make manual layout a first-class presentation workflow.
 
 Add:
 
-- Existing drag-position persistence.
-- Undo/redo for layout moves.
-- Lock/unlock node position.
-- Reset selected position.
-- Reset branch layout.
-- Auto-layout a selected branch.
-- Fit/focus selection.
-- Never infer kinship from proximity.
+- Preserve existing drag-position persistence and extend writes to validated layout batches.
+- Undo/redo up to the latest 50 successful layout mutations in the current editor session.
+- Lock/unlock node position for the current editor session; locked nodes cannot be dragged and are skipped by reset/auto-layout operations.
+- Reset a selected unlocked active person to the deterministic fallback grid position.
+- Reset a selected descendant branch to deterministic fallback positions while preserving locked and archived nodes.
+- Auto-layout descendants by genealogy generation beneath the selected root while keeping the root as the visual anchor.
+- Reuse focus/fit selection from Step 4 without writing layout coordinates.
+- Keep all layout operations presentation-only and never infer kinship from proximity.
+- Persist successful reset, auto-layout, undo, and redo operations through the same admin-only `person_layouts` write path.
+- Require no schema migration for this step; layout locks and history intentionally reset on page reload.
+
+Tests:
+
+- deterministic fallback positions;
+- selected-branch membership follows directed parent-child edges only;
+- auto-layout groups descendants by generation and preserves the root anchor;
+- locked descendants are excluded from automatic movement;
+- partnership edges never create descendant generations.
 
 ## Step 6 — Genealogical notes and provenance
 

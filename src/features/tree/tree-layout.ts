@@ -102,7 +102,8 @@ export function getAutoLayoutPositions(
   const rootPerson = people.find((person) => person.id === rootPersonId);
   if (!rootPerson) return new Map<string, LayoutPosition>();
 
-  const rootPosition = currentPositions.get(rootPersonId) ?? rootPerson.position;
+  const rootPosition =
+    currentPositions.get(rootPersonId) ?? rootPerson.position;
   const branchIds = getBranchPersonIds(relationships, rootPersonId);
   const depths = getBranchDepths(relationships, rootPersonId);
   const idsByDepth = new Map<number, string[]>();

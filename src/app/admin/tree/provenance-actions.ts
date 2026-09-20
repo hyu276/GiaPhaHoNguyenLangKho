@@ -7,6 +7,10 @@ import {
   type CreateProvenanceCitationInput,
   createProvenanceSourceInputSchema,
   type CreateProvenanceSourceInput,
+  type ProvenanceCitationRecord,
+  provenanceTargetInputSchema,
+  type ProvenanceSourceRecord,
+  type ProvenanceTargetInput,
   removeProvenanceCitationInputSchema,
   type RemoveProvenanceCitationInput,
   updateProvenanceCitationInputSchema,
@@ -15,6 +19,7 @@ import {
   type UpdateProvenanceSourceInput,
 } from "@/features/tree/provenance-input";
 import { requireAdmin } from "@/lib/auth/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ProvenanceSourceMutationResult =
   | { ok: true; sourceId: string }
@@ -24,8 +29,143 @@ export type ProvenanceCitationMutationResult =
   | { ok: true; citationId: string }
   | { ok: false; message: string };
 
+export type ProvenanceLoadResult =
+  | {
+      ok: true;
+      sources: ProvenanceSourceRecord[];
+      citations: ProvenanceCitationRecord[];
+    }
+  | { ok: false; message: string };
+
+type ViewerRole = "admin" | "spectator";
+
+type SourceRow = {
+  id: string;
+  title: string;
+  source_type: ProvenanceSourceRecord["sourceType"];
+  repository_name: string | null;
+  reference_code: string | null;
+  source_url: string | null;
+};
+
+type CitationRow = {
+  id: string;
+  source_id: string;
+  person_id: string | null;
+  relationship_id: string | null;
+  claim_kind: ProvenanceCitationRecord["claimKind"];
+  claim_text: string;
+  citation_locator: string | null;
+  note: string | null;
+  certainty: ProvenanceCitationRecord["certainty"];
+  date_text: string | null;
+  date_qualifier: ProvenanceCitationRecord["dateQualifier"];
+};
+
 function getValidationMessage(error: { issues: Array<{ message: string }> }) {
   return error.issues[0]?.message ?? "Dữ liệu provenance không hợp lệ.";
+}
+
+function mapSource(row: SourceRow): ProvenanceSourceRecord {
+  return {
+    id: row.id,
+    title: row.title,
+    sourceType: row.source_type,
+    repositoryName: row.repository_name,
+    referenceCode: row.reference_code,
+    sourceUrl: row.source_url,
+  };
+}
+
+function mapCitation(row: CitationRow): ProvenanceCitationRecord {
+  return {
+    id: row.id,
+    sourceId: row.source_id,
+    personId: row.person_id,
+    relationshipId: row.relationship_id,
+    claimKind: row.claim_kind,
+    claimText: row.claim_text,
+    citationLocator: row.citation_locator,
+    note: row.note,
+    certainty: row.certainty,
+    dateText: row.date_text,
+    dateQualifier: row.date_qualifier,
+  };
+}
+
+async function getProvenanceViewer() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) return null;
+
+  const role = user.app_metadata.role;
+  if (role !== "admin" && role !== "spectator") return null;
+
+  return { supabase, role: role as ViewerRole };
+}
+
+export async function loadProvenance(
+  input: ProvenanceTargetInput,
+): Promise<ProvenanceLoadResult> {
+  const parsed = provenanceTargetInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: getValidationMessage(parsed.error) };
+  }
+
+  const viewer = await getProvenanceViewer();
+  if (!viewer) {
+    return { ok: false, message: "Không có quyền xem provenance." };
+  }
+
+  let citationQuery = viewer.supabase
+    .from("genealogy_citations")
+    .select(
+      "id, source_id, person_id, relationship_id, claim_kind, claim_text, citation_locator, note, certainty, date_text, date_qualifier",
+    );
+
+  citationQuery =
+    parsed.data.personId !== null
+      ? citationQuery.eq("person_id", parsed.data.personId)
+      : citationQuery.eq("relationship_id", parsed.data.relationshipId);
+
+  const citationResult = await citationQuery.order("created_at", {
+    ascending: false,
+  });
+
+  if (citationResult.error) {
+    return { ok: false, message: "Không thể tải citation." };
+  }
+
+  const citationRows = (citationResult.data ?? []) as CitationRow[];
+  const sourceIds = [...new Set(citationRows.map((row) => row.source_id))];
+
+  let sourceQuery = viewer.supabase
+    .from("genealogy_sources")
+    .select(
+      "id, title, source_type, repository_name, reference_code, source_url",
+    );
+
+  if (viewer.role === "spectator") {
+    if (sourceIds.length === 0) {
+      return { ok: true, sources: [], citations: citationRows.map(mapCitation) };
+    }
+    sourceQuery = sourceQuery.in("id", sourceIds);
+  }
+
+  const sourceResult = await sourceQuery.order("title");
+  if (sourceResult.error) {
+    return { ok: false, message: "Không thể tải nguồn tư liệu." };
+  }
+
+  return {
+    ok: true,
+    sources: ((sourceResult.data ?? []) as SourceRow[]).map(mapSource),
+    citations: citationRows.map(mapCitation),
+  };
 }
 
 export async function createProvenanceSource(

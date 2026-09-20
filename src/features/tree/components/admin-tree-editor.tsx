@@ -169,6 +169,19 @@ function getVisibleRelationships(
   );
 }
 
+function relationshipTouchesArchivedPerson(
+  relationship: EditorRelationship,
+  people: EditorPerson[],
+) {
+  const archivedPersonIds = new Set(
+    people.filter(isArchived).map((person) => person.id),
+  );
+  return (
+    archivedPersonIds.has(relationship.sourcePersonId) ||
+    archivedPersonIds.has(relationship.targetPersonId)
+  );
+}
+
 function formatYears(person: EditorPerson) {
   const birth = person.birthYear?.toString() ?? "?";
   const death = person.deathYear?.toString() ?? "nay";
@@ -570,7 +583,13 @@ function EditorSidebar(props: SidebarProps) {
         <RelationshipInspector
           onChanged={props.onRelationshipChanged}
           people={props.people}
-          readOnly={props.readOnly}
+          readOnly={
+            props.readOnly ||
+            relationshipTouchesArchivedPerson(
+              props.selectedRelationship,
+              props.people,
+            )
+          }
           relationship={props.selectedRelationship}
           removeRelationship={props.removeRelationship}
         />

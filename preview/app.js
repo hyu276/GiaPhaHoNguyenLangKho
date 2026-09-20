@@ -167,25 +167,43 @@ function hiddenBranchIds() {
   return hidden;
 }
 
+function matchesArchiveFilter(person) {
+  if (archiveFilter === "active") return !person.archived;
+  if (archiveFilter === "archived") return person.archived;
+  return true;
+}
+
+function matchesLifeFilter(person) {
+  const isLiving = person.death === null;
+  if (lifeFilter === "living") return isLiving;
+  if (lifeFilter === "deceased") return !isLiving;
+  return true;
+}
+
+function matchesVisibilityFilter(person) {
+  return (
+    visibilityFilter === "all" || person.visibility === visibilityFilter
+  );
+}
+
+function matchesSearchTerm(person) {
+  if (!searchTerm) return true;
+  return person.name.toLocaleLowerCase("vi-VN").includes(searchTerm);
+}
+
+function isVisiblePerson(person, hidden) {
+  return (
+    !hidden.has(person.id) &&
+    matchesArchiveFilter(person) &&
+    matchesLifeFilter(person) &&
+    matchesVisibilityFilter(person) &&
+    matchesSearchTerm(person)
+  );
+}
+
 function visiblePeople() {
   const hidden = hiddenBranchIds();
-
-  return state.people.filter((person) => {
-    if (hidden.has(person.id)) return false;
-    if (archiveFilter === "active" && person.archived) return false;
-    if (archiveFilter === "archived" && !person.archived) return false;
-
-    const isLiving = person.death === null;
-    if (lifeFilter === "living" && !isLiving) return false;
-    if (lifeFilter === "deceased" && isLiving) return false;
-
-    if (visibilityFilter !== "all" && person.visibility !== visibilityFilter) {
-      return false;
-    }
-
-    if (!searchTerm) return true;
-    return person.name.toLocaleLowerCase("vi-VN").includes(searchTerm);
-  });
+  return state.people.filter((person) => isVisiblePerson(person, hidden));
 }
 
 function nodeCenter(person) {
@@ -247,62 +265,76 @@ function renderEdges() {
   });
 }
 
+function getNodeClassName(person) {
+  return [
+    "person-node",
+    person.id === selectedId ? "selected" : "",
+    person.visibility === "private" ? "private" : "",
+    person.archived ? "archived" : "",
+    person.id === focusedId ? "focused" : "",
+    focusedId && person.id !== focusedId ? "deemphasized" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function createVisibilityBadge(person) {
+  const badge = document.createElement("span");
+  badge.className = [
+    "node-badge",
+    person.visibility === "private" ? "private" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  badge.textContent =
+    person.visibility === "private" ? "Riêng tư" : "Công khai";
+  return badge;
+}
+
+function appendArchivedBadge(badges, person) {
+  if (!person.archived) return;
+
+  const archivedBadge = document.createElement("span");
+  archivedBadge.className = "node-badge private";
+  archivedBadge.textContent = "Đã lưu trữ";
+  badges.appendChild(archivedBadge);
+}
+
+function createPersonNode(person) {
+  const node = document.createElement("button");
+  node.type = "button";
+  node.className = getNodeClassName(person);
+  node.style.left = `${person.x}px`;
+  node.style.top = `${person.y}px`;
+  node.dataset.personId = person.id;
+
+  const name = document.createElement("strong");
+  name.textContent = person.name;
+
+  const years = document.createElement("small");
+  years.textContent = formatYears(person);
+
+  const badges = document.createElement("span");
+  badges.className = "node-badges";
+  badges.appendChild(createVisibilityBadge(person));
+  appendArchivedBadge(badges, person);
+
+  node.append(name, years, badges);
+  node.addEventListener("click", () => {
+    selectedId = person.id;
+    render();
+  });
+  node.addEventListener("pointerdown", startDrag);
+
+  return node;
+}
+
 function renderNodes() {
   nodesLayer.replaceChildren();
   const displayed = visiblePeople();
 
   displayed.forEach((person) => {
-    const node = document.createElement("button");
-    node.type = "button";
-    node.className = [
-      "person-node",
-      person.id === selectedId ? "selected" : "",
-      person.visibility === "private" ? "private" : "",
-      person.archived ? "archived" : "",
-      person.id === focusedId ? "focused" : "",
-      focusedId && person.id !== focusedId ? "deemphasized" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    node.style.left = `${person.x}px`;
-    node.style.top = `${person.y}px`;
-    node.dataset.personId = person.id;
-
-    const name = document.createElement("strong");
-    name.textContent = person.name;
-
-    const years = document.createElement("small");
-    years.textContent = formatYears(person);
-
-    const badges = document.createElement("span");
-    badges.className = "node-badges";
-
-    const visibilityBadge = document.createElement("span");
-    visibilityBadge.className = [
-      "node-badge",
-      person.visibility === "private" ? "private" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    visibilityBadge.textContent =
-      person.visibility === "private" ? "Riêng tư" : "Công khai";
-    badges.appendChild(visibilityBadge);
-
-    if (person.archived) {
-      const archivedBadge = document.createElement("span");
-      archivedBadge.className = "node-badge private";
-      archivedBadge.textContent = "Đã lưu trữ";
-      badges.appendChild(archivedBadge);
-    }
-
-    node.append(name, years, badges);
-
-    node.addEventListener("click", () => {
-      selectedId = person.id;
-      render();
-    });
-    node.addEventListener("pointerdown", startDrag);
-    nodesLayer.appendChild(node);
+    nodesLayer.appendChild(createPersonNode(person));
   });
 
   emptySearch.hidden = displayed.length > 0;

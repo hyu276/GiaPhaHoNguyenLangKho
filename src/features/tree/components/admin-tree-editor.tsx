@@ -1071,7 +1071,11 @@ export function AdminTreeEditor({
       maxZoom: 1.25,
       padding: 1.2,
     });
-    setPendingFocusPersonId(null);
+
+    const frameId = window.requestAnimationFrame(() => {
+      setPendingFocusPersonId(null);
+    });
+    return () => window.cancelAnimationFrame(frameId);
   }, [pendingFocusPersonId, visiblePeople]);
 
   const applyLayoutPositions = useCallback(

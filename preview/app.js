@@ -1303,7 +1303,9 @@ function jumpToPerson(personId) {
 }
 
 function selectRelationshipProvenance(relationshipId) {
-  const relation = state.relationships.find((item) => item.id === relationshipId);
+  const relation = state.relationships.find(
+    (item) => item.id === relationshipId,
+  );
   if (!relation) return;
   selectedProvenanceTarget = { kind: "relationship", id: relationshipId };
   renderProvenance();
@@ -1391,10 +1393,10 @@ function openCitationDialog(citationId = null) {
   document.querySelector("#citationDialogTitle").textContent = citation
     ? "Sửa citation"
     : "Thêm citation";
-  document.querySelector("#citationTarget").textContent = getTargetLabel(target);
+  document.querySelector("#citationTarget").textContent =
+    getTargetLabel(target);
   populateCitationSourceOptions(citation?.sourceId ?? state.sources[0].id);
-  document.querySelector("#citationKind").value =
-    citation?.claimKind ?? "note";
+  document.querySelector("#citationKind").value = citation?.claimKind ?? "note";
   document.querySelector("#citationClaim").value = citation?.claimText ?? "";
   document.querySelector("#citationLocator").value =
     citation?.citationLocator ?? "";
@@ -1412,7 +1414,8 @@ function buildCitationDraft() {
   if (!target) return null;
 
   const dateText = nullableFieldValue("#citationDateText");
-  const dateQualifier = document.querySelector("#citationDateQualifier").value || null;
+  const dateQualifier =
+    document.querySelector("#citationDateQualifier").value || null;
   if (Boolean(dateText) !== Boolean(dateQualifier)) {
     window.alert(
       "Biểu thức ngày và mức độ chính xác của ngày phải đi cùng nhau.",

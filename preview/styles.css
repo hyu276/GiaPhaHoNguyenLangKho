@@ -564,3 +564,21 @@ dialog::backdrop {
     width: 160px;
   }
 }
+
+
+.archive-impact {
+  margin: 14px 0 0;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.link-danger:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  opacity: 0.7;
+}

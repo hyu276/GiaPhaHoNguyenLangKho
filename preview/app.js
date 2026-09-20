@@ -565,13 +565,12 @@ function renderArchiveImpact(selectedPerson, selectedArchived) {
     : `Impact preview: ${connected} quan hệ trực tiếp và vị trí sẽ được giữ nguyên khi lưu trữ.`;
 }
 
-function renderSelectionControls(selectedPerson) {
-  const selectedArchived = Boolean(selectedPerson?.archived);
+function renderPrimarySelectionControls(
+  selectedPerson,
+  selectedArchived,
+  mutableSelection,
+) {
   const hasSelection = Boolean(selectedPerson);
-  const mutableSelection = hasSelection && !selectedArchived;
-  const selectedLocked = selectedPerson
-    ? lockedPersonIds.has(selectedPerson.id)
-    : false;
   const archiveButton = document.querySelector("#archivePerson");
 
   document.querySelector("#editPerson").disabled = !mutableSelection;
@@ -589,6 +588,13 @@ function renderSelectionControls(selectedPerson) {
   document.querySelector("#clearFocus").disabled = focusedId === null;
   document.querySelector("#undoButton").disabled = history.length === 0;
   document.querySelector("#redoButton").disabled = future.length === 0;
+}
+
+function renderLayoutSelectionControls(selectedPerson, mutableSelection) {
+  const selectedLocked = selectedPerson
+    ? lockedPersonIds.has(selectedPerson.id)
+    : false;
+
   document.querySelector("#layoutLock").disabled = !mutableSelection;
   document.querySelector("#layoutLock").textContent = selectedLocked
     ? "Mở khóa vị trí"
@@ -599,6 +605,18 @@ function renderSelectionControls(selectedPerson) {
   document.querySelector("#autoLayoutBranch").disabled = !mutableSelection;
   document.querySelector("#layoutUndo").disabled = layoutHistory.length === 0;
   document.querySelector("#layoutRedo").disabled = layoutFuture.length === 0;
+}
+
+function renderSelectionControls(selectedPerson) {
+  const selectedArchived = Boolean(selectedPerson?.archived);
+  const mutableSelection = Boolean(selectedPerson) && !selectedArchived;
+
+  renderPrimarySelectionControls(
+    selectedPerson,
+    selectedArchived,
+    mutableSelection,
+  );
+  renderLayoutSelectionControls(selectedPerson, mutableSelection);
 
   return selectedArchived;
 }

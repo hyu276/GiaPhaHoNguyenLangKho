@@ -179,10 +179,7 @@ function visiblePeople() {
     if (lifeFilter === "living" && !isLiving) return false;
     if (lifeFilter === "deceased" && isLiving) return false;
 
-    if (
-      visibilityFilter !== "all" &&
-      person.visibility !== visibilityFilter
-    ) {
+    if (visibilityFilter !== "all" && person.visibility !== visibilityFilter) {
       return false;
     }
 

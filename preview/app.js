@@ -659,10 +659,7 @@ function endDrag(event) {
   ) {
     pushLayoutHistory(
       new Map([
-        [
-          person.id,
-          { x: dragContext.personX, y: dragContext.personY },
-        ],
+        [person.id, { x: dragContext.personX, y: dragContext.personY }],
       ]),
       new Map([[person.id, { x: person.x, y: person.y }]]),
     );
@@ -1026,7 +1023,9 @@ function resetSelectedPersonLayout() {
   const person = getPerson(selectedId);
   if (!person || person.archived || lockedPersonIds.has(person.id)) return;
 
-  const index = state.people.findIndex((candidate) => candidate.id === person.id);
+  const index = state.people.findIndex(
+    (candidate) => candidate.id === person.id,
+  );
   applyLayoutPositions(
     new Map([[person.id, getFallbackPosition(index)]]),
     "Đã đặt lại vị trí demo",
@@ -1076,11 +1075,7 @@ function redoLayout() {
   if (!entry) return;
 
   if (
-    applyLayoutPositions(
-      new Map(entry.after),
-      "Đã làm lại vị trí demo",
-      false,
-    )
+    applyLayoutPositions(new Map(entry.after), "Đã làm lại vị trí demo", false)
   ) {
     layoutFuture.pop();
     layoutHistory.push(entry);
@@ -1117,7 +1112,9 @@ document
 document
   .querySelector("#toggleBranch")
   .addEventListener("click", toggleSelectedBranch);
-document.querySelector("#layoutLock").addEventListener("click", toggleLayoutLock);
+document
+  .querySelector("#layoutLock")
+  .addEventListener("click", toggleLayoutLock);
 document
   .querySelector("#resetPersonLayout")
   .addEventListener("click", resetSelectedPersonLayout);

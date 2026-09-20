@@ -27,9 +27,9 @@
     </header>
 
     <div class="notice">
-      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Search/focus chỉ
-      thay đổi cách nhìn; lock, reset, auto-layout và layout undo/redo chỉ lưu
-      trong browser local, không ghi vào database production.
+      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Layout, nguồn tư
+      liệu, citation và claim chưa chắc chắn chỉ lưu trong browser local; không
+      có kết nối tới database production.
     </div>
 
     <main class="workspace">
@@ -130,8 +130,8 @@
             <li class="done">Archive / restore</li>
             <li class="done">Search & branch focus</li>
             <li class="done">Layout administration</li>
-            <li class="active">Sources & provenance</li>
-            <li>Merge duplicates</li>
+            <li class="done">Sources & provenance</li>
+            <li class="active">Merge duplicates</li>
             <li>Audit / conflict / undo</li>
           </ol>
         </section>
@@ -259,6 +259,33 @@
 
             <h3>Quan hệ trực tiếp</h3>
             <div id="relationList" class="relation-list"></div>
+
+            <div class="divider"></div>
+
+            <section id="provenanceSection">
+              <p class="eyebrow">Notes & provenance</p>
+              <p class="muted">
+                Claim chưa chắc chắn hoặc mâu thuẫn được giữ riêng, không tự
+                sửa dữ liệu canonical.
+              </p>
+              <p class="provenance-target">
+                Đang xem: <strong id="provenanceTarget"></strong>
+              </p>
+              <div class="branch-actions">
+                <button class="button secondary" id="addSource" type="button">
+                  + Nguồn
+                </button>
+                <button class="button secondary" id="addCitation" type="button">
+                  + Citation
+                </button>
+              </div>
+
+              <h3>Nguồn đã dùng</h3>
+              <div class="provenance-list" id="provenanceSources"></div>
+
+              <h3>Citations</h3>
+              <div class="provenance-list" id="provenanceCitations"></div>
+            </section>
           </div>
         </section>
       </aside>
@@ -351,6 +378,140 @@
       </form>
     </dialog>
 
+    <dialog id="sourceDialog">
+      <form method="dialog" id="sourceForm" class="dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Reusable source</p>
+            <h2 id="sourceDialogTitle">Thêm nguồn tư liệu</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Đóng">×</button>
+        </div>
+        <label class="field">
+          <span>Tên nguồn</span>
+          <input id="sourceTitle" required maxlength="200" />
+        </label>
+        <label class="field">
+          <span>Loại nguồn</span>
+          <select id="sourceType">
+            <option value="family_book">Gia phả / tộc phả</option>
+            <option value="civil_record">Hộ tịch</option>
+            <option value="archive">Lưu trữ</option>
+            <option value="oral_history">Khẩu thuật</option>
+            <option value="photo">Ảnh / hiện vật</option>
+            <option value="publication">Ấn phẩm</option>
+            <option value="web">Nguồn web</option>
+            <option value="other">Khác</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Nơi lưu trữ / cơ quan</span>
+          <input id="sourceRepository" maxlength="200" />
+        </label>
+        <label class="field">
+          <span>Mã hồ sơ / ký hiệu</span>
+          <input id="sourceReference" maxlength="200" />
+        </label>
+        <label class="field">
+          <span>URL nguồn</span>
+          <input
+            id="sourceUrl"
+            maxlength="2048"
+            placeholder="https://..."
+            type="url"
+          />
+        </label>
+        <div class="dialog-actions">
+          <button class="button secondary" value="cancel">Hủy</button>
+          <button class="button primary" value="default">Lưu nguồn</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="citationDialog">
+      <form method="dialog" id="citationForm" class="dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Evidence citation</p>
+            <h2 id="citationDialogTitle">Thêm citation</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Đóng">×</button>
+        </div>
+        <p class="muted">
+          Target: <strong id="citationTarget"></strong>. Claim này không tự thay
+          đổi năm sinh, năm mất hay quan hệ canonical.
+        </p>
+        <label class="field">
+          <span>Nguồn tư liệu</span>
+          <select id="citationSource" required></select>
+        </label>
+        <label class="field">
+          <span>Loại claim</span>
+          <select id="citationKind">
+            <option value="identity">Nhân thân</option>
+            <option value="birth">Sinh</option>
+            <option value="death">Mất</option>
+            <option value="relationship">Quan hệ</option>
+            <option value="residence">Cư trú</option>
+            <option value="occupation">Nghề nghiệp</option>
+            <option value="note">Ghi chú</option>
+            <option value="other">Khác</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Nội dung claim</span>
+          <textarea id="citationClaim" maxlength="2000" required></textarea>
+        </label>
+        <label class="field">
+          <span>Vị trí trích dẫn</span>
+          <input
+            id="citationLocator"
+            maxlength="240"
+            placeholder="Trang, folio, mục, số hồ sơ..."
+          />
+        </label>
+        <label class="field">
+          <span>Mức độ chắc chắn</span>
+          <select id="citationCertainty">
+            <option value="certain">Chắc chắn</option>
+            <option value="probable">Có khả năng cao</option>
+            <option value="possible">Có thể</option>
+            <option value="unknown">Chưa rõ</option>
+          </select>
+        </label>
+        <div class="two-col">
+          <label class="field">
+            <span>Dạng ngày</span>
+            <select id="citationDateQualifier">
+              <option value="">Không gắn ngày</option>
+              <option value="exact">Chính xác</option>
+              <option value="about">Khoảng</option>
+              <option value="before">Trước</option>
+              <option value="after">Sau</option>
+              <option value="range">Khoảng thời gian</option>
+              <option value="unknown">Không rõ</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Biểu thức ngày</span>
+            <input
+              id="citationDateText"
+              maxlength="80"
+              placeholder="khoảng 1900-1905"
+            />
+          </label>
+        </div>
+        <label class="field">
+          <span>Ghi chú nghiên cứu</span>
+          <textarea id="citationNote" maxlength="2000"></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button class="button secondary" value="cancel">Hủy</button>
+          <button class="button primary" value="default">Lưu citation</button>
+        </div>
+      </form>
+    </dialog>
+
     <template id="relationTemplate">
       <div class="relation-item">
         <div>
@@ -360,6 +521,9 @@
         <div class="relation-actions">
           <button class="link-button relation-jump" type="button">
             Đi tới
+          </button>
+          <button class="link-button relation-provenance" type="button">
+            Provenance
           </button>
           <button class="link-danger relation-remove" type="button">
             Xóa quan hệ

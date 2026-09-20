@@ -988,9 +988,10 @@ export function AdminTreeEditor({
   const [pendingFocusPersonId, setPendingFocusPersonId] = useState<
     string | null
   >(null);
-  const flowInstance = useRef<
-    ReactFlowInstance<PersonNode, RelationshipEdge> | null
-  >(null);
+  const flowInstance = useRef<ReactFlowInstance<
+    PersonNode,
+    RelationshipEdge
+  > | null>(null);
   const layoutMutationInFlight = useRef(false);
   const filteredPeople = useMemo(
     () =>
@@ -1376,9 +1377,7 @@ export function AdminTreeEditor({
         createPartnership={createPartnership}
         createPerson={createPerson}
         formMode={formMode}
-        layoutCanRedo={
-          layoutFuture.length > 0 && saveState.status !== "saving"
-        }
+        layoutCanRedo={layoutFuture.length > 0 && saveState.status !== "saving"}
         layoutCanUndo={
           layoutHistory.length > 0 && saveState.status !== "saving"
         }

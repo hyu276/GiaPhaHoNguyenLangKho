@@ -101,15 +101,21 @@ Hard delete remains unavailable until an explicit recovery/audit design exists.
 
 ## Step 4 — Search, filter, focus, and branch navigation
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Goal: make large trees administrable.
 
 Add:
 
-- Search by name/alias.
-- Focus selected person.
-- Filters: living/deceased, public/private, archived, generation branch.
-- Jump to parents, children, partners.
-- Collapse/expand branches without changing genealogy data.
+- Search by display name. Alias search remains deferred until alias data exists in the canonical person model.
+- Focus selected person without changing saved layout coordinates.
+- Filters: living/deceased, public/private, active/all/archived.
+- Jump to parents, children, and partners from the selected-person inspector.
+- Collapse/expand descendant branches without changing genealogy data or persisted layout.
+- Keep traversal cycle-safe even if malformed historical data is encountered.
+- Keep all filtering/navigation local to the already-authorized graph payload; no new database queries or mutations are introduced.
+
+Current life-status filter semantics use the existing model: a recorded death year means deceased; no recorded death year is treated as living for this editor filter. A future explicit life-status field can replace this heuristic without changing the navigation contract.
 
 ## Step 5 — Layout administration
 

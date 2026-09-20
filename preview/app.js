@@ -181,9 +181,7 @@ function matchesLifeFilter(person) {
 }
 
 function matchesVisibilityFilter(person) {
-  return (
-    visibilityFilter === "all" || person.visibility === visibilityFilter
-  );
+  return visibilityFilter === "all" || person.visibility === visibilityFilter;
 }
 
 function matchesSearchTerm(person) {

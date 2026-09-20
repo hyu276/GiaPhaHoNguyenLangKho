@@ -834,12 +834,10 @@ export function AdminTreeEditor({
   const [collapsedBranchIds, setCollapsedBranchIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [pendingFocusPersonId, setPendingFocusPersonId] = useState<
-    string | null
-  >(null);
-  const flowInstance = useRef<
-    ReactFlowInstance<PersonNode, RelationshipEdge> | null
-  >(null);
+  const flowInstance = useRef<ReactFlowInstance<
+    PersonNode,
+    RelationshipEdge
+  > | null>(null);
   const filteredPeople = useMemo(
     () =>
       filterPeople(people, {
@@ -901,21 +899,6 @@ export function AdminTreeEditor({
       people.map((person) => [person.id, person.position]),
     );
   }, [people, setNodes, visiblePeople]);
-
-  useEffect(() => {
-    if (!pendingFocusPersonId) return;
-    if (!visiblePeople.some((person) => person.id === pendingFocusPersonId)) {
-      return;
-    }
-
-    flowInstance.current?.fitView({
-      nodes: [{ id: pendingFocusPersonId }],
-      duration: 250,
-      maxZoom: 1.25,
-      padding: 1.2,
-    });
-    setPendingFocusPersonId(null);
-  }, [pendingFocusPersonId, visiblePeople]);
 
   const restorePosition = useCallback(
     (personId: string) => {
@@ -1017,7 +1000,14 @@ export function AdminTreeEditor({
     setArchiveFilter(isArchived(person) ? "all" : "active");
     setCollapsedBranchIds(new Set());
     handleNodeSelect(personId);
-    setPendingFocusPersonId(personId);
+    window.requestAnimationFrame(() => {
+      flowInstance.current?.fitView({
+        nodes: [{ id: personId }],
+        duration: 250,
+        maxZoom: 1.25,
+        padding: 1.2,
+      });
+    });
   }
 
   function toggleBranch(personId: string) {

@@ -1,14 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -42,6 +35,12 @@ import type {
   PersonVisibility,
   UpdatePersonInput,
 } from "@/features/tree/person-input";
+import {
+  getAutoLayoutPositions,
+  getBranchPersonIds,
+  getFallbackLayoutPositions,
+  type LayoutPosition,
+} from "@/features/tree/tree-layout";
 import {
   filterPeople,
   getDirectRelativeIds,
@@ -79,7 +78,7 @@ export type SaveLayoutInput = {
 export type SaveLayoutResult = { ok: true } | { ok: false; message: string };
 type PersonMutationResult =
   { ok: true; personId: string } | { ok: false; message: string };
-type SaveLayout = (input: SaveLayoutInput) => Promise<SaveLayoutResult>;
+type SaveLayouts = (inputs: SaveLayoutInput[]) => Promise<SaveLayoutResult>;
 type CreatePerson = (input: CreatePersonInput) => Promise<PersonMutationResult>;
 type UpdatePerson = (input: UpdatePersonInput) => Promise<PersonMutationResult>;
 type PersonStateMutation = (
@@ -91,7 +90,7 @@ type AdminTreeEditorProps = {
   people: EditorPerson[];
   relationships: EditorRelationship[];
   readOnly: boolean;
-  saveLayout: SaveLayout | undefined;
+  saveLayouts: SaveLayouts | undefined;
   createParentChildRelationship: CreateParentChildRelationship | undefined;
   createPartnership: CreatePartnership | undefined;
   createPerson: CreatePerson | undefined;
@@ -103,6 +102,7 @@ type AdminTreeEditorProps = {
 type PersonNodeData = {
   archived: boolean;
   displayName: string;
+  locked: boolean;
   years: string;
   visibility: PersonVisibility;
 };
@@ -110,6 +110,11 @@ type PersonNodeData = {
 type PersonNode = Node<PersonNodeData, "person">;
 type RelationshipEdge = Edge<{ kind: EditorRelationship["kind"] }>;
 type PersonFormMode = "create" | "edit" | null;
+
+type LayoutHistoryEntry = {
+  before: Map<string, LayoutPosition>;
+  after: Map<string, LayoutPosition>;
+};
 
 type SaveState =
   | { status: "idle" }
@@ -127,12 +132,21 @@ type SidebarProps = {
   onCancelForm: () => void;
   onPersonStateChanged: (personId: string, archived: boolean) => void;
   onFocusPerson: (personId: string) => void;
+  layoutCanRedo: boolean;
+  layoutCanUndo: boolean;
+  lockedPersonIds: ReadonlySet<string>;
+  onAutoLayoutBranch: (personId: string) => void;
   onJumpToPerson: (personId: string) => void;
+  onRedoLayout: () => void;
   onRelationshipChanged: (focusPersonId?: string) => void;
+  onResetBranchLayout: (personId: string) => void;
+  onResetPersonPosition: (personId: string) => void;
   onSaved: (personId: string) => void;
   onStartCreate: () => void;
   onStartEdit: () => void;
   onToggleBranch: (personId: string) => void;
+  onToggleLayoutLock: (personId: string) => void;
+  onUndoLayout: () => void;
   people: EditorPerson[];
   readOnly: boolean;
   relationships: EditorRelationship[];
@@ -200,9 +214,9 @@ function getStatusMessage(readOnly: boolean, saveState: SaveState) {
 
   switch (saveState.status) {
     case "saving":
-      return "Đang lưu vị trí…";
+      return "Đang lưu bố cục…";
     case "saved":
-      return "Đã lưu vị trí";
+      return "Đã lưu bố cục";
     case "error":
       return saveState.message;
     default:
@@ -237,6 +251,12 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
             <span>Đã lưu trữ</span>
           </>
         ) : null}
+        {data.locked ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>Khóa vị trí</span>
+          </>
+        ) : null}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -247,20 +267,29 @@ const nodeTypes = {
   person: PersonNodeCard,
 };
 
-function createNodes(people: EditorPerson[]): PersonNode[] {
-  return people.map((person) => ({
-    id: person.id,
-    type: "person",
-    position: person.position,
-    deletable: false,
-    draggable: !isArchived(person),
-    data: {
-      archived: isArchived(person),
-      displayName: person.displayName,
-      years: formatYears(person),
-      visibility: person.visibility,
-    },
-  }));
+function createNodes(
+  people: EditorPerson[],
+  lockedPersonIds: ReadonlySet<string>,
+  positions?: ReadonlyMap<string, LayoutPosition>,
+): PersonNode[] {
+  return people.map((person) => {
+    const locked = lockedPersonIds.has(person.id);
+
+    return {
+      id: person.id,
+      type: "person",
+      position: positions?.get(person.id) ?? person.position,
+      deletable: false,
+      draggable: !isArchived(person) && !locked,
+      data: {
+        archived: isArchived(person),
+        displayName: person.displayName,
+        locked,
+        years: formatYears(person),
+        visibility: person.visibility,
+      },
+    };
+  });
 }
 
 function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
@@ -508,6 +537,98 @@ function BranchNavigationControls({
   );
 }
 
+function LayoutAdministrationControls({
+  canRedo,
+  canUndo,
+  locked,
+  onAutoLayoutBranch,
+  onRedo,
+  onResetBranch,
+  onResetPerson,
+  onToggleLock,
+  onUndo,
+  person,
+  readOnly,
+}: {
+  canRedo: boolean;
+  canUndo: boolean;
+  locked: boolean;
+  onAutoLayoutBranch: (personId: string) => void;
+  onRedo: () => void;
+  onResetBranch: (personId: string) => void;
+  onResetPerson: (personId: string) => void;
+  onToggleLock: (personId: string) => void;
+  onUndo: () => void;
+  person: EditorPerson;
+  readOnly: boolean;
+}) {
+  if (readOnly) return null;
+
+  const archived = isArchived(person);
+
+  return (
+    <section className="mt-5 border-t border-border pt-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Quản trị bố cục
+      </p>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+        Khóa vị trí áp dụng trong phiên editor. Reset và auto-layout chỉ thay
+        đổi tọa độ trình bày, không thay đổi quan hệ gia phả.
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button
+          disabled={archived}
+          onClick={() => onToggleLock(person.id)}
+          type="button"
+          variant="outline"
+        >
+          {locked ? "Mở khóa vị trí" : "Khóa vị trí"}
+        </Button>
+        <Button
+          disabled={archived || locked}
+          onClick={() => onResetPerson(person.id)}
+          type="button"
+          variant="outline"
+        >
+          Đặt lại vị trí
+        </Button>
+        <Button
+          disabled={archived}
+          onClick={() => onResetBranch(person.id)}
+          type="button"
+          variant="outline"
+        >
+          Đặt lại nhánh
+        </Button>
+        <Button
+          disabled={archived}
+          onClick={() => onAutoLayoutBranch(person.id)}
+          type="button"
+          variant="outline"
+        >
+          Tự sắp xếp nhánh
+        </Button>
+        <Button
+          disabled={!canUndo}
+          onClick={onUndo}
+          type="button"
+          variant="outline"
+        >
+          Hoàn tác vị trí
+        </Button>
+        <Button
+          disabled={!canRedo}
+          onClick={onRedo}
+          type="button"
+          variant="outline"
+        >
+          Làm lại vị trí
+        </Button>
+      </div>
+    </section>
+  );
+}
+
 function SelectedPersonSummary({
   onStartEdit,
   readOnly,
@@ -718,6 +839,19 @@ function SelectedPersonDetails(props: SidebarProps) {
         people={props.people}
         person={props.selectedPerson}
         relationships={props.relationships}
+      />
+      <LayoutAdministrationControls
+        canRedo={props.layoutCanRedo}
+        canUndo={props.layoutCanUndo}
+        locked={props.lockedPersonIds.has(props.selectedPerson.id)}
+        onAutoLayoutBranch={props.onAutoLayoutBranch}
+        onRedo={props.onRedoLayout}
+        onResetBranch={props.onResetBranchLayout}
+        onResetPerson={props.onResetPersonPosition}
+        onToggleLock={props.onToggleLayoutLock}
+        onUndo={props.onUndoLayout}
+        person={props.selectedPerson}
+        readOnly={props.readOnly}
       />
       {props.readOnly ? null : (
         <PersonArchiveControls

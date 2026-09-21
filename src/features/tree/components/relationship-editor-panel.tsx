@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,8 @@ export type RelationshipPerson = {
 };
 
 export type RelationshipMutationResult =
-  { ok: true; relationshipId: string } | { ok: false; message: string };
+  | { ok: true; relationshipId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 
 export type CreateParentChildRelationship = (
   input: CreateParentChildInput,
@@ -52,7 +54,7 @@ type RelationshipInspectorProps = {
   onChanged: (focusPersonId?: string) => void;
   people: RelationshipPerson[];
   readOnly: boolean;
-  relationship: RelationshipRecord;
+  relationship: RelationshipRecord & { revision: number };
   removeRelationship: RemoveRelationship | undefined;
 };
 
@@ -537,8 +539,10 @@ export function RelationshipInspector({
   relationship,
   removeRelationship,
 }: RelationshipInspectorProps) {
+  const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
   const title =
     relationship.kind === "partnership" ? "Hôn phối" : "Cha / mẹ → con";
 
@@ -552,13 +556,16 @@ export function RelationshipInspector({
 
     setDeleting(true);
     setErrorMessage(null);
+    setConflict(false);
     const result = await removeRelationship({
       relationshipId: relationship.id,
+      expectedRevision: relationship.revision,
     });
     setDeleting(false);
 
     if (!result.ok) {
       setErrorMessage(result.message);
+      setConflict(result.kind === "conflict");
       return;
     }
 
@@ -580,9 +587,22 @@ export function RelationshipInspector({
       </p>
 
       {errorMessage ? (
-        <p aria-live="polite" className="mt-3 text-sm text-destructive">
-          {errorMessage}
-        </p>
+        <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+          <p aria-live="polite" className="text-sm text-destructive">
+            {errorMessage}
+          </p>
+          {conflict ? (
+            <Button
+              className="mt-2"
+              onClick={() => router.refresh()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Tải dữ liệu mới
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {readOnly ? null : (

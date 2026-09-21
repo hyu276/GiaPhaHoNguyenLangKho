@@ -434,7 +434,7 @@ function PanelMessage({ message }: { message: string | null }) {
   if (!message) return null;
 
   return (
-    <p aria-live="polite" className="mt-3 rounded-xl bg-muted p-3 text-sm text-card-foreground">
+    <p className="mt-3 rounded-xl bg-muted p-3 text-sm text-card-foreground">
       {message}
     </p>
   );

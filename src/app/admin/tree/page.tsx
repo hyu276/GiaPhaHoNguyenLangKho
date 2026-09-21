@@ -34,6 +34,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 type TreeViewerRole = "admin" | "spectator";
+type SupabaseServerClient = Awaited<
+  ReturnType<typeof createSupabaseServerClient>
+>;
 
 const personRowSchema = z.object({
   id: z.string().uuid(),
@@ -99,6 +102,37 @@ async function requireTreeViewer() {
   return { supabase, user, role };
 }
 
+function getLayoutSaveFailure(error: { code?: string; message: string }) {
+  const isConflict =
+    error.code === "40001" || error.message.includes("stale layout revision");
+
+  if (isConflict) {
+    return {
+      ok: false as const,
+      kind: "conflict" as const,
+      message:
+        "Bố cục đã được thay đổi bởi một phiên quản trị khác. Hãy tải lại dữ liệu mới trước khi thử lại.",
+    };
+  }
+
+  return {
+    ok: false as const,
+    message: "Không thể lưu bố cục. Sơ đồ đã khôi phục vị trí trước đó.",
+  };
+}
+
+function parseSavedLayoutRevisions(data: unknown) {
+  return z
+    .array(
+      z.object({
+        person_id: z.string().uuid(),
+        revision: z.number().int().min(1),
+      }),
+    )
+    .parse(data || [])
+    .map((row) => ({ personId: row.person_id, revision: row.revision }));
+}
+
 async function savePersonLayouts(
   inputs: SaveLayoutInput[],
 ): Promise<SaveLayoutResult> {
@@ -119,28 +153,9 @@ async function savePersonLayouts(
     p_layouts: parsed.data,
   });
 
-  if (error) {
-    const conflict =
-      error.code === "40001" || error.message.includes("stale layout revision");
-    return {
-      ok: false,
-      kind: conflict ? ("conflict" as const) : undefined,
-      message: conflict
-        ? "Bố cục đã được thay đổi bởi một phiên quản trị khác. Hãy tải lại dữ liệu mới trước khi thử lại."
-        : "Không thể lưu bố cục. Sơ đồ đã khôi phục vị trí trước đó.",
-    };
-  }
+  if (error) return getLayoutSaveFailure(error);
 
-  const revisions = z
-    .array(
-      z.object({
-        person_id: z.string().uuid(),
-        revision: z.number().int().min(1),
-      }),
-    )
-    .parse(data ?? [])
-    .map((row) => ({ personId: row.person_id, revision: row.revision }));
-
+  const revisions = parseSavedLayoutRevisions(data);
   revalidatePath("/admin/tree");
   return { ok: true, revisions };
 }
@@ -171,28 +186,17 @@ function getAdminMutations(role: TreeViewerRole) {
   };
 }
 
-async function signOut() {
-  "use server";
-
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
-  redirect("/admin/login");
+function getLayoutEntry(
+  layoutByPersonId: Map<
+    string,
+    { position: { x: number; y: number }; revision: number }
+  >,
+  personId: string,
+) {
+  return layoutByPersonId.get(personId) || null;
 }
 
-function DuplicateReviewEntry({ readOnly }: { readOnly: boolean }) {
-  if (readOnly) return null;
-  return <DuplicateReviewPanel />;
-}
-
-export default async function AdminTreePage() {
-  const { supabase, user, role } = await requireTreeViewer();
-  const readOnly = role === "spectator";
-  const viewerLabel = getViewerLabel(role);
-  const mutations = getAdminMutations(role);
-  const auditResult = readOnly
-    ? null
-    : await loadRecentMutationAudits({ limit: 30 });
-
+async function loadEditorGraphData(supabase: SupabaseServerClient) {
   const [peopleResult, relationshipsResult, layoutsResult] = await Promise.all([
     supabase
       .from("people")
@@ -211,15 +215,18 @@ export default async function AdminTreePage() {
       .select("person_id, position_x, position_y, revision"),
   ]);
 
-  if (peopleResult.error || relationshipsResult.error || layoutsResult.error) {
+  const loadFailed = Boolean(
+    peopleResult.error || relationshipsResult.error || layoutsResult.error,
+  );
+  if (loadFailed) {
     throw new Error("Không thể tải dữ liệu sơ đồ gia phả.");
   }
 
-  const peopleRows = z.array(personRowSchema).parse(peopleResult.data ?? []);
+  const peopleRows = z.array(personRowSchema).parse(peopleResult.data || []);
   const relationshipRows = z
     .array(relationshipRowSchema)
-    .parse(relationshipsResult.data ?? []);
-  const layoutRows = z.array(layoutRowSchema).parse(layoutsResult.data ?? []);
+    .parse(relationshipsResult.data || []);
+  const layoutRows = z.array(layoutRowSchema).parse(layoutsResult.data || []);
   const layoutByPersonId = new Map(
     layoutRows.map((layout) => [
       layout.person_id,
@@ -230,20 +237,22 @@ export default async function AdminTreePage() {
     ]),
   );
 
-  const people: EditorPerson[] = peopleRows.map((person, index) => ({
-    id: person.id,
-    displayName: person.display_name,
-    description: person.description,
-    birthYear: person.birth_year,
-    deathYear: person.death_year,
-    sex: person.sex,
-    visibility: person.visibility,
-    archivedAt: person.archived_at,
-    revision: person.revision,
-    position:
-      layoutByPersonId.get(person.id)?.position ?? getFallbackPosition(index),
-    layoutRevision: layoutByPersonId.get(person.id)?.revision ?? null,
-  }));
+  const people: EditorPerson[] = peopleRows.map((person, index) => {
+    const layout = getLayoutEntry(layoutByPersonId, person.id);
+    return {
+      id: person.id,
+      displayName: person.display_name,
+      description: person.description,
+      birthYear: person.birth_year,
+      deathYear: person.death_year,
+      sex: person.sex,
+      visibility: person.visibility,
+      archivedAt: person.archived_at,
+      revision: person.revision,
+      position: layout ? layout.position : getFallbackPosition(index),
+      layoutRevision: layout ? layout.revision : null,
+    };
+  });
 
   const relationships: EditorRelationship[] = relationshipRows.map(
     (relationship) => ({
@@ -255,10 +264,62 @@ export default async function AdminTreePage() {
     }),
   );
 
+  return { people, relationships };
+}
+
+function getPeopleCounts(people: EditorPerson[]) {
   const activePeopleCount = people.filter(
     (person) => person.archivedAt === null,
   ).length;
-  const archivedPeopleCount = people.length - activePeopleCount;
+
+  return {
+    activePeopleCount,
+    archivedPeopleCount: people.length - activePeopleCount,
+  };
+}
+
+async function getAuditHistory(readOnly: boolean) {
+  if (readOnly) return null;
+  return loadRecentMutationAudits({ limit: 30 });
+}
+
+function AuditHistoryEntry({
+  auditResult,
+}: {
+  auditResult: Awaited<ReturnType<typeof loadRecentMutationAudits>> | null;
+}) {
+  if (!auditResult) return null;
+
+  return (
+    <AuditHistoryPanel
+      audits={auditResult.ok ? auditResult.audits : []}
+      loadError={auditResult.ok ? null : auditResult.message}
+      undoMutation={undoMutationAudit}
+    />
+  );
+}
+
+async function signOut() {
+  "use server";
+
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect("/admin/login");
+}
+
+function DuplicateReviewEntry({ readOnly }: { readOnly: boolean }) {
+  if (readOnly) return null;
+  return <DuplicateReviewPanel />;
+}
+
+export default async function AdminTreePage() {
+  const { supabase, user, role } = await requireTreeViewer();
+  const readOnly = role === "spectator";
+  const viewerLabel = getViewerLabel(role);
+  const mutations = getAdminMutations(role);
+  const auditResult = await getAuditHistory(readOnly);
+  const { people, relationships } = await loadEditorGraphData(supabase);
+  const { activePeopleCount, archivedPeopleCount } = getPeopleCounts(people);
 
   return (
     <main className="flex min-h-svh flex-col bg-background px-4 py-4 sm:px-6 sm:py-6">
@@ -278,13 +339,7 @@ export default async function AdminTreePage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <DuplicateReviewEntry readOnly={readOnly} />
-          {auditResult ? (
-            <AuditHistoryPanel
-              audits={auditResult.ok ? auditResult.audits : []}
-              loadError={auditResult.ok ? null : auditResult.message}
-              undoMutation={undoMutationAudit}
-            />
-          ) : null}
+          <AuditHistoryEntry auditResult={auditResult} />
           <form action={signOut}>
             <Button type="submit" variant="outline">
               Đăng xuất

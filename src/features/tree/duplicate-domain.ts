@@ -113,15 +113,21 @@ function collectDuplicateReasons(
   );
 }
 
+function canScoreDuplicatePair(
+  first: DuplicatePerson,
+  second: DuplicatePerson,
+) {
+  if (first.id === second.id) return false;
+  if (!isMergeCandidatePerson(first)) return false;
+  if (!isMergeCandidatePerson(second)) return false;
+  return hasMatchingNormalizedName(first, second);
+}
+
 export function scoreDuplicatePair(
   first: DuplicatePerson,
   second: DuplicatePerson,
 ): DuplicateSuggestion | null {
-  if (first.id === second.id) return null;
-  if (!isMergeCandidatePerson(first) || !isMergeCandidatePerson(second)) {
-    return null;
-  }
-  if (!hasMatchingNormalizedName(first, second)) return null;
+  if (!canScoreDuplicatePair(first, second)) return null;
 
   const birth = scoreYearMatch(
     first.birthYear,

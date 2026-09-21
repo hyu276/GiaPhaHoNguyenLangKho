@@ -1,0 +1,32 @@
+name: Format audit stack helper
+
+on:
+  push:
+    branches:
+      - chore/format-audit-stack
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx prettier --write src/features/tree/audit-input.ts tests/unit/audit-input.test.ts src/app/admin/tree/actions.ts src/app/admin/tree/relationship-actions.ts src/app/admin/tree/provenance-actions.ts src/features/tree/person-input.ts src/features/tree/relationship-input.ts src/features/tree/provenance-input.ts src/app/admin/tree/audit-actions.ts src/features/tree/components/audit-history-panel.tsx src/app/admin/tree/page.tsx src/features/tree/components/admin-tree-editor.tsx src/features/tree/components/person-editor-form.tsx src/features/tree/components/relationship-editor-panel.tsx src/features/tree/components/provenance-panel.tsx
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/tree/audit-input.ts tests/unit/audit-input.test.ts src/app/admin/tree/actions.ts src/app/admin/tree/relationship-actions.ts src/app/admin/tree/provenance-actions.ts src/features/tree/person-input.ts src/features/tree/relationship-input.ts src/features/tree/provenance-input.ts src/app/admin/tree/audit-actions.ts src/features/tree/components/audit-history-panel.tsx src/app/admin/tree/page.tsx src/features/tree/components/admin-tree-editor.tsx src/features/tree/components/person-editor-form.tsx src/features/tree/components/relationship-editor-panel.tsx src/features/tree/components/provenance-panel.tsx
+          git commit -m "style(audit): Format audit stack"
+          git push

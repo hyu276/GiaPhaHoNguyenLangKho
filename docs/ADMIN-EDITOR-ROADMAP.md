@@ -189,7 +189,7 @@ Merge impact:
 - source relationships are previewed before execution;
 - safe relationships keep their IDs and are remapped to target;
 - duplicate edges are collapsed into the already-existing target edge after their relationship citations are migrated;
-- direct target/source relationships and resulting ancestry cycles are blockers;
+- direct target/source relationships and resulting ancestry cycles are blockers in both preview validation and the atomic SQL RPC;
 - Postgres performs relationship/citation rewrites, source archival and audit insertion in one transaction;
 - merged source records cannot be restored through the normal restore flow.
 

@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import {
+  loadRecentMutationAudits,
+  undoMutationAudit,
+} from "@/app/admin/tree/audit-actions";
+import { AuditHistoryPanel } from "@/features/tree/components/audit-history-panel";
 import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import {
   archivePerson,
@@ -153,25 +158,9 @@ function getAdminMutations(role: TreeViewerRole) {
   };
 }
 
-async function signOut() {
-  "use server";
-
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
-  redirect("/admin/login");
-}
-
-function DuplicateReviewEntry({ readOnly }: { readOnly: boolean }) {
-  if (readOnly) return null;
-  return <DuplicateReviewPanel />;
-}
-
-export default async function AdminTreePage() {
-  const { supabase, user, role } = await requireTreeViewer();
-  const readOnly = role === "spectator";
-  const viewerLabel = getViewerLabel(role);
-  const mutations = getAdminMutations(role);
-
+async function loadEditorGraphData(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+) {
   const [peopleResult, relationshipsResult, layoutsResult] = await Promise.all([
     supabase
       .from("people")
@@ -223,10 +212,59 @@ export default async function AdminTreePage() {
     }),
   );
 
+  return { people, relationships };
+}
+
+function getPeopleCounts(people: EditorPerson[]) {
   const activePeopleCount = people.filter(
     (person) => person.archivedAt === null,
   ).length;
-  const archivedPeopleCount = people.length - activePeopleCount;
+  return {
+    activePeopleCount,
+    archivedPeopleCount: people.length - activePeopleCount,
+  };
+}
+
+function AuditHistoryEntry({
+  auditResult,
+}: {
+  auditResult: Awaited<ReturnType<typeof loadRecentMutationAudits>> | null;
+}) {
+  if (!auditResult) return null;
+
+  return (
+    <AuditHistoryPanel
+      audits={auditResult.ok ? auditResult.audits : []}
+      loadError={auditResult.ok ? null : auditResult.message}
+      undoMutation={undoMutationAudit}
+    />
+  );
+}
+
+async function signOut() {
+  "use server";
+
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect("/admin/login");
+}
+
+function DuplicateReviewEntry({ readOnly }: { readOnly: boolean }) {
+  if (readOnly) return null;
+  return <DuplicateReviewPanel />;
+}
+
+export default async function AdminTreePage() {
+  const { supabase, user, role } = await requireTreeViewer();
+  const readOnly = role === "spectator";
+  const viewerLabel = getViewerLabel(role);
+  const mutations = getAdminMutations(role);
+  const auditResult = readOnly
+    ? null
+    : await loadRecentMutationAudits({ limit: 30 });
+
+  const { people, relationships } = await loadEditorGraphData(supabase);
+  const { activePeopleCount, archivedPeopleCount } = getPeopleCounts(people);
 
   return (
     <main className="flex min-h-svh flex-col bg-background px-4 py-4 sm:px-6 sm:py-6">
@@ -246,6 +284,7 @@ export default async function AdminTreePage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <DuplicateReviewEntry readOnly={readOnly} />
+          <AuditHistoryEntry auditResult={auditResult} />
           <form action={signOut}>
             <Button type="submit" variant="outline">
               Đăng xuất

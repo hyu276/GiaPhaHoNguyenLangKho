@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { revisionSchema } from "@/features/tree/audit-input";
+
 export const provenanceSourceTypeSchema = z.enum([
   "family_book",
   "civil_record",
@@ -61,6 +63,7 @@ export const createProvenanceSourceInputSchema = z.object(sourceShape);
 
 export const updateProvenanceSourceInputSchema = z.object({
   sourceId: z.string().uuid(),
+  expectedRevision: revisionSchema.optional(),
   ...sourceShape,
 });
 
@@ -130,12 +133,14 @@ export const createProvenanceCitationInputSchema = z
 export const updateProvenanceCitationInputSchema = z
   .object({
     citationId: z.string().uuid(),
+    expectedRevision: revisionSchema.optional(),
     ...citationShape,
   })
   .superRefine(validateCitationTargetAndDate);
 
 export const removeProvenanceCitationInputSchema = z.object({
   citationId: z.string().uuid(),
+  expectedRevision: revisionSchema.optional(),
 });
 
 export type ProvenanceSourceType = z.infer<typeof provenanceSourceTypeSchema>;
@@ -163,6 +168,7 @@ export type RemoveProvenanceCitationInput = z.input<
 
 export type ProvenanceSourceRecord = {
   id: string;
+  revision: number;
   title: string;
   sourceType: ProvenanceSourceType;
   repositoryName: string | null;
@@ -172,6 +178,7 @@ export type ProvenanceSourceRecord = {
 
 export type ProvenanceCitationRecord = {
   id: string;
+  revision: number;
   sourceId: string;
   personId: string | null;
   relationshipId: string | null;

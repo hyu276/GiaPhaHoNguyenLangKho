@@ -202,7 +202,9 @@ export default async function AdminTreePage() {
       .order("display_name"),
     supabase
       .from("relationships")
-      .select("id, relationship_kind, source_person_id, target_person_id, revision")
+      .select(
+        "id, relationship_kind, source_person_id, target_person_id, revision",
+      )
       .order("created_at"),
     supabase
       .from("person_layouts")

@@ -201,15 +201,22 @@ Audit:
 
 ## Step 8 — Audit log, undo model, and concurrency
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Goal: make editing traceable and safe for multiple administrators.
 
-Add:
+Core contract:
 
-- mutation audit entries: actor, command, affected IDs, timestamp;
-- revision/updated_at stale-write checks;
-- recoverable conflict UI;
-- persistent undo where a safe inverse exists;
-- stronger recovery flow for merge/archive/relationship removal.
+- every mutable genealogy row carries a monotonic revision used for optimistic concurrency;
+- database triggers write immutable mutation audit entries with actor, command, entity ID, before/after snapshots, revision and timestamp;
+- stale updates/deletes are rejected instead of silently overwriting a newer administrator change;
+- conflict UI keeps the user's draft visible and offers an explicit refresh/retry path;
+- persistent undo is exposed only when a database-level inverse is considered safe;
+- archive/restore, profile edits, safe layout changes, provenance edits and relationship removal can produce undoable audit entries;
+- duplicate-person merges remain non-auto-undoable because splitting a merged graph after subsequent edits is unsafe; merge audit snapshots remain the recovery source;
+- undo itself is audited and linked to the original audit entry;
+- relationship restore through undo still passes current duplicate/self/cycle/archive constraints;
+- no automatic undo or conflict resolution path exists.
 
 ## Step 9 — Data-quality dashboard
 

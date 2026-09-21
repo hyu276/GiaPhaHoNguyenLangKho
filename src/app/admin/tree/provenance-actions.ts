@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { conflictMessage } from "@/features/tree/audit-input";
+
 import {
   createProvenanceCitationInputSchema,
   type CreateProvenanceCitationInput,
@@ -22,10 +24,12 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ProvenanceSourceMutationResult =
-  { ok: true; sourceId: string } | { ok: false; message: string };
+  | { ok: true; sourceId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 
 export type ProvenanceCitationMutationResult =
-  { ok: true; citationId: string } | { ok: false; message: string };
+  | { ok: true; citationId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 
 export type ProvenanceLoadResult =
   | {
@@ -42,6 +46,7 @@ type SupabaseServerClient = Awaited<
 
 type SourceRow = {
   id: string;
+  revision: number;
   title: string;
   source_type: ProvenanceSourceRecord["sourceType"];
   repository_name: string | null;
@@ -51,6 +56,7 @@ type SourceRow = {
 
 type CitationRow = {
   id: string;
+  revision: number;
   source_id: string;
   person_id: string | null;
   relationship_id: string | null;
@@ -70,6 +76,7 @@ function getValidationMessage(error: { issues: Array<{ message: string }> }) {
 function mapSource(row: SourceRow): ProvenanceSourceRecord {
   return {
     id: row.id,
+    revision: row.revision,
     title: row.title,
     sourceType: row.source_type,
     repositoryName: row.repository_name,
@@ -81,6 +88,7 @@ function mapSource(row: SourceRow): ProvenanceSourceRecord {
 function mapCitation(row: CitationRow): ProvenanceCitationRecord {
   return {
     id: row.id,
+    revision: row.revision,
     sourceId: row.source_id,
     personId: row.person_id,
     relationshipId: row.relationship_id,
@@ -120,7 +128,7 @@ async function fetchCitationRows(
   const result = await supabase
     .from("genealogy_citations")
     .select(
-      "id, source_id, person_id, relationship_id, claim_kind, claim_text, citation_locator, note, certainty, date_text, date_qualifier",
+      "id, revision, source_id, person_id, relationship_id, claim_kind, claim_text, citation_locator, note, certainty, date_text, date_qualifier",
     )
     .eq(targetColumn, targetId as string)
     .order("created_at", { ascending: false });
@@ -140,7 +148,7 @@ async function fetchSourceRows(
   let query = supabase
     .from("genealogy_sources")
     .select(
-      "id, title, source_type, repository_name, reference_code, source_url",
+      "id, revision, title, source_type, repository_name, reference_code, source_url",
     );
 
   if (role === "spectator") {
@@ -206,7 +214,7 @@ export async function createProvenanceSource(
       created_by: user.id,
       updated_by: user.id,
     })
-    .select("id")
+    .select("id, revision")
     .single();
 
   if (error || !data) {
@@ -214,7 +222,7 @@ export async function createProvenanceSource(
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, sourceId: data.id };
+  return { ok: true, sourceId: data.id, revision: data.revision };
 }
 
 export async function updateProvenanceSource(
@@ -281,7 +289,7 @@ export async function createProvenanceCitation(
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, citationId: data.id };
+  return { ok: true, citationId: data.id, revision: data.revision };
 }
 
 export async function updateProvenanceCitation(

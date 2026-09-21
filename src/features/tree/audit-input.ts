@@ -46,5 +46,8 @@ export type ConcurrencyConflict = {
 };
 
 export function conflictMessage(entityLabel: string) {
-  return entityLabel + " đã được thay đổi bởi một phiên quản trị khác. Hãy tải lại dữ liệu mới trước khi thử lại.";
+  return (
+    entityLabel +
+    " đã được thay đổi bởi một phiên quản trị khác. Hãy tải lại dữ liệu mới trước khi thử lại."
+  );
 }

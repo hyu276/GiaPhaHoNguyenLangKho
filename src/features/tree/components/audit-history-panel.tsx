@@ -103,8 +103,8 @@ export function AuditHistoryPanel({
                 Thay đổi gần đây
               </h2>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Undo chỉ xuất hiện khi database có inverse an toàn. Merge duplicate
-                không tự động undo.
+                Undo chỉ xuất hiện khi database có inverse an toàn. Merge
+                duplicate không tự động undo.
               </p>
             </div>
             <Button
@@ -169,7 +169,9 @@ export function AuditHistoryPanel({
                       </Button>
                     ) : (
                       <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
-                        {audit.undoneByAuditId ? "Đã hoàn tác" : "Không auto-undo"}
+                        {audit.undoneByAuditId
+                          ? "Đã hoàn tác"
+                          : "Không auto-undo"}
                       </span>
                     )}
                   </div>

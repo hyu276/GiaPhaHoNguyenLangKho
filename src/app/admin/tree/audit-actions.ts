@@ -27,8 +27,7 @@ type AuditRow = {
 };
 
 export type AuditLoadResult =
-  | { ok: true; audits: MutationAuditRecord[] }
-  | { ok: false; message: string };
+  { ok: true; audits: MutationAuditRecord[] } | { ok: false; message: string };
 
 export type UndoAuditResult =
   | { ok: true; undoAuditId: string }

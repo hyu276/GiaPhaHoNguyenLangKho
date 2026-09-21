@@ -42,10 +42,7 @@ async function failedPersonMutation(
 ): Promise<PersonMutationResult> {
   if (expectedRevision !== undefined) {
     const currentRevision = await getPersonRevision(supabase, personId);
-    if (
-      currentRevision !== null &&
-      currentRevision !== expectedRevision
-    ) {
+    if (currentRevision !== null && currentRevision !== expectedRevision) {
       return {
         ok: false,
         kind: "conflict",

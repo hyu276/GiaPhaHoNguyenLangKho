@@ -609,3 +609,92 @@ $$;
 revoke all on function public.undo_genealogy_mutation(uuid) from public;
 grant execute on function public.undo_genealogy_mutation(uuid)
 to authenticated;
+
+create or replace function public.save_person_layouts_if_current(
+  p_layouts jsonb
+)
+returns table(person_id uuid, revision bigint)
+language plpgsql
+security invoker
+set search_path = ''
+as $
+declare
+  item jsonb;
+  item_person_id uuid;
+  item_x double precision;
+  item_y double precision;
+  item_expected_revision bigint;
+  affected integer;
+begin
+  if not public.is_admin() then
+    raise exception 'admin role required'
+      using errcode = '42501';
+  end if;
+
+  if jsonb_typeof(p_layouts) <> 'array'
+     or jsonb_array_length(p_layouts) < 1
+     or jsonb_array_length(p_layouts) > 500 then
+    raise exception 'layout batch must contain between 1 and 500 items'
+      using errcode = '22023';
+  end if;
+
+  for item in select * from jsonb_array_elements(p_layouts)
+  loop
+    item_person_id := (item ->> 'personId')::uuid;
+    item_x := (item ->> 'positionX')::double precision;
+    item_y := (item ->> 'positionY')::double precision;
+    item_expected_revision := nullif(item ->> 'expectedRevision', '')::bigint;
+
+    if item_x < -1000000 or item_x > 1000000
+       or item_y < -1000000 or item_y > 1000000 then
+      raise exception 'layout position out of range'
+        using errcode = '22023';
+    end if;
+
+    if item_expected_revision is null then
+      insert into public.person_layouts (
+        person_id,
+        position_x,
+        position_y,
+        updated_by
+      )
+      values (
+        item_person_id,
+        item_x,
+        item_y,
+        auth.uid()
+      )
+      on conflict (person_id) do nothing;
+
+      get diagnostics affected = row_count;
+      if affected <> 1 then
+        raise exception 'stale layout revision'
+          using errcode = '40001';
+      end if;
+    else
+      update public.person_layouts
+      set
+        position_x = item_x,
+        position_y = item_y,
+        updated_by = auth.uid()
+      where person_layouts.person_id = item_person_id
+        and person_layouts.revision = item_expected_revision;
+
+      get diagnostics affected = row_count;
+      if affected <> 1 then
+        raise exception 'stale layout revision'
+          using errcode = '40001';
+      end if;
+    end if;
+
+    return query
+    select layout.person_id, layout.revision
+    from public.person_layouts layout
+    where layout.person_id = item_person_id;
+  end loop;
+end;
+$;
+
+revoke all on function public.save_person_layouts_if_current(jsonb) from public;
+grant execute on function public.save_person_layouts_if_current(jsonb)
+to authenticated;

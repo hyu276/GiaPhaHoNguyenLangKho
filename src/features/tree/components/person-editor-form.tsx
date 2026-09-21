@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,8 @@ export type PersonFormPerson = {
 };
 
 type PersonMutationResult =
-  { ok: true; personId: string } | { ok: false; message: string };
+  | { ok: true; personId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 
 type PersonEditorFormProps = {
   person: PersonFormPerson | null;
@@ -89,8 +91,10 @@ export function PersonEditorForm({
   onSave,
   onSaved,
 }: PersonEditorFormProps) {
+  const router = useRouter();
   const [draft, setDraft] = useState(() => toDraft(person));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
   const title = person ? "Sửa hồ sơ" : "Thêm người";
 
@@ -98,12 +102,14 @@ export function PersonEditorForm({
     event.preventDefault();
     setSaving(true);
     setErrorMessage(null);
+    setConflict(false);
 
     const result = await onSave(toInput(draft));
     setSaving(false);
 
     if (!result.ok) {
       setErrorMessage(result.message);
+      setConflict(result.kind === "conflict");
       return;
     }
 
@@ -230,9 +236,22 @@ export function PersonEditorForm({
       </label>
 
       {errorMessage ? (
-        <p aria-live="polite" className="text-sm text-destructive">
-          {errorMessage}
-        </p>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+          <p aria-live="polite" className="text-sm text-destructive">
+            {errorMessage}
+          </p>
+          {conflict ? (
+            <Button
+              className="mt-2"
+              onClick={() => router.refresh()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Tải dữ liệu mới
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="flex gap-2">

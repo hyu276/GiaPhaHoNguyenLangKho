@@ -87,6 +87,37 @@ function ProfileCard({
   );
 }
 
+function personDisplayName(people: DuplicatePerson[], personId: string) {
+  const person = personById(people, personId);
+  return person ? person.displayName : personId;
+}
+
+function relationshipKindLabel(
+  relationshipKind: MergeRelationshipChange["relationshipKind"],
+) {
+  return relationshipKind === "partnership" ? "Hôn phối" : "Cha/mẹ → con";
+}
+
+function relationshipActionLabel(
+  action: MergeRelationshipChange["action"],
+) {
+  return action === "deduplicate" ? "Gộp cạnh trùng" : "Di chuyển cạnh";
+}
+
+function DeduplicationNote({
+  existingRelationshipId,
+}: {
+  existingRelationshipId: string | null;
+}) {
+  if (!existingRelationshipId) return null;
+
+  return (
+    <p className="mt-1 text-muted-foreground">
+      Citation của cạnh trùng sẽ chuyển sang relationship hiện có.
+    </p>
+  );
+}
+
 function RelationshipChangeRow({
   change,
   people,
@@ -94,31 +125,19 @@ function RelationshipChangeRow({
   change: MergeRelationshipChange;
   people: DuplicatePerson[];
 }) {
-  const fromSource =
-    personById(people, change.fromSourcePersonId)?.displayName ??
-    change.fromSourcePersonId;
-  const fromTarget =
-    personById(people, change.fromTargetPersonId)?.displayName ??
-    change.fromTargetPersonId;
-  const toSource =
-    personById(people, change.toSourcePersonId)?.displayName ??
-    change.toSourcePersonId;
-  const toTarget =
-    personById(people, change.toTargetPersonId)?.displayName ??
-    change.toTargetPersonId;
-  const actionLabel =
-    change.action === "deduplicate" ? "Gộp cạnh trùng" : "Di chuyển cạnh";
+  const fromSource = personDisplayName(people, change.fromSourcePersonId);
+  const fromTarget = personDisplayName(people, change.fromTargetPersonId);
+  const toSource = personDisplayName(people, change.toSourcePersonId);
+  const toTarget = personDisplayName(people, change.toTargetPersonId);
 
   return (
     <li className="rounded-xl border border-border bg-background p-3 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold text-card-foreground">
-          {change.relationshipKind === "partnership"
-            ? "Hôn phối"
-            : "Cha/mẹ → con"}
+          {relationshipKindLabel(change.relationshipKind)}
         </span>
         <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-          {actionLabel}
+          {relationshipActionLabel(change.action)}
         </span>
       </div>
       <p className="mt-2 text-muted-foreground">
@@ -127,11 +146,9 @@ function RelationshipChangeRow({
       <p className="mt-1 font-medium text-card-foreground">
         Sau merge: {toSource} → {toTarget}
       </p>
-      {change.existingRelationshipId ? (
-        <p className="mt-1 text-muted-foreground">
-          Citation của cạnh trùng sẽ chuyển sang relationship hiện có.
-        </p>
-      ) : null}
+      <DeduplicationNote
+        existingRelationshipId={change.existingRelationshipId}
+      />
     </li>
   );
 }
@@ -396,6 +413,176 @@ function ReviewWorkspace({
   );
 }
 
+type DuplicateReviewModalProps = {
+  candidateCount: number;
+  confirmation: string;
+  data: DuplicateData | null;
+  executing: boolean;
+  loading: boolean;
+  message: string | null;
+  pair: ReviewPair | null;
+  preview: MergePreviewData | null;
+  previewLoading: boolean;
+  onClose: () => void;
+  onCloseReview: () => void;
+  onConfirmationChange: (value: string) => void;
+  onExecute: () => void;
+  onRefresh: () => void;
+  onReview: (suggestion: DuplicateSuggestion) => void;
+  onSwap: () => void;
+};
+
+function PanelMessage({ message }: { message: string | null }) {
+  if (!message) return null;
+
+  return (
+    <p className="mt-3 rounded-xl bg-muted p-3 text-sm text-card-foreground">
+      {message}
+    </p>
+  );
+}
+
+function LoadingStatus({
+  loading,
+  previewLoading,
+}: {
+  loading: boolean;
+  previewLoading: boolean;
+}) {
+  if (loading) {
+    return (
+      <p className="mt-5 text-sm text-muted-foreground">
+        Đang quét duplicate candidates…
+      </p>
+    );
+  }
+
+  if (previewLoading) {
+    return (
+      <p className="mt-5 text-sm text-muted-foreground">
+        Đang tính migration preview…
+      </p>
+    );
+  }
+
+  return null;
+}
+
+function ReviewContent({
+  confirmation,
+  data,
+  executing,
+  loading,
+  pair,
+  preview,
+  onCloseReview,
+  onConfirmationChange,
+  onExecute,
+  onReview,
+  onSwap,
+}: Pick<
+  DuplicateReviewModalProps,
+  | "confirmation"
+  | "data"
+  | "executing"
+  | "loading"
+  | "pair"
+  | "preview"
+  | "onCloseReview"
+  | "onConfirmationChange"
+  | "onExecute"
+  | "onReview"
+  | "onSwap"
+>) {
+  if (loading || !data) return null;
+
+  if (!pair) {
+    return (
+      <div className="mt-5">
+        <SuggestionList data={data} onReview={onReview} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5">
+      <ReviewWorkspace
+        confirmation={confirmation}
+        data={data}
+        executing={executing}
+        onCloseReview={onCloseReview}
+        onConfirmationChange={onConfirmationChange}
+        onExecute={onExecute}
+        onSwap={onSwap}
+        pair={pair}
+        preview={preview}
+      />
+    </div>
+  );
+}
+
+function DuplicateReviewModal(props: DuplicateReviewModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6">
+      <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+              Duplicate Detection & Merge Review
+            </p>
+            <h2 className="font-display mt-1 text-3xl text-card-foreground">
+              Review trước, merge sau
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              Detector chỉ gợi ý khi tên chuẩn hóa trùng và có tín hiệu ngày
+              mạnh. Không có auto-merge. Target canonical không bị source ghi
+              đè.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              disabled={props.loading}
+              onClick={props.onRefresh}
+              type="button"
+              variant="outline"
+            >
+              Quét lại
+            </Button>
+            <Button onClick={props.onClose} type="button" variant="ghost">
+              Đóng
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{props.candidateCount} candidate</span>
+          <span aria-hidden="true">·</span>
+          <span>Không merge tự động</span>
+        </div>
+
+        <PanelMessage message={props.message} />
+        <LoadingStatus
+          loading={props.loading}
+          previewLoading={props.previewLoading}
+        />
+        <ReviewContent
+          confirmation={props.confirmation}
+          data={props.data}
+          executing={props.executing}
+          loading={props.loading}
+          onCloseReview={props.onCloseReview}
+          onConfirmationChange={props.onConfirmationChange}
+          onExecute={props.onExecute}
+          onReview={props.onReview}
+          onSwap={props.onSwap}
+          pair={props.pair}
+          preview={props.preview}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function DuplicateReviewPanel() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -505,87 +692,23 @@ export function DuplicateReviewPanel() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6">
-      <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-              Duplicate Detection & Merge Review
-            </p>
-            <h2 className="font-display mt-1 text-3xl text-card-foreground">
-              Review trước, merge sau
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Detector chỉ gợi ý khi tên chuẩn hóa trùng và có tín hiệu ngày
-              mạnh. Không có auto-merge. Target canonical không bị source ghi
-              đè.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              disabled={loading}
-              onClick={() => void refreshSuggestions()}
-              type="button"
-              variant="outline"
-            >
-              Quét lại
-            </Button>
-            <Button
-              onClick={() => setOpen(false)}
-              type="button"
-              variant="ghost"
-            >
-              Đóng
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{candidateCount} candidate</span>
-          <span aria-hidden="true">·</span>
-          <span>Không merge tự động</span>
-        </div>
-
-        {message ? (
-          <p className="mt-3 rounded-xl bg-muted p-3 text-sm text-card-foreground">
-            {message}
-          </p>
-        ) : null}
-
-        {loading ? (
-          <p className="mt-5 text-sm text-muted-foreground">
-            Đang quét duplicate candidates…
-          </p>
-        ) : null}
-
-        {previewLoading ? (
-          <p className="mt-5 text-sm text-muted-foreground">
-            Đang tính migration preview…
-          </p>
-        ) : null}
-
-        {!loading && data && !pair ? (
-          <div className="mt-5">
-            <SuggestionList data={data} onReview={reviewSuggestion} />
-          </div>
-        ) : null}
-
-        {data && pair ? (
-          <div className="mt-5">
-            <ReviewWorkspace
-              confirmation={confirmation}
-              data={data}
-              executing={executing}
-              onCloseReview={closeReview}
-              onConfirmationChange={setConfirmation}
-              onExecute={() => void executeMerge()}
-              onSwap={() => void swapPair()}
-              pair={pair}
-              preview={preview}
-            />
-          </div>
-        ) : null}
-      </div>
-    </div>
+    <DuplicateReviewModal
+      candidateCount={candidateCount}
+      confirmation={confirmation}
+      data={data}
+      executing={executing}
+      loading={loading}
+      message={message}
+      onClose={() => setOpen(false)}
+      onCloseReview={closeReview}
+      onConfirmationChange={setConfirmation}
+      onExecute={() => void executeMerge()}
+      onRefresh={() => void refreshSuggestions()}
+      onReview={(suggestion) => void reviewSuggestion(suggestion)}
+      onSwap={() => void swapPair()}
+      pair={pair}
+      preview={preview}
+      previewLoading={previewLoading}
+    />
   );
 }

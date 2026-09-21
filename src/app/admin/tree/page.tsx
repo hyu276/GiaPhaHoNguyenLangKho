@@ -161,6 +161,11 @@ async function signOut() {
   redirect("/admin/login");
 }
 
+function DuplicateReviewEntry({ readOnly }: { readOnly: boolean }) {
+  if (readOnly) return null;
+  return <DuplicateReviewPanel />;
+}
+
 export default async function AdminTreePage() {
   const { supabase, user, role } = await requireTreeViewer();
   const readOnly = role === "spectator";
@@ -240,7 +245,7 @@ export default async function AdminTreePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {readOnly ? null : <DuplicateReviewPanel />}
+          <DuplicateReviewEntry readOnly={readOnly} />
           <form action={signOut}>
             <Button type="submit" variant="outline">
               Đăng xuất

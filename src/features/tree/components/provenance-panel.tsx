@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import {
@@ -832,6 +833,7 @@ export function ProvenancePanel({
   relationshipId,
   readOnly,
 }: ProvenancePanelProps) {
+  const router = useRouter();
   const targetKey = provenanceKey(personId, relationshipId);
   const [loaded, setLoaded] = useState<LoadedProvenance>({
     key: "",
@@ -842,6 +844,7 @@ export function ProvenancePanel({
   const [editor, setEditor] = useState<EditorState>(null);
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
 
   const loading = loaded.key !== targetKey;
   const sources = loaded.sources;
@@ -891,13 +894,19 @@ export function ProvenancePanel({
 
     setSaving(true);
     setStatusMessage(null);
+    setConflict(false);
 
     const result = editor.source
-      ? await updateProvenanceSource({ sourceId: editor.source.id, ...input })
+      ? await updateProvenanceSource({
+          sourceId: editor.source.id,
+          expectedRevision: editor.source.revision,
+          ...input,
+        })
       : await createProvenanceSource(input);
 
     setSaving(false);
     if (!result.ok) {
+      setConflict(result.kind === "conflict");
       setLoaded((current) => ({ ...current, error: result.message }));
       return;
     }
@@ -928,16 +937,19 @@ export function ProvenancePanel({
 
     setSaving(true);
     setStatusMessage(null);
+    setConflict(false);
 
     const result = editor.citation
       ? await updateProvenanceCitation({
           citationId: editor.citation.id,
+          expectedRevision: editor.citation.revision,
           ...input,
         })
       : await createProvenanceCitation(input);
 
     setSaving(false);
     if (!result.ok) {
+      setConflict(result.kind === "conflict");
       setLoaded((current) => ({ ...current, error: result.message }));
       return;
     }
@@ -955,12 +967,20 @@ export function ProvenancePanel({
     );
     if (!confirmed) return;
 
+    const citation = citations.find((item) => item.id === citationId);
+    if (!citation) return;
+
     setSaving(true);
     setStatusMessage(null);
-    const result = await removeProvenanceCitation({ citationId });
+    setConflict(false);
+    const result = await removeProvenanceCitation({
+      citationId,
+      expectedRevision: citation.revision,
+    });
     setSaving(false);
 
     if (!result.ok) {
+      setConflict(result.kind === "conflict");
       setLoaded((current) => ({ ...current, error: result.message }));
       return;
     }
@@ -988,6 +1008,17 @@ export function ProvenancePanel({
       />
       <LoadingMessage loading={loading} />
       <ErrorMessage message={loaded.error} />
+      {conflict ? (
+        <Button
+          className="mt-2"
+          onClick={() => router.refresh()}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Tải dữ liệu mới
+        </Button>
+      ) : null}
       <StatusMessage message={statusMessage} />
       <ProvenanceEditor
         editor={editor}

@@ -68,10 +68,7 @@ async function getRelationshipRemovalFailure(
       supabase,
       relationshipId,
     );
-    if (
-      currentRevision !== null &&
-      currentRevision !== expectedRevision
-    ) {
+    if (currentRevision !== null && currentRevision !== expectedRevision) {
       return {
         ok: false,
         kind: "conflict",

@@ -60,7 +60,9 @@ export type EditorPerson = {
   sex: PersonSex | null;
   visibility: PersonVisibility;
   archivedAt: string | null;
+  revision: number;
   position: { x: number; y: number };
+  layoutRevision: number | null;
 };
 
 export type EditorRelationship = {
@@ -68,17 +70,22 @@ export type EditorRelationship = {
   kind: "parent_child" | "partnership";
   sourcePersonId: string;
   targetPersonId: string;
+  revision: number;
 };
 
 export type SaveLayoutInput = {
   personId: string;
   positionX: number;
   positionY: number;
+  expectedRevision: number | null;
 };
 
-export type SaveLayoutResult = { ok: true } | { ok: false; message: string };
+export type SaveLayoutResult =
+  | { ok: true; revisions: Array<{ personId: string; revision: number }> }
+  | { ok: false; message: string; kind?: "conflict" };
 type PersonMutationResult =
-  { ok: true; personId: string } | { ok: false; message: string };
+  | { ok: true; personId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 type SaveLayouts = (inputs: SaveLayoutInput[]) => Promise<SaveLayoutResult>;
 type CreatePerson = (input: CreatePersonInput) => Promise<PersonMutationResult>;
 type UpdatePerson = (input: UpdatePersonInput) => Promise<PersonMutationResult>;
@@ -735,7 +742,10 @@ function PersonArchiveControls({
 
     setSaving(true);
     setErrorMessage(null);
-    const result = await mutation({ personId: person.id });
+    const result = await mutation({
+      personId: person.id,
+      expectedRevision: person.revision,
+    });
     setSaving(false);
 
     if (!result.ok) {
@@ -810,7 +820,11 @@ function EditPersonPanel({
       return { ok: false as const, message: "Chưa chọn người để cập nhật." };
     }
 
-    return updatePerson({ ...input, personId: selectedPerson.id });
+    return updatePerson({
+      ...input,
+      personId: selectedPerson.id,
+      expectedRevision: selectedPerson.revision,
+    });
   }
 
   return (
@@ -1047,6 +1061,9 @@ export function AdminTreeEditor({
   const persistedPositions = useRef(
     new Map(people.map((person) => [person.id, person.position])),
   );
+  const layoutRevisions = useRef(
+    new Map(people.map((person) => [person.id, person.layoutRevision])),
+  );
 
   const selectedPerson =
     people.find((person) => person.id === selectedPersonId) ?? null;
@@ -1063,6 +1080,9 @@ export function AdminTreeEditor({
   useEffect(() => {
     persistedPositions.current = new Map(
       people.map((person) => [person.id, person.position]),
+    );
+    layoutRevisions.current = new Map(
+      people.map((person) => [person.id, person.layoutRevision]),
     );
   }, [people]);
 
@@ -1145,6 +1165,7 @@ export function AdminTreeEditor({
           personId,
           positionX: position.x,
           positionY: position.y,
+          expectedRevision: layoutRevisions.current.get(personId) ?? null,
         })),
       );
 
@@ -1166,6 +1187,9 @@ export function AdminTreeEditor({
 
       after.forEach((position, personId) => {
         persistedPositions.current.set(personId, position);
+      });
+      result.revisions.forEach(({ personId, revision }) => {
+        layoutRevisions.current.set(personId, revision);
       });
 
       if (recordHistory) {

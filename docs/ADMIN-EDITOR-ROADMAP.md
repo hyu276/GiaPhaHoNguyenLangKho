@@ -170,18 +170,34 @@ Add:
 
 ## Step 7 — Duplicate detection and merge review
 
+**Status: in progress in GitHub development stack; detection/domain, atomic merge RPC, audit schema and server review actions implemented. Review UI and static preview pending.**
+
 Goal: resolve duplicate people without corrupting the graph.
 
-Add:
+Detection and review contract:
 
-- duplicate suggestions based on conservative signals;
-- side-by-side review;
-- explicit target/source merge;
-- relationship migration preview;
-- cycle/duplicate-edge validation;
-- merge audit record.
+- duplicate suggestions are conservative review signals, never automatic decisions;
+- a suggestion requires the same normalized display name plus at least one exact known birth/death year match;
+- known conflicting dates/sex reduce confidence and can suppress a suggestion;
+- every merge requires an explicit target and source plus a typed `MERGE` confirmation;
+- target canonical fields always win; source profile fields are never silently copied into target;
+- source is archived and marked `merged_into_person_id` instead of hard-deleted.
 
-No automatic merge.
+Merge impact:
+
+- source person citations migrate to target;
+- source relationships are previewed before execution;
+- safe relationships keep their IDs and are remapped to target;
+- duplicate edges are collapsed into the already-existing target edge after their relationship citations are migrated;
+- direct target/source relationships and resulting ancestry cycles are blockers;
+- Postgres performs relationship/citation rewrites, source archival and audit insertion in one transaction;
+- merged source records cannot be restored through the normal restore flow.
+
+Audit:
+
+- immutable `person_merge_audits` records capture actor, source/target snapshots, relationship changes and migrated citation counts;
+- merge audits are admin-only;
+- no automatic merge path exists.
 
 ## Step 8 — Audit log, undo model, and concurrency
 

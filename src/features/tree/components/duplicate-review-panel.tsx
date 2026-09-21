@@ -375,7 +375,11 @@ function ReviewWorkspace({
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <ProfileCard label="TARGET · giữ lại" person={target} tone="target" />
-        <ProfileCard label="SOURCE · sẽ lưu trữ" person={source} tone="source" />
+        <ProfileCard
+          label="SOURCE · sẽ lưu trữ"
+          person={source}
+          tone="source"
+        />
       </div>
 
       {preview ? <MergeImpact data={preview} people={data.people} /> : null}
@@ -513,7 +517,8 @@ export function DuplicateReviewPanel() {
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
               Detector chỉ gợi ý khi tên chuẩn hóa trùng và có tín hiệu ngày
-              mạnh. Không có auto-merge. Target canonical không bị source ghi đè.
+              mạnh. Không có auto-merge. Target canonical không bị source ghi
+              đè.
             </p>
           </div>
           <div className="flex gap-2">
@@ -525,7 +530,11 @@ export function DuplicateReviewPanel() {
             >
               Quét lại
             </Button>
-            <Button onClick={() => setOpen(false)} type="button" variant="ghost">
+            <Button
+              onClick={() => setOpen(false)}
+              type="button"
+              variant="ghost"
+            >
               Đóng
             </Button>
           </div>

@@ -96,6 +96,14 @@
             </button>
           </div>
 
+          <button
+            class="button secondary duplicate-review-launch"
+            id="reviewDuplicates"
+            type="button"
+          >
+            Review duplicate candidates
+          </button>
+
           <div class="divider"></div>
 
           <div class="button-row">
@@ -131,8 +139,8 @@
             <li class="done">Search & branch focus</li>
             <li class="done">Layout administration</li>
             <li class="done">Sources & provenance</li>
-            <li class="active">Merge duplicates</li>
-            <li>Audit / conflict / undo</li>
+            <li class="done">Merge duplicates</li>
+            <li class="active">Audit / conflict / undo</li>
           </ol>
         </section>
       </aside>
@@ -514,6 +522,78 @@
           <button class="button primary" value="default">Lưu citation</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="duplicateDialog" class="duplicate-dialog">
+      <div class="duplicate-dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Duplicate Detection & Merge Review</p>
+            <h2>Review trước, merge sau</h2>
+          </div>
+          <form method="dialog">
+            <button class="icon-button" aria-label="Đóng">×</button>
+          </form>
+        </div>
+        <p class="muted">
+          Candidate chỉ là tín hiệu review. Không có auto-merge. Target giữ toàn
+          bộ canonical profile fields.
+        </p>
+
+        <div class="duplicate-layout">
+          <section>
+            <h3>Candidate list</h3>
+            <div id="duplicateCandidateList" class="duplicate-candidates"></div>
+          </section>
+
+          <section id="duplicateReview" hidden>
+            <div class="duplicate-review-toolbar">
+              <p class="eyebrow">Side-by-side review</p>
+              <button
+                class="button secondary"
+                id="swapDuplicatePair"
+                type="button"
+              >
+                Đổi Target ↔ Source
+              </button>
+            </div>
+
+            <div class="duplicate-profile-grid">
+              <article class="duplicate-profile target">
+                <strong>TARGET · giữ lại</strong>
+                <p id="duplicateTarget"></p>
+              </article>
+              <article class="duplicate-profile source">
+                <strong>SOURCE · sẽ lưu trữ</strong>
+                <p id="duplicateSource"></p>
+              </article>
+            </div>
+
+            <p class="archive-impact" id="duplicateCitationImpact"></p>
+            <p class="duplicate-blockers" id="duplicateBlockers"></p>
+
+            <h3>Migration preview</h3>
+            <ul class="duplicate-impact-list" id="duplicateImpactList"></ul>
+
+            <label class="field">
+              <span>Nhập chính xác MERGE để xác nhận</span>
+              <input
+                id="duplicateConfirmation"
+                autocomplete="off"
+                placeholder="MERGE"
+              />
+            </label>
+            <button
+              class="button danger"
+              disabled
+              id="executeDuplicateMerge"
+              type="button"
+            >
+              Thực thi merge synthetic
+            </button>
+          </section>
+        </div>
+      </div>
     </dialog>
 
     <template id="relationTemplate">

@@ -159,7 +159,7 @@ function getCitationFormDefaults(
     };
   }
 
-  const firstSourceId = sources.length > 0 ? sources[0].id : "";
+  const firstSourceId = sources[0]?.id ?? "";
   return {
     sourceId: firstSourceId,
     claimKind: "note",

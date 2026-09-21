@@ -141,6 +141,15 @@ function getSourceFormDefaults(
   };
 }
 
+function textOrEmpty(value: string | null) {
+  return value || "";
+}
+
+function getFirstSourceId(sources: ProvenanceSourceRecord[]) {
+  const firstSource = sources[0];
+  return firstSource ? firstSource.id : "";
+}
+
 function getCitationFormDefaults(
   citation: ProvenanceCitationRecord | null,
   sources: ProvenanceSourceRecord[],
@@ -150,16 +159,16 @@ function getCitationFormDefaults(
       sourceId: citation.sourceId,
       claimKind: citation.claimKind,
       claimText: citation.claimText,
-      citationLocator: citation.citationLocator ?? "",
+      citationLocator: textOrEmpty(citation.citationLocator),
       certainty: citation.certainty,
-      dateQualifier: citation.dateQualifier ?? "",
-      dateText: citation.dateText ?? "",
-      note: citation.note ?? "",
+      dateQualifier: textOrEmpty(citation.dateQualifier),
+      dateText: textOrEmpty(citation.dateText),
+      note: textOrEmpty(citation.note),
       heading: "Sửa citation",
     };
   }
 
-  const firstSourceId = sources[0]?.id ?? "";
+  const firstSourceId = getFirstSourceId(sources);
   return {
     sourceId: firstSourceId,
     claimKind: "note",

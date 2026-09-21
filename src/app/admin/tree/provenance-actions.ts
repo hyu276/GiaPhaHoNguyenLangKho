@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { conflictMessage } from "@/features/tree/audit-input";
+
 import {
   createProvenanceCitationInputSchema,
   type CreateProvenanceCitationInput,
@@ -22,10 +24,12 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ProvenanceSourceMutationResult =
-  { ok: true; sourceId: string } | { ok: false; message: string };
+  | { ok: true; sourceId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 
 export type ProvenanceCitationMutationResult =
-  { ok: true; citationId: string } | { ok: false; message: string };
+  | { ok: true; citationId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 
 export type ProvenanceLoadResult =
   | {
@@ -42,6 +46,7 @@ type SupabaseServerClient = Awaited<
 
 type SourceRow = {
   id: string;
+  revision: number;
   title: string;
   source_type: ProvenanceSourceRecord["sourceType"];
   repository_name: string | null;
@@ -51,6 +56,7 @@ type SourceRow = {
 
 type CitationRow = {
   id: string;
+  revision: number;
   source_id: string;
   person_id: string | null;
   relationship_id: string | null;
@@ -70,6 +76,7 @@ function getValidationMessage(error: { issues: Array<{ message: string }> }) {
 function mapSource(row: SourceRow): ProvenanceSourceRecord {
   return {
     id: row.id,
+    revision: row.revision,
     title: row.title,
     sourceType: row.source_type,
     repositoryName: row.repository_name,
@@ -81,6 +88,7 @@ function mapSource(row: SourceRow): ProvenanceSourceRecord {
 function mapCitation(row: CitationRow): ProvenanceCitationRecord {
   return {
     id: row.id,
+    revision: row.revision,
     sourceId: row.source_id,
     personId: row.person_id,
     relationshipId: row.relationship_id,
@@ -120,13 +128,42 @@ async function fetchCitationRows(
   const result = await supabase
     .from("genealogy_citations")
     .select(
-      "id, source_id, person_id, relationship_id, claim_kind, claim_text, citation_locator, note, certainty, date_text, date_qualifier",
+      "id, revision, source_id, person_id, relationship_id, claim_kind, claim_text, citation_locator, note, certainty, date_text, date_qualifier",
     )
     .eq(targetColumn, targetId as string)
     .order("created_at", { ascending: false });
 
   if (result.error) return null;
   return (result.data ?? []) as CitationRow[];
+}
+
+async function getRevisionConflict(
+  supabase: SupabaseServerClient,
+  table: "genealogy_sources" | "genealogy_citations",
+  id: string,
+  expectedRevision: number | undefined,
+  label: string,
+) {
+  if (expectedRevision === undefined) return null;
+
+  const { data } = await supabase
+    .from(table)
+    .select("revision")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (
+    typeof data?.revision === "number" &&
+    data.revision !== expectedRevision
+  ) {
+    return {
+      ok: false as const,
+      kind: "conflict" as const,
+      message: conflictMessage(label),
+    };
+  }
+
+  return null;
 }
 
 async function fetchSourceRows(
@@ -140,7 +177,7 @@ async function fetchSourceRows(
   let query = supabase
     .from("genealogy_sources")
     .select(
-      "id, title, source_type, repository_name, reference_code, source_url",
+      "id, revision, title, source_type, repository_name, reference_code, source_url",
     );
 
   if (role === "spectator") {
@@ -206,7 +243,7 @@ export async function createProvenanceSource(
       created_by: user.id,
       updated_by: user.id,
     })
-    .select("id")
+    .select("id, revision")
     .single();
 
   if (error || !data) {
@@ -214,7 +251,7 @@ export async function createProvenanceSource(
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, sourceId: data.id };
+  return { ok: true, sourceId: data.id, revision: data.revision };
 }
 
 export async function updateProvenanceSource(
@@ -226,7 +263,7 @@ export async function updateProvenanceSource(
   }
 
   const { supabase, user } = await requireAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("genealogy_sources")
     .update({
       title: parsed.data.title,
@@ -236,16 +273,32 @@ export async function updateProvenanceSource(
       source_url: parsed.data.sourceUrl,
       updated_by: user.id,
     })
-    .eq("id", parsed.data.sourceId)
-    .select("id")
-    .single();
+    .eq("id", parsed.data.sourceId);
+
+  if (parsed.data.expectedRevision !== undefined) {
+    query = query.eq("revision", parsed.data.expectedRevision);
+  }
+
+  const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    return { ok: false, message: "Không thể cập nhật nguồn tư liệu." };
+    const conflict = await getRevisionConflict(
+      supabase,
+      "genealogy_sources",
+      parsed.data.sourceId,
+      parsed.data.expectedRevision,
+      "Nguồn tư liệu",
+    );
+    return (
+      conflict ?? {
+        ok: false,
+        message: "Không thể cập nhật nguồn tư liệu.",
+      }
+    );
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, sourceId: data.id };
+  return { ok: true, sourceId: data.id, revision: data.revision };
 }
 
 export async function createProvenanceCitation(
@@ -273,7 +326,7 @@ export async function createProvenanceCitation(
       created_by: user.id,
       updated_by: user.id,
     })
-    .select("id")
+    .select("id, revision")
     .single();
 
   if (error || !data) {
@@ -281,7 +334,7 @@ export async function createProvenanceCitation(
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, citationId: data.id };
+  return { ok: true, citationId: data.id, revision: data.revision };
 }
 
 export async function updateProvenanceCitation(
@@ -293,7 +346,7 @@ export async function updateProvenanceCitation(
   }
 
   const { supabase, user } = await requireAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("genealogy_citations")
     .update({
       source_id: parsed.data.sourceId,
@@ -308,16 +361,27 @@ export async function updateProvenanceCitation(
       date_qualifier: parsed.data.dateQualifier,
       updated_by: user.id,
     })
-    .eq("id", parsed.data.citationId)
-    .select("id")
-    .single();
+    .eq("id", parsed.data.citationId);
+
+  if (parsed.data.expectedRevision !== undefined) {
+    query = query.eq("revision", parsed.data.expectedRevision);
+  }
+
+  const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    return { ok: false, message: "Không thể cập nhật citation." };
+    const conflict = await getRevisionConflict(
+      supabase,
+      "genealogy_citations",
+      parsed.data.citationId,
+      parsed.data.expectedRevision,
+      "Citation",
+    );
+    return conflict ?? { ok: false, message: "Không thể cập nhật citation." };
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, citationId: data.id };
+  return { ok: true, citationId: data.id, revision: data.revision };
 }
 
 export async function removeProvenanceCitation(
@@ -329,17 +393,28 @@ export async function removeProvenanceCitation(
   }
 
   const { supabase } = await requireAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("genealogy_citations")
     .delete()
-    .eq("id", parsed.data.citationId)
-    .select("id")
-    .single();
+    .eq("id", parsed.data.citationId);
+
+  if (parsed.data.expectedRevision !== undefined) {
+    query = query.eq("revision", parsed.data.expectedRevision);
+  }
+
+  const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    return { ok: false, message: "Không thể xóa citation." };
+    const conflict = await getRevisionConflict(
+      supabase,
+      "genealogy_citations",
+      parsed.data.citationId,
+      parsed.data.expectedRevision,
+      "Citation",
+    );
+    return conflict ?? { ok: false, message: "Không thể xóa citation." };
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, citationId: data.id };
+  return { ok: true, citationId: data.id, revision: data.revision };
 }

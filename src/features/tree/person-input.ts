@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { revisionSchema } from "@/features/tree/audit-input";
+
 export const personVisibilitySchema = z.enum(["public", "private"]);
 export const personSexSchema = z.enum(["male", "female"]);
 
@@ -39,11 +41,13 @@ export const createPersonInputSchema = personFieldsSchema.refine(
 
 export const personStateInputSchema = z.object({
   personId: z.string().uuid(),
+  expectedRevision: revisionSchema.optional(),
 });
 
 export const updatePersonInputSchema = personFieldsSchema
   .extend({
     personId: z.string().uuid(),
+    expectedRevision: revisionSchema.optional(),
   })
   .refine(hasValidYearOrder, {
     message: "Năm sinh không thể sau năm mất.",

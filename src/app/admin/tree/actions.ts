@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { conflictMessage } from "@/features/tree/audit-input";
 import {
   createPersonInputSchema,
   type CreatePersonInput,
@@ -13,10 +14,47 @@ import {
 import { requireAdmin } from "@/lib/auth/admin";
 
 export type PersonMutationResult =
-  { ok: true; personId: string } | { ok: false; message: string };
+  | { ok: true; personId: string; revision: number }
+  | { ok: false; message: string; kind?: "conflict" };
 
 function getValidationMessage(error: { issues: Array<{ message: string }> }) {
   return error.issues[0]?.message ?? "Dữ liệu người không hợp lệ.";
+}
+
+async function getPersonRevision(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  personId: string,
+) {
+  const { data } = await supabase
+    .from("people")
+    .select("revision")
+    .eq("id", personId)
+    .maybeSingle();
+
+  return typeof data?.revision === "number" ? data.revision : null;
+}
+
+async function failedPersonMutation(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  personId: string,
+  expectedRevision: number | undefined,
+  fallbackMessage: string,
+): Promise<PersonMutationResult> {
+  if (expectedRevision !== undefined) {
+    const currentRevision = await getPersonRevision(supabase, personId);
+    if (
+      currentRevision !== null &&
+      currentRevision !== expectedRevision
+    ) {
+      return {
+        ok: false,
+        kind: "conflict",
+        message: conflictMessage("Hồ sơ"),
+      };
+    }
+  }
+
+  return { ok: false, message: fallbackMessage };
 }
 
 export async function createPerson(
@@ -38,7 +76,7 @@ export async function createPerson(
       sex: parsed.data.sex,
       visibility: parsed.data.visibility,
     })
-    .select("id")
+    .select("id, revision")
     .single();
 
   if (error || !data) {
@@ -46,7 +84,7 @@ export async function createPerson(
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, personId: data.id };
+  return { ok: true, personId: data.id, revision: data.revision };
 }
 
 export async function updatePerson(
@@ -58,7 +96,7 @@ export async function updatePerson(
   }
 
   const { supabase } = await requireAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("people")
     .update({
       display_name: parsed.data.displayName,
@@ -69,16 +107,25 @@ export async function updatePerson(
       visibility: parsed.data.visibility,
     })
     .eq("id", parsed.data.personId)
-    .is("archived_at", null)
-    .select("id")
-    .single();
+    .is("archived_at", null);
+
+  if (parsed.data.expectedRevision !== undefined) {
+    query = query.eq("revision", parsed.data.expectedRevision);
+  }
+
+  const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    return { ok: false, message: "Không thể cập nhật hồ sơ người này." };
+    return failedPersonMutation(
+      supabase,
+      parsed.data.personId,
+      parsed.data.expectedRevision,
+      "Không thể cập nhật hồ sơ người này.",
+    );
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, personId: data.id };
+  return { ok: true, personId: data.id, revision: data.revision };
 }
 
 export async function archivePerson(
@@ -90,23 +137,29 @@ export async function archivePerson(
   }
 
   const { supabase } = await requireAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("people")
     .update({ archived_at: new Date().toISOString() })
     .eq("id", parsed.data.personId)
-    .is("archived_at", null)
-    .select("id")
-    .single();
+    .is("archived_at", null);
+
+  if (parsed.data.expectedRevision !== undefined) {
+    query = query.eq("revision", parsed.data.expectedRevision);
+  }
+
+  const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    return {
-      ok: false,
-      message: "Không thể lưu trữ hồ sơ này hoặc hồ sơ đã được lưu trữ.",
-    };
+    return failedPersonMutation(
+      supabase,
+      parsed.data.personId,
+      parsed.data.expectedRevision,
+      "Không thể lưu trữ hồ sơ này hoặc hồ sơ đã được lưu trữ.",
+    );
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, personId: data.id };
+  return { ok: true, personId: data.id, revision: data.revision };
 }
 
 export async function restorePerson(
@@ -118,21 +171,27 @@ export async function restorePerson(
   }
 
   const { supabase } = await requireAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("people")
     .update({ archived_at: null })
     .eq("id", parsed.data.personId)
-    .not("archived_at", "is", null)
-    .select("id")
-    .single();
+    .not("archived_at", "is", null);
+
+  if (parsed.data.expectedRevision !== undefined) {
+    query = query.eq("revision", parsed.data.expectedRevision);
+  }
+
+  const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    return {
-      ok: false,
-      message: "Không thể khôi phục hồ sơ này hoặc hồ sơ chưa được lưu trữ.",
-    };
+    return failedPersonMutation(
+      supabase,
+      parsed.data.personId,
+      parsed.data.expectedRevision,
+      "Không thể khôi phục hồ sơ này hoặc hồ sơ chưa được lưu trữ.",
+    );
   }
 
   revalidatePath("/admin/tree");
-  return { ok: true, personId: data.id };
+  return { ok: true, personId: data.id, revision: data.revision };
 }

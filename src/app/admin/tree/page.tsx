@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import {
+  loadRecentMutationAudits,
+  undoMutationAudit,
+} from "@/app/admin/tree/audit-actions";
+import { AuditHistoryPanel } from "@/features/tree/components/audit-history-panel";
 import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import {
   archivePerson,
@@ -171,6 +176,9 @@ export default async function AdminTreePage() {
   const readOnly = role === "spectator";
   const viewerLabel = getViewerLabel(role);
   const mutations = getAdminMutations(role);
+  const auditResult = readOnly
+    ? null
+    : await loadRecentMutationAudits({ limit: 30 });
 
   const [peopleResult, relationshipsResult, layoutsResult] = await Promise.all([
     supabase
@@ -246,6 +254,13 @@ export default async function AdminTreePage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <DuplicateReviewEntry readOnly={readOnly} />
+          {auditResult ? (
+            <AuditHistoryPanel
+              audits={auditResult.ok ? auditResult.audits : []}
+              loadError={auditResult.ok ? null : auditResult.message}
+              undoMutation={undoMutationAudit}
+            />
+          ) : null}
           <form action={signOut}>
             <Button type="submit" variant="outline">
               Đăng xuất

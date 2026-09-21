@@ -80,10 +80,7 @@ function scoreYearMatch(
   };
 }
 
-function scoreSexMatch(
-  first: PersonSex | null,
-  second: PersonSex | null,
-) {
+function scoreSexMatch(first: PersonSex | null, second: PersonSex | null) {
   if (first === null || second === null) {
     return { score: 0, reason: null };
   }

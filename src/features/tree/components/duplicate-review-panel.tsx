@@ -98,9 +98,7 @@ function relationshipKindLabel(
   return relationshipKind === "partnership" ? "Hôn phối" : "Cha/mẹ → con";
 }
 
-function relationshipActionLabel(
-  action: MergeRelationshipChange["action"],
-) {
+function relationshipActionLabel(action: MergeRelationshipChange["action"]) {
   return action === "deduplicate" ? "Gộp cạnh trùng" : "Di chuyển cạnh";
 }
 

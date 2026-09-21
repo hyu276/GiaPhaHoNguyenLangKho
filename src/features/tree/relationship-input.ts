@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { revisionSchema } from "@/features/tree/audit-input";
+
 const personIdSchema = z.string().uuid();
 
 function hasDistinctPeople(value: {
@@ -31,6 +33,7 @@ export const createPartnershipInputSchema = z
 
 export const removeRelationshipInputSchema = z.object({
   relationshipId: z.string().uuid(),
+  expectedRevision: revisionSchema.optional(),
 });
 
 export type CreateParentChildInput = z.input<

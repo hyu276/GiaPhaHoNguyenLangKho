@@ -59,8 +59,7 @@ export type PersonMergePreviewResult =
   | { ok: false; message: string };
 
 export type ExecutePersonMergeResult =
-  | { ok: true; auditId: string }
-  | { ok: false; message: string };
+  { ok: true; auditId: string } | { ok: false; message: string };
 
 function validationMessage(error: { issues: Array<{ message: string }> }) {
   return error.issues[0]?.message ?? "Dữ liệu merge không hợp lệ.";
@@ -106,9 +105,7 @@ async function loadActivePeople(supabase: SupabaseAdminClient) {
 async function loadRelationships(supabase: SupabaseAdminClient) {
   const result = await supabase
     .from("relationships")
-    .select(
-      "id, relationship_kind, source_person_id, target_person_id",
-    );
+    .select("id, relationship_kind, source_person_id, target_person_id");
 
   if (result.error) return null;
   return (result.data ?? []).map((row) =>
@@ -129,7 +126,7 @@ async function countSourcePersonCitations(
     .select("id", { count: "exact", head: true })
     .eq("person_id", sourcePersonId);
 
-  return result.error ? null : result.count ?? 0;
+  return result.error ? null : (result.count ?? 0);
 }
 
 async function countSourceRelationshipCitations(
@@ -143,7 +140,7 @@ async function countSourceRelationshipCitations(
     .select("id", { count: "exact", head: true })
     .in("relationship_id", relationshipIds);
 
-  return result.error ? null : result.count ?? 0;
+  return result.error ? null : (result.count ?? 0);
 }
 
 async function loadMergePreviewData(

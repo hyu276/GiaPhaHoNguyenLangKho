@@ -57,6 +57,40 @@ async function getRelationshipRevision(
   return typeof data?.revision === "number" ? data.revision : null;
 }
 
+async function getRelationshipRemovalFailure(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  relationshipId: string,
+  expectedRevision: number | undefined,
+  error: DatabaseError | null,
+): Promise<RelationshipMutationResult> {
+  if (expectedRevision !== undefined) {
+    const currentRevision = await getRelationshipRevision(
+      supabase,
+      relationshipId,
+    );
+    if (
+      currentRevision !== null &&
+      currentRevision !== expectedRevision
+    ) {
+      return {
+        ok: false,
+        kind: "conflict",
+        message: conflictMessage("Quan hệ"),
+      };
+    }
+  }
+
+  if (error?.code === "23503") {
+    return {
+      ok: false,
+      message:
+        "Quan hệ này đang có citation. Hãy review/xóa citation trước khi xóa quan hệ để không làm mất provenance.",
+    };
+  }
+
+  return { ok: false, message: "Không thể xóa quan hệ này." };
+}
+
 export async function createParentChildRelationship(
   input: CreateParentChildInput,
 ): Promise<RelationshipMutationResult> {
@@ -150,32 +184,12 @@ export async function removeRelationship(
   const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    if (parsed.data.expectedRevision !== undefined) {
-      const currentRevision = await getRelationshipRevision(
-        supabase,
-        parsed.data.relationshipId,
-      );
-      if (
-        currentRevision !== null &&
-        currentRevision !== parsed.data.expectedRevision
-      ) {
-        return {
-          ok: false,
-          kind: "conflict",
-          message: conflictMessage("Quan hệ"),
-        };
-      }
-    }
-
-    if (error?.code === "23503") {
-      return {
-        ok: false,
-        message:
-          "Quan hệ này đang có citation. Hãy review/xóa citation trước khi xóa quan hệ để không làm mất provenance.",
-      };
-    }
-
-    return { ok: false, message: "Không thể xóa quan hệ này." };
+    return getRelationshipRemovalFailure(
+      supabase,
+      parsed.data.relationshipId,
+      parsed.data.expectedRevision,
+      error,
+    );
   }
 
   revalidatePath("/admin/tree");

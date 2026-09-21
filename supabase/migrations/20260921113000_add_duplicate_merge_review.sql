@@ -264,6 +264,29 @@ begin
     end if;
   end loop;
 
+  if exists (
+    with recursive target_descendants(person_id) as (
+      select relationship.target_person_id
+      from public.relationships relationship
+      where relationship.relationship_kind = 'parent_child'
+        and relationship.source_person_id = p_target_person_id
+
+      union
+
+      select relationship.target_person_id
+      from target_descendants descendant
+      join public.relationships relationship
+        on relationship.source_person_id = descendant.person_id
+      where relationship.relationship_kind = 'parent_child'
+    )
+    select 1
+    from target_descendants
+    where person_id = p_target_person_id
+  ) then
+    raise exception 'merge would create an ancestry cycle'
+      using errcode = '23514';
+  end if;
+
   update public.genealogy_citations
   set
     person_id = p_target_person_id,

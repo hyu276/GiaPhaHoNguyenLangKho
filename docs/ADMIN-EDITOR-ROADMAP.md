@@ -170,7 +170,7 @@ Add:
 
 ## Step 7 — Duplicate detection and merge review
 
-**Status: in progress in GitHub development stack; detection/domain, atomic merge RPC, audit schema and server review actions implemented. Review UI and static preview pending.**
+**Status: in progress in GitHub development stack; detection/domain, atomic merge RPC, audit schema, server review actions and side-by-side review UI implemented. Static preview pending.**
 
 Goal: resolve duplicate people without corrupting the graph.
 
@@ -189,7 +189,7 @@ Merge impact:
 - source relationships are previewed before execution;
 - safe relationships keep their IDs and are remapped to target;
 - duplicate edges are collapsed into the already-existing target edge after their relationship citations are migrated;
-- direct target/source relationships and resulting ancestry cycles are blockers in both preview validation and the atomic SQL RPC;
+- direct target/source relationships and resulting ancestry cycles are blockers;
 - Postgres performs relationship/citation rewrites, source archival and audit insertion in one transaction;
 - merged source records cannot be restored through the normal restore flow.
 

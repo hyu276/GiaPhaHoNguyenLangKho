@@ -90,17 +90,38 @@ function scoreSexMatch(first: PersonSex | null, second: PersonSex | null) {
     : { score: -20, reason: "giới tính mâu thuẫn" };
 }
 
+function isMergeCandidatePerson(person: DuplicatePerson) {
+  return person.archivedAt === null && person.mergedIntoPersonId === null;
+}
+
+function hasMatchingNormalizedName(
+  first: DuplicatePerson,
+  second: DuplicatePerson,
+) {
+  const firstName = normalizeDuplicateName(first.displayName);
+  const secondName = normalizeDuplicateName(second.displayName);
+  return firstName.length > 0 && firstName === secondName;
+}
+
+function collectDuplicateReasons(
+  birthReason: string | null,
+  deathReason: string | null,
+  sexReason: string | null,
+) {
+  return ["tên chuẩn hóa trùng", birthReason, deathReason, sexReason].filter(
+    (reason): reason is string => reason !== null,
+  );
+}
+
 export function scoreDuplicatePair(
   first: DuplicatePerson,
   second: DuplicatePerson,
 ): DuplicateSuggestion | null {
   if (first.id === second.id) return null;
-  if (first.archivedAt || second.archivedAt) return null;
-  if (first.mergedIntoPersonId || second.mergedIntoPersonId) return null;
-
-  const firstName = normalizeDuplicateName(first.displayName);
-  const secondName = normalizeDuplicateName(second.displayName);
-  if (!firstName || firstName !== secondName) return null;
+  if (!isMergeCandidatePerson(first) || !isMergeCandidatePerson(second)) {
+    return null;
+  }
+  if (!hasMatchingNormalizedName(first, second)) return null;
 
   const birth = scoreYearMatch(
     first.birthYear,
@@ -118,20 +139,16 @@ export function scoreDuplicatePair(
   );
   const sex = scoreSexMatch(first.sex, second.sex);
   const score = 50 + birth.score + death.score + sex.score;
-  const strongDateMatch = birth.strong || death.strong;
+  const hasStrongDateMatch = birth.strong || death.strong;
 
-  if (!strongDateMatch || score < 70) return null;
-
-  const reasons = ["tên chuẩn hóa trùng"];
-  for (const reason of [birth.reason, death.reason, sex.reason]) {
-    if (reason) reasons.push(reason);
-  }
+  if (!hasStrongDateMatch) return null;
+  if (score < 70) return null;
 
   return {
     firstPersonId: first.id,
     secondPersonId: second.id,
     score,
-    reasons,
+    reasons: collectDuplicateReasons(birth.reason, death.reason, sex.reason),
   };
 }
 
@@ -211,6 +228,69 @@ function remapRelationship(
   return { sourcePersonId: source, targetPersonId: target };
 }
 
+function indexExistingRelationships(
+  relationships: DuplicateRelationship[],
+  excludedRelationshipIds: Set<string>,
+) {
+  const relationshipByKey = new Map<string, string>();
+
+  for (const relationship of relationships) {
+    if (excludedRelationshipIds.has(relationship.id)) continue;
+    relationshipByKey.set(
+      relationshipKey(
+        relationship.relationshipKind,
+        relationship.sourcePersonId,
+        relationship.targetPersonId,
+      ),
+      relationship.id,
+    );
+  }
+
+  return relationshipByKey;
+}
+
+function buildRelationshipChange(
+  relationship: DuplicateRelationship,
+  targetPersonId: string,
+  sourcePersonId: string,
+  relationshipByKey: Map<string, string>,
+) {
+  const remapped = remapRelationship(
+    relationship,
+    targetPersonId,
+    sourcePersonId,
+  );
+  if (remapped.sourcePersonId === remapped.targetPersonId) {
+    return {
+      change: null,
+      blocker: `Quan hệ ${relationship.id} sẽ trở thành self-link sau merge.`,
+    };
+  }
+
+  const key = relationshipKey(
+    relationship.relationshipKind,
+    remapped.sourcePersonId,
+    remapped.targetPersonId,
+  );
+  const existingRelationshipId = relationshipByKey.get(key) ?? null;
+  const change: MergeRelationshipChange = {
+    relationshipId: relationship.id,
+    relationshipKind: relationship.relationshipKind,
+    fromSourcePersonId: relationship.sourcePersonId,
+    fromTargetPersonId: relationship.targetPersonId,
+    toSourcePersonId: remapped.sourcePersonId,
+    toTargetPersonId: remapped.targetPersonId,
+    action: existingRelationshipId ? "deduplicate" : "migrate",
+    existingRelationshipId,
+  };
+
+  if (!existingRelationshipId) {
+    relationshipByKey.set(key, relationship.id);
+  }
+
+  return { change, blocker: null };
+}
+
 function buildRelationshipChanges(
   relationships: DuplicateRelationship[],
   targetPersonId: string,
@@ -224,57 +304,22 @@ function buildRelationshipChanges(
   const sourceIds = new Set(
     sourceRelationships.map((relationship) => relationship.id),
   );
-  const relationshipByKey = new Map<string, string>();
-
-  for (const relationship of relationships) {
-    if (sourceIds.has(relationship.id)) continue;
-    relationshipByKey.set(
-      relationshipKey(
-        relationship.relationshipKind,
-        relationship.sourcePersonId,
-        relationship.targetPersonId,
-      ),
-      relationship.id,
-    );
-  }
-
+  const relationshipByKey = indexExistingRelationships(
+    relationships,
+    sourceIds,
+  );
   const changes: MergeRelationshipChange[] = [];
   const blockers: string[] = [];
 
   for (const relationship of sourceRelationships) {
-    const remapped = remapRelationship(
+    const result = buildRelationshipChange(
       relationship,
       targetPersonId,
       sourcePersonId,
+      relationshipByKey,
     );
-
-    if (remapped.sourcePersonId === remapped.targetPersonId) {
-      blockers.push(
-        `Quan hệ ${relationship.id} sẽ trở thành self-link sau merge.`,
-      );
-      continue;
-    }
-
-    const key = relationshipKey(
-      relationship.relationshipKind,
-      remapped.sourcePersonId,
-      remapped.targetPersonId,
-    );
-    const existingRelationshipId = relationshipByKey.get(key) ?? null;
-    changes.push({
-      relationshipId: relationship.id,
-      relationshipKind: relationship.relationshipKind,
-      fromSourcePersonId: relationship.sourcePersonId,
-      fromTargetPersonId: relationship.targetPersonId,
-      toSourcePersonId: remapped.sourcePersonId,
-      toTargetPersonId: remapped.targetPersonId,
-      action: existingRelationshipId ? "deduplicate" : "migrate",
-      existingRelationshipId,
-    });
-
-    if (!existingRelationshipId) {
-      relationshipByKey.set(key, relationship.id);
-    }
+    if (result.blocker) blockers.push(result.blocker);
+    if (result.change) changes.push(result.change);
   }
 
   return { changes, blockers };
@@ -304,24 +349,39 @@ function buildEffectiveRelationships(
   return effective;
 }
 
-function hasParentChildCycle(relationships: DuplicateRelationship[]) {
+function addParentChildEdge(
+  childrenByParent: Map<string, string[]>,
+  indegree: Map<string, number>,
+  relationship: DuplicateRelationship,
+) {
+  const children = childrenByParent.get(relationship.sourcePersonId) ?? [];
+  children.push(relationship.targetPersonId);
+  childrenByParent.set(relationship.sourcePersonId, children);
+  indegree.set(
+    relationship.targetPersonId,
+    (indegree.get(relationship.targetPersonId) ?? 0) + 1,
+  );
+  if (!indegree.has(relationship.sourcePersonId)) {
+    indegree.set(relationship.sourcePersonId, 0);
+  }
+}
+
+function buildParentChildGraph(relationships: DuplicateRelationship[]) {
   const childrenByParent = new Map<string, string[]>();
   const indegree = new Map<string, number>();
 
   for (const relationship of relationships) {
     if (relationship.relationshipKind !== "parent_child") continue;
-    const children = childrenByParent.get(relationship.sourcePersonId) ?? [];
-    children.push(relationship.targetPersonId);
-    childrenByParent.set(relationship.sourcePersonId, children);
-    indegree.set(
-      relationship.targetPersonId,
-      (indegree.get(relationship.targetPersonId) ?? 0) + 1,
-    );
-    if (!indegree.has(relationship.sourcePersonId)) {
-      indegree.set(relationship.sourcePersonId, 0);
-    }
+    addParentChildEdge(childrenByParent, indegree, relationship);
   }
 
+  return { childrenByParent, indegree };
+}
+
+function visitAcyclicNodes(
+  childrenByParent: Map<string, string[]>,
+  indegree: Map<string, number>,
+) {
   const queue = [...indegree.entries()]
     .filter(([, degree]) => degree === 0)
     .map(([personId]) => personId);
@@ -332,13 +392,20 @@ function hasParentChildCycle(relationships: DuplicateRelationship[]) {
     if (!personId) continue;
     visited += 1;
 
-    for (const childId of childrenByParent.get(personId) ?? []) {
+    const children = childrenByParent.get(personId) ?? [];
+    for (const childId of children) {
       const nextDegree = (indegree.get(childId) ?? 0) - 1;
       indegree.set(childId, nextDegree);
       if (nextDegree === 0) queue.push(childId);
     }
   }
 
+  return visited;
+}
+
+function hasParentChildCycle(relationships: DuplicateRelationship[]) {
+  const { childrenByParent, indegree } = buildParentChildGraph(relationships);
+  const visited = visitAcyclicNodes(childrenByParent, indegree);
   return visited !== indegree.size;
 }
 

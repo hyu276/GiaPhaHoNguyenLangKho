@@ -74,6 +74,20 @@ const initialState = {
       x: 540,
       y: 450,
     },
+    {
+      id: "P007",
+      name: "Nguyễn Văn Cường",
+      description:
+        "Hồ sơ duplicate synthetic: cùng tên và năm sinh với P005 để review merge.",
+      birth: 1958,
+      death: null,
+      sex: "male",
+      visibility: "public",
+      archived: false,
+      mergedInto: null,
+      x: 800,
+      y: 450,
+    },
   ],
   relationships: [
     { id: "R001", kind: "partnership", source: "P001", target: "P002" },
@@ -83,6 +97,7 @@ const initialState = {
     { id: "R005", kind: "parent_child", source: "P003", target: "P005" },
     { id: "R006", kind: "parent_child", source: "P004", target: "P005" },
     { id: "R007", kind: "partnership", source: "P005", target: "P006" },
+    { id: "R008", kind: "partnership", source: "P007", target: "P006" },
   ],
   sources: [
     {
@@ -142,6 +157,32 @@ const initialState = {
       dateText: null,
       dateQualifier: null,
     },
+    {
+      id: "C004",
+      sourceId: "S002",
+      personId: "P007",
+      relationshipId: null,
+      claimKind: "identity",
+      claimText: "Hồ sơ duplicate synthetic cần review trước khi merge.",
+      citationLocator: "demo duplicate",
+      note: "Citation này sẽ migrate sang target khi merge.",
+      certainty: "possible",
+      dateText: null,
+      dateQualifier: null,
+    },
+    {
+      id: "C005",
+      sourceId: "S001",
+      personId: null,
+      relationshipId: "R008",
+      claimKind: "relationship",
+      claimText: "Citation synthetic trên cạnh duplicate partnership.",
+      citationLocator: "demo edge",
+      note: "Citation sẽ chuyển sang R007 khi deduplicate.",
+      certainty: "probable",
+      dateText: null,
+      dateQualifier: null,
+    },
   ],
 };
 
@@ -162,6 +203,8 @@ let layoutFuture = [];
 let selectedProvenanceTarget = null;
 let editingSourceId = null;
 let editingCitationId = null;
+let duplicatePair = null;
+let duplicatePreview = null;
 let dragContext = null;
 
 const canvas = document.querySelector("#canvas");
@@ -1545,6 +1588,441 @@ function removeCitation(citationId) {
   renderProvenance();
 }
 
+function normalizeDuplicateName(value) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("vi-VN")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function isActiveDuplicatePerson(person) {
+  return !person.archived && !person.mergedInto;
+}
+
+function hasStrongDuplicateDateSignal(first, second) {
+  const birthMatches =
+    first.birth !== null && second.birth !== null && first.birth === second.birth;
+  const deathMatches =
+    first.death !== null && second.death !== null && first.death === second.death;
+  return birthMatches || deathMatches;
+}
+
+function isDuplicateCandidatePair(first, second) {
+  if (!isActiveDuplicatePerson(first) || !isActiveDuplicatePerson(second)) {
+    return false;
+  }
+  const firstName = normalizeDuplicateName(first.name);
+  const secondName = normalizeDuplicateName(second.name);
+  return (
+    firstName.length > 0 &&
+    firstName === secondName &&
+    hasStrongDuplicateDateSignal(first, second)
+  );
+}
+
+function duplicateReasons(first, second) {
+  const reasons = ["tên chuẩn hóa trùng"];
+  if (first.birth !== null && first.birth === second.birth) {
+    reasons.push(`năm sinh trùng ${first.birth}`);
+  }
+  if (first.death !== null && first.death === second.death) {
+    reasons.push(`năm mất trùng ${first.death}`);
+  }
+  return reasons;
+}
+
+function findDuplicateCandidates() {
+  const candidates = [];
+
+  state.people.forEach((first, firstIndex) => {
+    state.people.slice(firstIndex + 1).forEach((second) => {
+      if (!isDuplicateCandidatePair(first, second)) return;
+      candidates.push({
+        firstPersonId: first.id,
+        secondPersonId: second.id,
+        reasons: duplicateReasons(first, second),
+      });
+    });
+  });
+
+  return candidates;
+}
+
+function canonicalDuplicateEndpoints(kind, source, target) {
+  if (kind === "partnership" && source.localeCompare(target) > 0) {
+    return [target, source];
+  }
+  return [source, target];
+}
+
+function duplicateRelationshipKey(kind, source, target) {
+  const endpoints = canonicalDuplicateEndpoints(kind, source, target);
+  return `${kind}:${endpoints[0]}:${endpoints[1]}`;
+}
+
+function remapDuplicateRelationship(relation, targetPersonId, sourcePersonId) {
+  const remappedSource =
+    relation.source === sourcePersonId ? targetPersonId : relation.source;
+  const remappedTarget =
+    relation.target === sourcePersonId ? targetPersonId : relation.target;
+  const endpoints = canonicalDuplicateEndpoints(
+    relation.kind,
+    remappedSource,
+    remappedTarget,
+  );
+  return { source: endpoints[0], target: endpoints[1] };
+}
+
+function indexNonSourceRelationships(sourcePersonId) {
+  const index = new Map();
+
+  state.relationships.forEach((relation) => {
+    if (relation.source === sourcePersonId || relation.target === sourcePersonId) {
+      return;
+    }
+    index.set(
+      duplicateRelationshipKey(relation.kind, relation.source, relation.target),
+      relation.id,
+    );
+  });
+
+  return index;
+}
+
+function buildDuplicateRelationshipChange(
+  relation,
+  targetPersonId,
+  sourcePersonId,
+  existingByKey,
+) {
+  const remapped = remapDuplicateRelationship(
+    relation,
+    targetPersonId,
+    sourcePersonId,
+  );
+  if (remapped.source === remapped.target) {
+    return {
+      blocker: `Quan hệ ${relation.id} sẽ trở thành self-link sau merge.`,
+      change: null,
+    };
+  }
+
+  const key = duplicateRelationshipKey(
+    relation.kind,
+    remapped.source,
+    remapped.target,
+  );
+  const existingRelationshipId = existingByKey.get(key) || null;
+  const change = {
+    relationshipId: relation.id,
+    kind: relation.kind,
+    fromSource: relation.source,
+    fromTarget: relation.target,
+    toSource: remapped.source,
+    toTarget: remapped.target,
+    action: existingRelationshipId ? "deduplicate" : "migrate",
+    existingRelationshipId,
+  };
+
+  if (!existingRelationshipId) existingByKey.set(key, relation.id);
+  return { blocker: null, change };
+}
+
+function buildDuplicateRelationshipChanges(targetPersonId, sourcePersonId) {
+  const existingByKey = indexNonSourceRelationships(sourcePersonId);
+  const sourceRelations = state.relationships.filter(
+    (relation) =>
+      relation.source === sourcePersonId || relation.target === sourcePersonId,
+  );
+  const changes = [];
+  const blockers = [];
+
+  sourceRelations.forEach((relation) => {
+    const result = buildDuplicateRelationshipChange(
+      relation,
+      targetPersonId,
+      sourcePersonId,
+      existingByKey,
+    );
+    if (result.blocker) blockers.push(result.blocker);
+    if (result.change) changes.push(result.change);
+  });
+
+  return { changes, blockers };
+}
+
+function effectiveRelationshipsAfterDuplicateMerge(sourcePersonId, changes) {
+  const effective = state.relationships
+    .filter(
+      (relation) =>
+        relation.source !== sourcePersonId && relation.target !== sourcePersonId,
+    )
+    .map((relation) => ({ ...relation }));
+
+  changes.forEach((change) => {
+    if (change.action !== "migrate") return;
+    effective.push({
+      id: change.relationshipId,
+      kind: change.kind,
+      source: change.toSource,
+      target: change.toTarget,
+    });
+  });
+
+  return effective;
+}
+
+function addParentChildGraphEdge(childrenByParent, indegree, relation) {
+  const children = childrenByParent.get(relation.source) || [];
+  children.push(relation.target);
+  childrenByParent.set(relation.source, children);
+  indegree.set(relation.target, (indegree.get(relation.target) || 0) + 1);
+  if (!indegree.has(relation.source)) indegree.set(relation.source, 0);
+}
+
+function hasDuplicateParentChildCycle(relationships) {
+  const childrenByParent = new Map();
+  const indegree = new Map();
+
+  relationships.forEach((relation) => {
+    if (relation.kind !== "parent_child") return;
+    addParentChildGraphEdge(childrenByParent, indegree, relation);
+  });
+
+  const queue = [...indegree.entries()]
+    .filter((entry) => entry[1] === 0)
+    .map((entry) => entry[0]);
+  let visited = 0;
+
+  while (queue.length) {
+    const personId = queue.shift();
+    if (!personId) continue;
+    visited += 1;
+    const children = childrenByParent.get(personId) || [];
+    children.forEach((childId) => {
+      const nextDegree = (indegree.get(childId) || 0) - 1;
+      indegree.set(childId, nextDegree);
+      if (nextDegree === 0) queue.push(childId);
+    });
+  }
+
+  return visited !== indegree.size;
+}
+
+function buildDuplicateMergePreview(targetPersonId, sourcePersonId) {
+  const relationshipResult = buildDuplicateRelationshipChanges(
+    targetPersonId,
+    sourcePersonId,
+  );
+  const effective = effectiveRelationshipsAfterDuplicateMerge(
+    sourcePersonId,
+    relationshipResult.changes,
+  );
+  const blockers = [...relationshipResult.blockers];
+
+  if (hasDuplicateParentChildCycle(effective)) {
+    blockers.push("Merge sẽ tạo vòng lặp tổ tiên trong quan hệ cha/mẹ – con.");
+  }
+
+  return {
+    changes: relationshipResult.changes,
+    blockers,
+    personCitationCount: state.citations.filter(
+      (citation) => citation.personId === sourcePersonId,
+    ).length,
+    relationshipCitationCount: state.citations.filter((citation) =>
+      relationshipResult.changes.some(
+        (change) => change.relationshipId === citation.relationshipId,
+      ),
+    ).length,
+  };
+}
+
+function setDuplicateReviewVisibility(visible) {
+  document.querySelector("#duplicateReview").hidden = !visible;
+}
+
+function renderDuplicateCandidateButton(candidate) {
+  const first = getPerson(candidate.firstPersonId);
+  const second = getPerson(candidate.secondPersonId);
+  if (!first || !second) return null;
+
+  const item = document.createElement("button");
+  item.type = "button";
+  item.className = "duplicate-candidate";
+  item.innerHTML = `
+    <strong>${first.name} ↔ ${second.name}</strong>
+    <span>${formatYears(first)} · ${formatYears(second)}</span>
+    <small>${candidate.reasons.join(" · ")}</small>
+  `;
+  item.addEventListener("click", () =>
+    openDuplicatePair(candidate.firstPersonId, candidate.secondPersonId),
+  );
+  return item;
+}
+
+function renderDuplicateCandidates() {
+  const list = document.querySelector("#duplicateCandidateList");
+  list.replaceChildren();
+  const candidates = findDuplicateCandidates();
+
+  if (!candidates.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent =
+      "Không có candidate nào vượt ngưỡng bảo thủ. Không có auto-merge.";
+    list.appendChild(empty);
+    return;
+  }
+
+  candidates.forEach((candidate) => {
+    const button = renderDuplicateCandidateButton(candidate);
+    if (button) list.appendChild(button);
+  });
+}
+
+function renderDuplicateImpact(preview) {
+  const list = document.querySelector("#duplicateImpactList");
+  list.replaceChildren();
+
+  preview.changes.forEach((change) => {
+    const item = document.createElement("li");
+    const action =
+      change.action === "deduplicate" ? "Gộp cạnh trùng" : "Di chuyển cạnh";
+    item.textContent =
+      `${action}: ${change.relationshipId} · ${change.fromSource} → ` +
+      `${change.fromTarget} thành ${change.toSource} → ${change.toTarget}`;
+    list.appendChild(item);
+  });
+
+  if (!preview.changes.length) {
+    const item = document.createElement("li");
+    item.textContent = "Source không có relationship cần migrate.";
+    list.appendChild(item);
+  }
+}
+
+function renderDuplicateBlockers(preview) {
+  const block = document.querySelector("#duplicateBlockers");
+  if (!preview.blockers.length) {
+    block.textContent =
+      "Preview không phát hiện blocker. Vẫn cần xác nhận thủ công.";
+    block.classList.remove("danger");
+    return;
+  }
+
+  block.textContent = preview.blockers.join(" · ");
+  block.classList.add("danger");
+}
+
+function updateDuplicateExecuteState() {
+  const confirmation = document.querySelector("#duplicateConfirmation").value;
+  const blocked = duplicatePreview && duplicatePreview.blockers.length > 0;
+  document.querySelector("#executeDuplicateMerge").disabled =
+    !duplicatePreview || blocked || confirmation !== "MERGE";
+}
+
+function renderDuplicatePair() {
+  if (!duplicatePair) return;
+  const target = getPerson(duplicatePair.targetPersonId);
+  const source = getPerson(duplicatePair.sourcePersonId);
+  if (!target || !source) return;
+
+  duplicatePreview = buildDuplicateMergePreview(target.id, source.id);
+  document.querySelector("#duplicateTarget").textContent =
+    `${target.name} · ${formatYears(target)} · giữ canonical`;
+  document.querySelector("#duplicateSource").textContent =
+    `${source.name} · ${formatYears(source)} · sẽ lưu trữ`;
+  document.querySelector("#duplicateCitationImpact").textContent =
+    `${duplicatePreview.personCitationCount} citation người · ` +
+    `${duplicatePreview.relationshipCitationCount} citation quan hệ`;
+  document.querySelector("#duplicateConfirmation").value = "";
+  renderDuplicateImpact(duplicatePreview);
+  renderDuplicateBlockers(duplicatePreview);
+  updateDuplicateExecuteState();
+  setDuplicateReviewVisibility(true);
+}
+
+function openDuplicatePair(targetPersonId, sourcePersonId) {
+  duplicatePair = { targetPersonId, sourcePersonId };
+  renderDuplicatePair();
+}
+
+function swapDuplicatePair() {
+  if (!duplicatePair) return;
+  duplicatePair = {
+    targetPersonId: duplicatePair.sourcePersonId,
+    sourcePersonId: duplicatePair.targetPersonId,
+  };
+  renderDuplicatePair();
+}
+
+function openDuplicateDialog() {
+  duplicatePair = null;
+  duplicatePreview = null;
+  renderDuplicateCandidates();
+  setDuplicateReviewVisibility(false);
+  document.querySelector("#duplicateDialog").showModal();
+}
+
+function migrateDuplicateRelationshipCitation(change) {
+  if (change.action !== "deduplicate" || !change.existingRelationshipId) return;
+  state.citations.forEach((citation) => {
+    if (citation.relationshipId === change.relationshipId) {
+      citation.relationshipId = change.existingRelationshipId;
+    }
+  });
+}
+
+function applyDuplicateRelationshipChange(change) {
+  if (change.action === "deduplicate") {
+    migrateDuplicateRelationshipCitation(change);
+    state.relationships = state.relationships.filter(
+      (relation) => relation.id !== change.relationshipId,
+    );
+    return;
+  }
+
+  const relation = state.relationships.find(
+    (item) => item.id === change.relationshipId,
+  );
+  if (!relation) return;
+  relation.source = change.toSource;
+  relation.target = change.toTarget;
+}
+
+function executeDuplicateMerge() {
+  if (!duplicatePair || !duplicatePreview) return;
+  if (duplicatePreview.blockers.length) return;
+  if (document.querySelector("#duplicateConfirmation").value !== "MERGE") return;
+  if (!window.confirm("Thực thi merge synthetic này?")) return;
+
+  checkpoint();
+  duplicatePreview.changes.forEach(applyDuplicateRelationshipChange);
+  state.citations.forEach((citation) => {
+    if (citation.personId === duplicatePair.sourcePersonId) {
+      citation.personId = duplicatePair.targetPersonId;
+    }
+  });
+
+  const source = getPerson(duplicatePair.sourcePersonId);
+  if (source) {
+    source.archived = true;
+    source.mergedInto = duplicatePair.targetPersonId;
+  }
+
+  persistState("Đã merge duplicate synthetic");
+  selectedId = duplicatePair.targetPersonId;
+  duplicatePair = null;
+  duplicatePreview = null;
+  render();
+  renderDuplicateCandidates();
+  setDuplicateReviewVisibility(false);
+}
+
 function toggleSelectedBranch() {
   const person = getPerson(selectedId);
   if (!person) return;
@@ -1682,6 +2160,18 @@ document
 document
   .querySelector("#addCitation")
   .addEventListener("click", () => openCitationDialog());
+document
+  .querySelector("#reviewDuplicates")
+  .addEventListener("click", openDuplicateDialog);
+document
+  .querySelector("#swapDuplicatePair")
+  .addEventListener("click", swapDuplicatePair);
+document
+  .querySelector("#executeDuplicateMerge")
+  .addEventListener("click", executeDuplicateMerge);
+document
+  .querySelector("#duplicateConfirmation")
+  .addEventListener("input", updateDuplicateExecuteState);
 document.querySelector("#sourceForm").addEventListener("submit", (event) => {
   if (event.submitter?.value === "cancel") return;
   if (!saveSourceFromDialog()) event.preventDefault();
@@ -1753,6 +2243,8 @@ document.querySelector("#resetDemo").addEventListener("click", () => {
   selectedProvenanceTarget = null;
   editingSourceId = null;
   editingCitationId = null;
+  duplicatePair = null;
+  duplicatePreview = null;
   resetFilterControls();
   localStorage.removeItem(STORAGE_KEY);
   render();

@@ -170,7 +170,7 @@ Add:
 
 ## Step 7 — Duplicate detection and merge review
 
-**Status: in progress in GitHub development stack; detection/domain, atomic merge RPC, audit schema and server review actions implemented. Review UI and static preview pending.**
+**Status: in progress in GitHub development stack; detection/domain, atomic merge RPC, audit schema, server review actions and side-by-side review UI implemented. Static preview pending.**
 
 Goal: resolve duplicate people without corrupting the graph.
 

@@ -137,6 +137,35 @@ async function fetchCitationRows(
   return (result.data ?? []) as CitationRow[];
 }
 
+async function getRevisionConflict(
+  supabase: SupabaseServerClient,
+  table: "genealogy_sources" | "genealogy_citations",
+  id: string,
+  expectedRevision: number | undefined,
+  label: string,
+) {
+  if (expectedRevision === undefined) return null;
+
+  const { data } = await supabase
+    .from(table)
+    .select("revision")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (
+    typeof data?.revision === "number" &&
+    data.revision !== expectedRevision
+  ) {
+    return {
+      ok: false as const,
+      kind: "conflict" as const,
+      message: conflictMessage(label),
+    };
+  }
+
+  return null;
+}
+
 async function fetchSourceRows(
   supabase: SupabaseServerClient,
   role: ViewerRole,
@@ -253,26 +282,17 @@ export async function updateProvenanceSource(
   const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    if (parsed.data.expectedRevision !== undefined) {
-      const { data: current } = await supabase
-        .from("genealogy_sources")
-        .select("revision")
-        .eq("id", parsed.data.sourceId)
-        .maybeSingle();
-
-      if (
-        typeof current?.revision === "number" &&
-        current.revision !== parsed.data.expectedRevision
-      ) {
-        return {
-          ok: false,
-          kind: "conflict",
-          message: conflictMessage("Nguồn tư liệu"),
-        };
-      }
-    }
-
-    return { ok: false, message: "Không thể cập nhật nguồn tư liệu." };
+    const conflict = await getRevisionConflict(
+      supabase,
+      "genealogy_sources",
+      parsed.data.sourceId,
+      parsed.data.expectedRevision,
+      "Nguồn tư liệu",
+    );
+    return conflict ?? {
+      ok: false,
+      message: "Không thể cập nhật nguồn tư liệu.",
+    };
   }
 
   revalidatePath("/admin/tree");
@@ -348,26 +368,14 @@ export async function updateProvenanceCitation(
   const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    if (parsed.data.expectedRevision !== undefined) {
-      const { data: current } = await supabase
-        .from("genealogy_citations")
-        .select("revision")
-        .eq("id", parsed.data.citationId)
-        .maybeSingle();
-
-      if (
-        typeof current?.revision === "number" &&
-        current.revision !== parsed.data.expectedRevision
-      ) {
-        return {
-          ok: false,
-          kind: "conflict",
-          message: conflictMessage("Citation"),
-        };
-      }
-    }
-
-    return { ok: false, message: "Không thể cập nhật citation." };
+    const conflict = await getRevisionConflict(
+      supabase,
+      "genealogy_citations",
+      parsed.data.citationId,
+      parsed.data.expectedRevision,
+      "Citation",
+    );
+    return conflict ?? { ok: false, message: "Không thể cập nhật citation." };
   }
 
   revalidatePath("/admin/tree");
@@ -395,26 +403,14 @@ export async function removeProvenanceCitation(
   const { data, error } = await query.select("id, revision").single();
 
   if (error || !data) {
-    if (parsed.data.expectedRevision !== undefined) {
-      const { data: current } = await supabase
-        .from("genealogy_citations")
-        .select("revision")
-        .eq("id", parsed.data.citationId)
-        .maybeSingle();
-
-      if (
-        typeof current?.revision === "number" &&
-        current.revision !== parsed.data.expectedRevision
-      ) {
-        return {
-          ok: false,
-          kind: "conflict",
-          message: conflictMessage("Citation"),
-        };
-      }
-    }
-
-    return { ok: false, message: "Không thể xóa citation." };
+    const conflict = await getRevisionConflict(
+      supabase,
+      "genealogy_citations",
+      parsed.data.citationId,
+      parsed.data.expectedRevision,
+      "Citation",
+    );
+    return conflict ?? { ok: false, message: "Không thể xóa citation." };
   }
 
   revalidatePath("/admin/tree");

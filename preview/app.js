@@ -1604,9 +1604,13 @@ function isActiveDuplicatePerson(person) {
 
 function hasStrongDuplicateDateSignal(first, second) {
   const birthMatches =
-    first.birth !== null && second.birth !== null && first.birth === second.birth;
+    first.birth !== null &&
+    second.birth !== null &&
+    first.birth === second.birth;
   const deathMatches =
-    first.death !== null && second.death !== null && first.death === second.death;
+    first.death !== null &&
+    second.death !== null &&
+    first.death === second.death;
   return birthMatches || deathMatches;
 }
 
@@ -1680,7 +1684,10 @@ function indexNonSourceRelationships(sourcePersonId) {
   const index = new Map();
 
   state.relationships.forEach((relation) => {
-    if (relation.source === sourcePersonId || relation.target === sourcePersonId) {
+    if (
+      relation.source === sourcePersonId ||
+      relation.target === sourcePersonId
+    ) {
       return;
     }
     index.set(
@@ -1758,7 +1765,8 @@ function effectiveRelationshipsAfterDuplicateMerge(sourcePersonId, changes) {
   const effective = state.relationships
     .filter(
       (relation) =>
-        relation.source !== sourcePersonId && relation.target !== sourcePersonId,
+        relation.source !== sourcePersonId &&
+        relation.target !== sourcePersonId,
     )
     .map((relation) => ({ ...relation }));
 
@@ -1997,7 +2005,8 @@ function applyDuplicateRelationshipChange(change) {
 function executeDuplicateMerge() {
   if (!duplicatePair || !duplicatePreview) return;
   if (duplicatePreview.blockers.length) return;
-  if (document.querySelector("#duplicateConfirmation").value !== "MERGE") return;
+  if (document.querySelector("#duplicateConfirmation").value !== "MERGE")
+    return;
   if (!window.confirm("Thực thi merge synthetic này?")) return;
 
   checkpoint();

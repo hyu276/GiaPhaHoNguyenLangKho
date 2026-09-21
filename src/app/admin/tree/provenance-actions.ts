@@ -289,10 +289,12 @@ export async function updateProvenanceSource(
       parsed.data.expectedRevision,
       "Nguồn tư liệu",
     );
-    return conflict ?? {
-      ok: false,
-      message: "Không thể cập nhật nguồn tư liệu.",
-    };
+    return (
+      conflict ?? {
+        ok: false,
+        message: "Không thể cập nhật nguồn tư liệu.",
+      }
+    );
   }
 
   revalidatePath("/admin/tree");

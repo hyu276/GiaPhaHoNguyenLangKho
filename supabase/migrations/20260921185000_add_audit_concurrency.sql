@@ -328,9 +328,13 @@ begin
     undo_of_value
   );
 
-  return coalesce(new, old);
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+
+  return new;
 end;
-$$;
+$;
 
 revoke all on function public.audit_genealogy_mutation() from public;
 

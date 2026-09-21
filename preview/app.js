@@ -673,17 +673,29 @@ function getTargetCitations(target) {
   );
 }
 
+function getPersonTargetLabel(personId) {
+  const person = getPerson(personId);
+  return person ? person.name : "Người không khả dụng";
+}
+
+function getRelationshipTargetLabel(relationshipId) {
+  const relation = state.relationships.find(
+    (item) => item.id === relationshipId,
+  );
+  if (!relation) return "Quan hệ không khả dụng";
+
+  const sourcePerson = getPerson(relation.source);
+  const targetPerson = getPerson(relation.target);
+  const sourceName = sourcePerson ? sourcePerson.name : "?";
+  const targetName = targetPerson ? targetPerson.name : "?";
+  return `${sourceName} ↔ ${targetName}`;
+}
+
 function getTargetLabel(target) {
   if (!target) return "Chưa chọn mục";
-  if (target.kind === "person") {
-    return getPerson(target.id)?.name ?? "Người không khả dụng";
-  }
-
-  const relation = state.relationships.find((item) => item.id === target.id);
-  if (!relation) return "Quan hệ không khả dụng";
-  const source = getPerson(relation.source)?.name ?? "?";
-  const targetName = getPerson(relation.target)?.name ?? "?";
-  return `${source} ↔ ${targetName}`;
+  return target.kind === "person"
+    ? getPersonTargetLabel(target.id)
+    : getRelationshipTargetLabel(target.id);
 }
 
 function createProvenanceBadge(text) {
@@ -1203,26 +1215,40 @@ function saveRelationshipFromDialog() {
   return true;
 }
 
+function getRelationshipRemovalBlockReason(relation) {
+  const hasCitations = state.citations.some(
+    (citation) => citation.relationshipId === relation.id,
+  );
+  if (hasCitations) {
+    return "Quan hệ này đang có citation. Hãy xóa/review citation trước để không làm mất provenance.";
+  }
+
+  const source = getPerson(relation.source);
+  const target = getPerson(relation.target);
+  const sourceArchived = source ? source.archived : false;
+  const targetArchived = target ? target.archived : false;
+  if (sourceArchived || targetArchived) {
+    return "Hãy khôi phục hồ sơ đã lưu trữ trước khi sửa quan hệ này.";
+  }
+
+  return null;
+}
+
 function removeRelationship(id) {
   const relation = state.relationships.find((item) => item.id === id);
   if (!relation) return;
 
-  const hasCitations = state.citations.some(
-    (citation) => citation.relationshipId === id,
+  const blockReason = getRelationshipRemovalBlockReason(relation);
+  if (blockReason) {
+    window.alert(blockReason);
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Xóa quan hệ này? Hai người sẽ không bị xóa.",
   );
-  if (hasCitations) {
-    window.alert(
-      "Quan hệ này đang có citation. Hãy xóa/review citation trước để không làm mất provenance.",
-    );
-    return;
-  }
-  const source = getPerson(relation.source);
-  const target = getPerson(relation.target);
-  if (source?.archived || target?.archived) {
-    window.alert("Hãy khôi phục hồ sơ đã lưu trữ trước khi sửa quan hệ này.");
-    return;
-  }
-  if (!window.confirm("Xóa quan hệ này? Hai người sẽ không bị xóa.")) return;
+  if (!confirmed) return;
+
   checkpoint();
   state.relationships = state.relationships.filter((item) => item.id !== id);
   persistState("Đã xóa quan hệ demo");
@@ -1316,20 +1342,39 @@ function nullableFieldValue(selector) {
   return value.length > 0 ? value : null;
 }
 
+function getSourceDialogValues(source) {
+  if (source) {
+    return {
+      title: source.title,
+      sourceType: source.sourceType,
+      repositoryName: source.repositoryName || "",
+      referenceCode: source.referenceCode || "",
+      sourceUrl: source.sourceUrl || "",
+      heading: "Sửa nguồn tư liệu",
+    };
+  }
+
+  return {
+    title: "",
+    sourceType: "family_book",
+    repositoryName: "",
+    referenceCode: "",
+    sourceUrl: "",
+    heading: "Thêm nguồn tư liệu",
+  };
+}
+
 function openSourceDialog(sourceId = null) {
   editingSourceId = sourceId;
-  const source = state.sources.find((item) => item.id === sourceId) ?? null;
-  document.querySelector("#sourceDialogTitle").textContent = source
-    ? "Sửa nguồn tư liệu"
-    : "Thêm nguồn tư liệu";
-  document.querySelector("#sourceTitle").value = source?.title ?? "";
-  document.querySelector("#sourceType").value =
-    source?.sourceType ?? "family_book";
-  document.querySelector("#sourceRepository").value =
-    source?.repositoryName ?? "";
-  document.querySelector("#sourceReference").value =
-    source?.referenceCode ?? "";
-  document.querySelector("#sourceUrl").value = source?.sourceUrl ?? "";
+  const source = state.sources.find((item) => item.id === sourceId) || null;
+  const values = getSourceDialogValues(source);
+
+  document.querySelector("#sourceDialogTitle").textContent = values.heading;
+  document.querySelector("#sourceTitle").value = values.title;
+  document.querySelector("#sourceType").value = values.sourceType;
+  document.querySelector("#sourceRepository").value = values.repositoryName;
+  document.querySelector("#sourceReference").value = values.referenceCode;
+  document.querySelector("#sourceUrl").value = values.sourceUrl;
   document.querySelector("#sourceDialog").showModal();
 }
 
@@ -1379,6 +1424,35 @@ function populateCitationSourceOptions(selectedSourceId = null) {
   });
 }
 
+function getCitationDialogValues(citation) {
+  if (citation) {
+    return {
+      sourceId: citation.sourceId,
+      claimKind: citation.claimKind,
+      claimText: citation.claimText,
+      citationLocator: citation.citationLocator || "",
+      certainty: citation.certainty,
+      dateQualifier: citation.dateQualifier || "",
+      dateText: citation.dateText || "",
+      note: citation.note || "",
+      heading: "Sửa citation",
+    };
+  }
+
+  const firstSource = state.sources[0];
+  return {
+    sourceId: firstSource ? firstSource.id : "",
+    claimKind: "note",
+    claimText: "",
+    citationLocator: "",
+    certainty: "unknown",
+    dateQualifier: "",
+    dateText: "",
+    note: "",
+    heading: "Thêm citation",
+  };
+}
+
 function openCitationDialog(citationId = null) {
   const target = getProvenanceTarget();
   if (!target) return;
@@ -1389,23 +1463,20 @@ function openCitationDialog(citationId = null) {
 
   editingCitationId = citationId;
   const citation =
-    state.citations.find((item) => item.id === citationId) ?? null;
-  document.querySelector("#citationDialogTitle").textContent = citation
-    ? "Sửa citation"
-    : "Thêm citation";
+    state.citations.find((item) => item.id === citationId) || null;
+  const values = getCitationDialogValues(citation);
+
+  document.querySelector("#citationDialogTitle").textContent = values.heading;
   document.querySelector("#citationTarget").textContent =
     getTargetLabel(target);
-  populateCitationSourceOptions(citation?.sourceId ?? state.sources[0].id);
-  document.querySelector("#citationKind").value = citation?.claimKind ?? "note";
-  document.querySelector("#citationClaim").value = citation?.claimText ?? "";
-  document.querySelector("#citationLocator").value =
-    citation?.citationLocator ?? "";
-  document.querySelector("#citationCertainty").value =
-    citation?.certainty ?? "unknown";
-  document.querySelector("#citationDateQualifier").value =
-    citation?.dateQualifier ?? "";
-  document.querySelector("#citationDateText").value = citation?.dateText ?? "";
-  document.querySelector("#citationNote").value = citation?.note ?? "";
+  populateCitationSourceOptions(values.sourceId);
+  document.querySelector("#citationKind").value = values.claimKind;
+  document.querySelector("#citationClaim").value = values.claimText;
+  document.querySelector("#citationLocator").value = values.citationLocator;
+  document.querySelector("#citationCertainty").value = values.certainty;
+  document.querySelector("#citationDateQualifier").value = values.dateQualifier;
+  document.querySelector("#citationDateText").value = values.dateText;
+  document.querySelector("#citationNote").value = values.note;
   document.querySelector("#citationDialog").showModal();
 }
 

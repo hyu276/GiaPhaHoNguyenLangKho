@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import {
   archivePerson,
   createPerson,
@@ -238,11 +239,14 @@ export default async function AdminTreePage() {
           </p>
         </div>
 
-        <form action={signOut}>
-          <Button type="submit" variant="outline">
-            Đăng xuất
-          </Button>
-        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          {readOnly ? null : <DuplicateReviewPanel />}
+          <form action={signOut}>
+            <Button type="submit" variant="outline">
+              Đăng xuất
+            </Button>
+          </form>
+        </div>
       </header>
 
       <AdminTreeEditor

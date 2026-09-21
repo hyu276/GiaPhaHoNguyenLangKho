@@ -50,6 +50,29 @@ function mapAudit(row: AuditRow): MutationAuditRecord {
   };
 }
 
+function getUndoFailure(error: { code?: string; message?: string } | null) {
+  const message = error?.message ?? "";
+  const isConflict =
+    error?.code === "40001" ||
+    message.includes("stale revision") ||
+    message.includes("changed after audited mutation");
+
+  if (isConflict) {
+    return {
+      ok: false as const,
+      kind: "conflict" as const,
+      message:
+        "Không thể hoàn tác vì dữ liệu đã thay đổi sau mutation này. Hãy tải lại audit log và review trạng thái mới.",
+    };
+  }
+
+  return {
+    ok: false as const,
+    message:
+      "Mutation này không còn có thể hoàn tác an toàn hoặc dữ liệu hiện tại không thỏa các ràng buộc gia phả.",
+  };
+}
+
 export async function loadRecentMutationAudits(
   input: RecentAuditQuery = { limit: 30 },
 ): Promise<AuditLoadResult> {
@@ -88,25 +111,7 @@ export async function undoMutationAudit(
   });
 
   if (error || typeof data !== "string") {
-    const message = error?.message ?? "";
-    if (
-      error?.code === "40001" ||
-      message.includes("stale revision") ||
-      message.includes("changed after audited mutation")
-    ) {
-      return {
-        ok: false,
-        kind: "conflict",
-        message:
-          "Không thể hoàn tác vì dữ liệu đã thay đổi sau mutation này. Hãy tải lại audit log và review trạng thái mới.",
-      };
-    }
-
-    return {
-      ok: false,
-      message:
-        "Mutation này không còn có thể hoàn tác an toàn hoặc dữ liệu hiện tại không thỏa các ràng buộc gia phả.",
-    };
+    return getUndoFailure(error);
   }
 
   revalidatePath("/admin/tree");

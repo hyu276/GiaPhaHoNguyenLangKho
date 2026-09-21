@@ -521,7 +521,7 @@ function ReviewContent({
 
 function DuplicateReviewModal(props: DuplicateReviewModalProps) {
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6">
+    <div aria-label="Duplicate merge review" aria-modal="true" className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6" role="dialog">
       <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

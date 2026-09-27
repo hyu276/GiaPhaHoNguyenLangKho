@@ -6,7 +6,7 @@ const spectatorEmail = process.env.E2E_SPECTATOR_EMAIL;
 const spectatorPassword = process.env.E2E_SPECTATOR_PASSWORD;
 const hasSupabaseEnvironment = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 );
 const hasAdminCredentials = Boolean(
   hasSupabaseEnvironment && adminEmail && adminPassword,

@@ -21,8 +21,5 @@ test("admin login is keyboard accessible", async ({ page }) => {
   await expect(submit).toBeFocused();
 
   await expect(email).toHaveAttribute("autocomplete", "email");
-  await expect(password).toHaveAttribute(
-    "autocomplete",
-    "current-password",
-  );
+  await expect(password).toHaveAttribute("autocomplete", "current-password");
 });

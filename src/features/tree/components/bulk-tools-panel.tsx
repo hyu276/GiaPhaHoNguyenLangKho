@@ -125,7 +125,11 @@ export function BulkToolsPanel() {
                   Import preview / backup
                 </h2>
               </div>
-              <Button onClick={() => setOpen(false)} type="button" variant="ghost">
+              <Button
+                onClick={() => setOpen(false)}
+                type="button"
+                variant="ghost"
+              >
                 Đóng
               </Button>
             </div>

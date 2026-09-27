@@ -18,8 +18,7 @@ function changingPeople(
   target: TargetVisibility,
 ) {
   return people.filter(
-    (person) =>
-      selectedIds.has(person.id) && person.visibility !== target,
+    (person) => selectedIds.has(person.id) && person.visibility !== target,
   );
 }
 
@@ -226,7 +225,11 @@ export function BatchVisibilityPanel() {
                   batch.
                 </p>
               </div>
-              <Button onClick={() => setOpen(false)} type="button" variant="ghost">
+              <Button
+                onClick={() => setOpen(false)}
+                type="button"
+                variant="ghost"
+              >
                 Đóng
               </Button>
             </div>
@@ -287,9 +290,7 @@ export function BatchVisibilityPanel() {
                 </Button>
                 <Button
                   disabled={
-                    loading ||
-                    changed.length === 0 ||
-                    confirmation !== "APPLY"
+                    loading || changed.length === 0 || confirmation !== "APPLY"
                   }
                   onClick={() => void applyBatch()}
                   type="button"

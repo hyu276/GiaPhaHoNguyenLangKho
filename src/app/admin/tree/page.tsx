@@ -9,6 +9,7 @@ import {
 } from "@/app/admin/tree/audit-actions";
 import { AuditHistoryPanel } from "@/features/tree/components/audit-history-panel";
 import { BatchVisibilityPanel } from "@/features/tree/components/batch-visibility-panel";
+import { BulkToolsPanel } from "@/features/tree/components/bulk-tools-panel";
 import { DataQualityPanel } from "@/features/tree/components/data-quality-panel";
 import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import {
@@ -314,6 +315,11 @@ function AdminQualityEntry({ readOnly }: { readOnly: boolean }) {
   return <DataQualityPanel />;
 }
 
+function BulkToolsEntry({ readOnly }: { readOnly: boolean }) {
+  if (readOnly) return null;
+  return <BulkToolsPanel />;
+}
+
 function BatchVisibilityEntry({ readOnly }: { readOnly: boolean }) {
   if (readOnly) return null;
   return <BatchVisibilityPanel />;
@@ -350,6 +356,7 @@ export default async function AdminTreePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <BulkToolsEntry readOnly={readOnly} />
           <BatchVisibilityEntry readOnly={readOnly} />
           <AdminQualityEntry readOnly={readOnly} />
           <DuplicateReviewEntry readOnly={readOnly} />

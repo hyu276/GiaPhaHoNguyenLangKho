@@ -45,8 +45,8 @@ function validBackup() {
       {
         id: CITATION,
         source_id: SOURCE,
-        person_id: null,
-        relationship_id: RELATIONSHIP,
+        person_id: null as string | null,
+        relationship_id: RELATIONSHIP as string | null,
       },
     ],
   };

@@ -52,9 +52,7 @@ function backup(): GenealogyBackup {
         revision: 1,
       },
     ],
-    layouts: [
-      { personId: P1, positionX: 10, positionY: 20, revision: 1 },
-    ],
+    layouts: [{ personId: P1, positionX: 10, positionY: 20, revision: 1 }],
     sources: [
       {
         id: S1,
@@ -135,9 +133,9 @@ describe("structured import preview", () => {
     const result = previewGenealogyImport(value, new Set());
 
     expect(result.valid).toBe(true);
-    expect(result.warnings.some((message) => message.includes("vòng lặp"))).toBe(
-      true,
-    );
+    expect(
+      result.warnings.some((message) => message.includes("vòng lặp")),
+    ).toBe(true);
   });
 });
 

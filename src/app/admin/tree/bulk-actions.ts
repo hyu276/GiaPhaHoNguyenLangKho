@@ -96,15 +96,7 @@ async function exportTable(
 
 export async function exportGenealogyBackup(): Promise<BackupExportResult> {
   const { supabase } = await requireAdmin();
-  const [
-    people,
-    relationships,
-    personLayouts,
-    genealogySources,
-    genealogyCitations,
-    personMergeAudits,
-    mutationAudits,
-  ] = await Promise.all([
+  const exportedTables = await Promise.all([
     exportTable(supabase, "people"),
     exportTable(supabase, "relationships"),
     exportTable(supabase, "person_layouts"),
@@ -114,17 +106,19 @@ export async function exportGenealogyBackup(): Promise<BackupExportResult> {
     exportTable(supabase, "mutation_audits"),
   ]);
 
-  if (
-    !people ||
-    !relationships ||
-    !personLayouts ||
-    !genealogySources ||
-    !genealogyCitations ||
-    !personMergeAudits ||
-    !mutationAudits
-  ) {
+  if (exportedTables.some((rows) => rows === null)) {
     return { ok: false, message: "Không thể tạo backup đầy đủ." };
   }
+
+  const [
+    people,
+    relationships,
+    personLayouts,
+    genealogySources,
+    genealogyCitations,
+    personMergeAudits,
+    mutationAudits,
+  ] = exportedTables as unknown[][];
 
   return {
     ok: true,

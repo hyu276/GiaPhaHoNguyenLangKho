@@ -8,6 +8,7 @@ import {
   undoMutationAudit,
 } from "@/app/admin/tree/audit-actions";
 import { AuditHistoryPanel } from "@/features/tree/components/audit-history-panel";
+import { DataQualityPanel } from "@/features/tree/components/data-quality-panel";
 import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import {
   archivePerson,
@@ -307,6 +308,11 @@ async function signOut() {
   redirect("/admin/login");
 }
 
+function AdminQualityEntry({ readOnly }: { readOnly: boolean }) {
+  if (readOnly) return null;
+  return <DataQualityPanel />;
+}
+
 function DuplicateReviewEntry({ readOnly }: { readOnly: boolean }) {
   if (readOnly) return null;
   return <DuplicateReviewPanel />;
@@ -338,6 +344,7 @@ export default async function AdminTreePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <AdminQualityEntry readOnly={readOnly} />
           <DuplicateReviewEntry readOnly={readOnly} />
           <AuditHistoryEntry auditResult={auditResult} />
           <form action={signOut}>

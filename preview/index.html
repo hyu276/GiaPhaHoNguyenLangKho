@@ -110,6 +110,13 @@
           >
             Data-quality dashboard
           </button>
+          <button
+            class="button secondary bulk-review-launch"
+            id="reviewBulkTools"
+            type="button"
+          >
+            Bulk & backup
+          </button>
 
           <div class="divider"></div>
 
@@ -149,7 +156,7 @@
             <li class="done">Merge duplicates</li>
             <li class="done">Audit / conflict / undo</li>
             <li class="done">Data-quality dashboard</li>
-            <li class="active">Bulk & release prep</li>
+            <li class="done">Bulk & release prep</li>
           </ol>
         </section>
       </aside>
@@ -661,6 +668,92 @@
         </div>
 
         <div id="qualityIssueList" class="quality-issues"></div>
+      </div>
+    </dialog>
+
+    <dialog id="bulkDialog" class="bulk-dialog">
+      <div class="bulk-dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Step 10 · release preparation</p>
+            <h2>Bulk utilities & backup</h2>
+          </div>
+          <form method="dialog">
+            <button class="icon-button" aria-label="Đóng">×</button>
+          </form>
+        </div>
+        <p class="muted">
+          Demo này chỉ thao tác dữ liệu synthetic trong browser. Import luôn
+          preview-only; không có bulk import execution.
+        </p>
+
+        <section class="bulk-section">
+          <h3>Export / backup</h3>
+          <p class="muted">
+            Tạo JSON versioned của toàn bộ synthetic state hiện tại.
+          </p>
+          <button class="button secondary" id="bulkExport" type="button">
+            Tải backup JSON
+          </button>
+        </section>
+
+        <section class="bulk-section">
+          <h3>Structured import dry-run</h3>
+          <label class="field">
+            <span>Chọn backup JSON</span>
+            <input accept=".json,application/json" id="bulkImportFile" type="file" />
+          </label>
+          <button class="button secondary" id="bulkImportPreview" type="button">
+            Preview import
+          </button>
+          <div class="bulk-result" id="bulkImportResult">
+            Chưa chọn file.
+          </div>
+        </section>
+
+        <section class="bulk-section">
+          <h3>Batch visibility</h3>
+          <div class="two-col">
+            <label class="field">
+              <span>Tìm người</span>
+              <input id="bulkPersonSearch" placeholder="Nhập tên..." />
+            </label>
+            <label class="field">
+              <span>Visibility đích</span>
+              <select id="bulkVisibilityTarget">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+              </select>
+            </label>
+          </div>
+          <div class="bulk-people" id="bulkPeopleList"></div>
+          <div class="branch-actions">
+            <button class="button secondary" id="bulkSelectVisible" type="button">
+              Chọn các mục hiển thị
+            </button>
+            <button class="button secondary" id="bulkClearSelection" type="button">
+              Bỏ chọn
+            </button>
+            <button class="button secondary" id="bulkVisibilityPreview" type="button">
+              Preview impact
+            </button>
+          </div>
+          <div class="bulk-result" id="bulkVisibilityImpact">
+            Chưa có preview.
+          </div>
+          <label class="field">
+            <span>Nhập chính xác APPLY để xác nhận</span>
+            <input autocomplete="off" id="bulkConfirmation" placeholder="APPLY" />
+          </label>
+          <button
+            class="button danger"
+            disabled
+            id="bulkVisibilityExecute"
+            type="button"
+          >
+            Thực thi batch synthetic
+          </button>
+        </section>
       </div>
     </dialog>
 

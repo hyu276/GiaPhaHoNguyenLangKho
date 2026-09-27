@@ -83,8 +83,10 @@ describe("structured import preview", () => {
   it("blocks citations with invalid target cardinality", () => {
     const backup = validBackup();
     backup.genealogy_citations[0] = {
-      ...backup.genealogy_citations[0],
+      id: CITATION,
+      source_id: SOURCE,
       person_id: PERSON_A,
+      relationship_id: RELATIONSHIP,
     };
     const preview = previewStructuredImport(JSON.stringify(backup));
 

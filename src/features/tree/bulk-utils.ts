@@ -164,9 +164,9 @@ function relationshipIssues(
   return issues;
 }
 
-export function previewStructuredImport(text: string):
-  | { ok: true; preview: ImportPreview }
-  | { ok: false; message: string } {
+export function previewStructuredImport(
+  text: string,
+): { ok: true; preview: ImportPreview } | { ok: false; message: string } {
   const parsedJson = parseJson(text);
   if (!parsedJson.ok) return parsedJson;
 

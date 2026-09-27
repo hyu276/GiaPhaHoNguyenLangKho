@@ -110,6 +110,13 @@
           >
             Data-quality dashboard
           </button>
+          <button
+            class="button secondary quality-review-launch"
+            id="reviewBulkUtilities"
+            type="button"
+          >
+            Bulk / backup demo
+          </button>
 
           <div class="divider"></div>
 
@@ -149,7 +156,7 @@
             <li class="done">Merge duplicates</li>
             <li class="done">Audit / conflict / undo</li>
             <li class="done">Data-quality dashboard</li>
-            <li class="active">Bulk & release prep</li>
+            <li class="done">Bulk & release prep</li>
           </ol>
         </section>
       </aside>
@@ -661,6 +668,111 @@
         </div>
 
         <div id="qualityIssueList" class="quality-issues"></div>
+      </div>
+    </dialog>
+
+    <dialog id="bulkDialog" class="quality-dialog">
+      <div class="quality-dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Step 10 · Controlled bulk utilities</p>
+            <h2>Import preview, backup & batch visibility</h2>
+          </div>
+          <form method="dialog">
+            <button class="icon-button" aria-label="Đóng">×</button>
+          </form>
+        </div>
+        <p class="muted">
+          Import chỉ preview. Batch chỉ tác động dữ liệu synthetic sau impact
+          review và xác nhận APPLY.
+        </p>
+
+        <div class="bulk-preview-grid">
+          <section class="bulk-card">
+            <h3>Backup synthetic</h3>
+            <p class="muted">
+              Xuất snapshot people, relationships, layout và provenance.
+            </p>
+            <button class="button secondary" id="bulkExport" type="button">
+              Tải backup JSON
+            </button>
+          </section>
+
+          <section class="bulk-card">
+            <h3>Structured import preview</h3>
+            <label class="field">
+              <span>Dán backup JSON</span>
+              <textarea
+                id="bulkImportText"
+                rows="7"
+                placeholder='{"version":1,"people":[],"relationships":[]...}'
+              ></textarea>
+            </label>
+            <button
+              class="button secondary"
+              id="bulkPreviewImport"
+              type="button"
+            >
+              Validate preview
+            </button>
+            <p class="bulk-result muted" id="bulkImportResult"></p>
+          </section>
+        </div>
+
+        <section class="bulk-card bulk-visibility-card">
+          <div class="duplicate-review-toolbar">
+            <div>
+              <h3>Batch visibility synthetic</h3>
+              <p class="muted">
+                Chọn active/unmerged records rồi review impact trước khi APPLY.
+              </p>
+            </div>
+            <button class="button secondary" id="bulkSelectAll" type="button">
+              Chọn tất cả
+            </button>
+          </div>
+
+          <div class="bulk-person-list" id="bulkPersonList"></div>
+
+          <label class="field">
+            <span>Visibility sau batch</span>
+            <select id="bulkVisibility">
+              <option value="private">Riêng tư</option>
+              <option value="public">Công khai</option>
+            </select>
+          </label>
+
+          <div class="quality-summary bulk-summary">
+            <div>
+              <strong id="bulkSelectedCount">0</strong><span>Đã chọn</span>
+            </div>
+            <div>
+              <strong id="bulkChangingCount">0</strong><span>Sẽ đổi</span>
+            </div>
+            <div>
+              <strong id="bulkLivingPublicCount">0</strong>
+              <span>Living-public</span>
+            </div>
+          </div>
+
+          <p class="archive-impact" id="bulkImpactMessage"></p>
+          <label class="field">
+            <span>Nhập chính xác APPLY để xác nhận</span>
+            <input
+              id="bulkConfirmation"
+              autocomplete="off"
+              placeholder="APPLY"
+            />
+          </label>
+          <button
+            class="button primary"
+            disabled
+            id="bulkExecuteVisibility"
+            type="button"
+          >
+            Áp dụng batch synthetic
+          </button>
+        </section>
       </div>
     </dialog>
 

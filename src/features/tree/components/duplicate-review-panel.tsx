@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 import {
   executeDuplicatePersonMerge,
@@ -419,6 +419,7 @@ type DuplicateReviewModalProps = {
   loading: boolean;
   message: string | null;
   pair: ReviewPair | null;
+  panelRef: RefObject<HTMLDivElement | null>;
   preview: MergePreviewData | null;
   previewLoading: boolean;
   onClose: () => void;
@@ -521,8 +522,17 @@ function ReviewContent({
 
 function DuplicateReviewModal(props: DuplicateReviewModalProps) {
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6">
-      <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl">
+    <div
+      aria-label="Duplicate Detection & Merge Review"
+      aria-modal="true"
+      className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6"
+      role="dialog"
+    >
+      <div
+        className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl outline-none"
+        ref={props.panelRef}
+        tabIndex={-1}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -546,7 +556,12 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
             >
               Quét lại
             </Button>
-            <Button onClick={props.onClose} type="button" variant="ghost">
+            <Button
+              autoFocus
+              onClick={props.onClose}
+              type="button"
+              variant="ghost"
+            >
               Đóng
             </Button>
           </div>
@@ -592,6 +607,18 @@ export function DuplicateReviewPanel() {
   const [executing, setExecuting] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    panelRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const candidateCount = useMemo(
     () => data?.suggestions.length ?? 0,
@@ -705,6 +732,7 @@ export function DuplicateReviewPanel() {
       onReview={(suggestion) => void reviewSuggestion(suggestion)}
       onSwap={() => void swapPair()}
       pair={pair}
+      panelRef={panelRef}
       preview={preview}
       previewLoading={previewLoading}
     />

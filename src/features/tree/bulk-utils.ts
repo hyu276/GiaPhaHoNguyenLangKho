@@ -151,18 +151,14 @@ function validateCitationReferences(
       citation.relationship_id &&
       !relationshipIds.has(citation.relationship_id)
     ) {
-      errors.push(
-        `Citation ${citation.id} references a missing relationship.`,
-      );
+      errors.push(`Citation ${citation.id} references a missing relationship.`);
     }
   });
 
   return errors;
 }
 
-function chronologyWarnings(
-  people: z.infer<typeof importedPersonSchema>[],
-) {
+function chronologyWarnings(people: z.infer<typeof importedPersonSchema>[]) {
   return people.flatMap((person) => {
     if (
       person.birth_year === null ||
@@ -214,7 +210,9 @@ export function previewStructuredImport(rawText: string): ImportPreview {
   const relationshipIds = new Set(
     backup.relationships.map((relationship) => relationship.id),
   );
-  const sourceIds = new Set(backup.genealogy_sources.map((source) => source.id));
+  const sourceIds = new Set(
+    backup.genealogy_sources.map((source) => source.id),
+  );
   const errors = [
     ...duplicateIds(backup.people.map((person) => person.id)).map(
       (id) => `Duplicate person ID: ${id}.`,

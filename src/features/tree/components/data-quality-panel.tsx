@@ -54,9 +54,13 @@ function relationshipContext(
     relationship.relationshipKind === "partnership"
       ? "Hôn phối"
       : "Cha/mẹ → con";
-  return \`\${label}: \${source ?? relationship.sourcePersonId} → \${
-    target ?? relationship.targetPersonId
-  }\`;
+  return (
+    label +
+    ": " +
+    (source ?? relationship.sourcePersonId) +
+    " → " +
+    (target ?? relationship.targetPersonId)
+  );
 }
 
 function IssueContext({
@@ -89,7 +93,7 @@ function SeverityBadge({ severity }: { severity: DataQualitySeverity }) {
 
   return (
     <span
-      className={\`rounded-full px-2 py-1 text-[11px] font-semibold \${className}\`}
+      className={"rounded-full px-2 py-1 text-[11px] font-semibold " + className}
     >
       {SEVERITY_LABELS[severity]}
     </span>

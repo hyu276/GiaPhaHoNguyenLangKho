@@ -39,9 +39,7 @@ function validBackup() {
         target_person_id: PERSON_B,
       },
     ],
-    person_layouts: [
-      { person_id: PERSON_A, position_x: 10, position_y: 20 },
-    ],
+    person_layouts: [{ person_id: PERSON_A, position_x: 10, position_y: 20 }],
     genealogy_sources: [{ id: SOURCE, title: "Gia phả" }],
     genealogy_citations: [
       {

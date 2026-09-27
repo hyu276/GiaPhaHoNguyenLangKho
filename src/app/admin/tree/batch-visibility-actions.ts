@@ -46,11 +46,23 @@ function validationMessage(error: { issues: Array<{ message: string }> }) {
   return error.issues[0]?.message ?? "Batch visibility không hợp lệ.";
 }
 
-function batchFailure(error: { code?: string; message?: string } | null) {
-  if (
+function isStaleBatchError(
+  error: { code?: string; message?: string } | null,
+) {
+  return (
     error?.code === "40001" ||
-    error?.message?.includes("stale person revision")
-  ) {
+    Boolean(error?.message?.includes("stale person revision"))
+  );
+}
+
+function isUnavailableBatchError(
+  error: { code?: string; message?: string } | null,
+) {
+  return Boolean(error?.message?.includes("person not active unmerged"));
+}
+
+function batchFailure(error: { code?: string; message?: string } | null) {
+  if (isStaleBatchError(error)) {
     return {
       ok: false as const,
       kind: "conflict" as const,
@@ -59,7 +71,7 @@ function batchFailure(error: { code?: string; message?: string } | null) {
     };
   }
 
-  if (error?.message?.includes("person not active unmerged")) {
+  if (isUnavailableBatchError(error)) {
     return {
       ok: false as const,
       message:

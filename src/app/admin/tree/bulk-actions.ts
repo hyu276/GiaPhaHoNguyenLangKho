@@ -16,6 +16,14 @@ export async function previewGenealogyImport(
   return previewStructuredImport(text);
 }
 
+function backupRows<T>(result: { data: T[] | null }) {
+  return result.data || [];
+}
+
+function hasBackupError(results: Array<{ error: unknown }>) {
+  return results.some((result) => Boolean(result.error));
+}
+
 async function loadBackupTables(
   supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
 ) {
@@ -46,16 +54,16 @@ async function loadBackupTables(
     mutationAudits,
     mergeAudits,
   ];
-  if (results.some((result) => result.error)) return null;
+  if (hasBackupError(results)) return null;
 
   return {
-    people: people.data ?? [],
-    relationships: relationships.data ?? [],
-    personLayouts: layouts.data ?? [],
-    genealogySources: sources.data ?? [],
-    genealogyCitations: citations.data ?? [],
-    mutationAudits: mutationAudits.data ?? [],
-    personMergeAudits: mergeAudits.data ?? [],
+    people: backupRows(people),
+    relationships: backupRows(relationships),
+    personLayouts: backupRows(layouts),
+    genealogySources: backupRows(sources),
+    genealogyCitations: backupRows(citations),
+    mutationAudits: backupRows(mutationAudits),
+    personMergeAudits: backupRows(mergeAudits),
   };
 }
 

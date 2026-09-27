@@ -247,14 +247,24 @@ Dashboard contract:
 
 ## Step 10 — Bulk utilities and release preparation
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Add only after single-record workflows are stable:
 
-- structured import preview;
-- export/backup;
-- batch visibility changes with impact review;
-- large synthetic graph performance test;
-- keyboard-accessibility pass;
-- full Playwright admin journeys.
+- structured import preview validates backup shape, IDs, references and target cardinality without exposing a bulk import write path;
+- admin-only JSON export/backup includes genealogy, layout, provenance, merge audit and mutation audit data;
+- batch visibility supports up to 500 active/unmerged people in one transaction with impact review, living-public warning, typed APPLY confirmation and optimistic revision checks;
+- batch visibility updates continue through the Step 8 audit trigger and stale input rolls back the transaction;
+- large synthetic graph performance test exercises filtering, descendant traversal and branch auto-layout on 2,000 people;
+- keyboard-accessibility pass labels focusable genealogy nodes, preserves login tab order and gives admin modal dialogs explicit dialog semantics/initial close focus;
+- full Playwright synthetic admin journeys cover person CRUD, relationship creation, archive, provenance, duplicate review, data-quality review, backup round-trip preview and batch visibility;
+- GitHub Pages preview mirrors the Step 10 bulk/release flows using browser-local synthetic state only.
+
+Release boundary:
+
+- structured import remains preview-only; there is intentionally no bulk import execution path;
+- production Supabase migrations are not applied by development PRs;
+- final production release gate below remains a separate manual deployment procedure.
 
 ## Final release gate
 

@@ -929,3 +929,67 @@ dialog::backdrop {
   color: var(--muted);
   font-size: 12px;
 }
+
+.bulk-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.bulk-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.bulk-card h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.bulk-card .button {
+  margin-top: 10px;
+}
+
+.bulk-visibility-card {
+  margin-top: 12px;
+}
+
+.bulk-person-list {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  margin-top: 12px;
+  overflow: auto;
+}
+
+.bulk-person-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 11px;
+}
+
+.bulk-person-row span {
+  flex: 1;
+}
+
+.bulk-summary {
+  margin-top: 12px;
+}
+
+.bulk-result {
+  min-height: 20px;
+  margin: 10px 0 0;
+}
+
+@media (max-width: 900px) {
+  .bulk-preview-grid {
+    grid-template-columns: 1fr;
+  }
+}

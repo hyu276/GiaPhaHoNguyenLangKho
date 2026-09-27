@@ -103,6 +103,13 @@
           >
             Review duplicate candidates
           </button>
+          <button
+            class="button secondary quality-review-launch"
+            id="reviewDataQuality"
+            type="button"
+          >
+            Data-quality dashboard
+          </button>
 
           <div class="divider"></div>
 
@@ -140,7 +147,9 @@
             <li class="done">Layout administration</li>
             <li class="done">Sources & provenance</li>
             <li class="done">Merge duplicates</li>
-            <li class="active">Audit / conflict / undo</li>
+            <li class="done">Audit / conflict / undo</li>
+            <li class="done">Data-quality dashboard</li>
+            <li class="active">Bulk & release prep</li>
           </ol>
         </section>
       </aside>
@@ -593,6 +602,63 @@
             </button>
           </section>
         </div>
+      </div>
+    </dialog>
+
+    <dialog id="qualityDialog" class="quality-dialog">
+      <div class="quality-dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Step 9 · Review-only</p>
+            <h2>Data-quality dashboard</h2>
+          </div>
+          <form method="dialog">
+            <button class="icon-button" aria-label="Đóng">×</button>
+          </form>
+        </div>
+        <p class="muted">
+          Các mục dưới đây chỉ là tín hiệu cần kiểm tra. Preview không có
+          auto-fix và không tự sửa dữ liệu gia phả.
+        </p>
+
+        <div class="quality-summary">
+          <div><strong id="qualityErrorCount">0</strong><span>Lỗi</span></div>
+          <div>
+            <strong id="qualityWarningCount">0</strong><span>Cảnh báo</span>
+          </div>
+          <div><strong id="qualityInfoCount">0</strong><span>Thông tin</span></div>
+        </div>
+
+        <div class="quality-filters">
+          <label class="field compact-field">
+            <span>Severity</span>
+            <select id="qualitySeverityFilter">
+              <option value="all">Tất cả</option>
+              <option value="error">Lỗi</option>
+              <option value="warning">Cảnh báo</option>
+              <option value="info">Thông tin</option>
+            </select>
+          </label>
+          <label class="field compact-field">
+            <span>Loại kiểm tra</span>
+            <select id="qualityKindFilter">
+              <option value="all">Tất cả</option>
+              <option value="missing_parents">Thiếu cha/mẹ</option>
+              <option value="missing_birth_year">Thiếu năm sinh</option>
+              <option value="chronology">Chronology</option>
+              <option value="duplicate_candidate">Duplicate candidate</option>
+              <option value="isolated_person">Hồ sơ cô lập</option>
+              <option value="living_public_exposure">
+                Living-public exposure
+              </option>
+              <option value="relationship_missing_provenance">
+                Quan hệ thiếu provenance
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div id="qualityIssueList" class="quality-issues"></div>
       </div>
     </dialog>
 

@@ -247,14 +247,19 @@ Dashboard contract:
 
 ## Step 10 — Bulk utilities and release preparation
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Add only after single-record workflows are stable:
 
-- structured import preview;
-- export/backup;
-- batch visibility changes with impact review;
-- large synthetic graph performance test;
-- keyboard-accessibility pass;
-- full Playwright admin journeys.
+- structured import preview using a versioned JSON contract; preview validates references and integrity but does not execute an import;
+- admin-only full JSON backup/export covering genealogy, layout, provenance, mutation audits, and merge audits;
+- atomic batch visibility changes with impact review, explicit confirmation, optimistic revision checks, and full rollback on conflict;
+- large synthetic graph performance benchmark covering 2,000 people;
+- keyboard-accessibility smoke pass for admin login;
+- release-gated authenticated Playwright admin journey using dedicated E2E credentials;
+- explicit production release checklist covering migrations, backup, rollback, Supabase advisors, Vercel inventory, and smoke tests.
+
+Step 10 does not add automatic import execution. Bulk import mutation remains deferred until a future dedicated transactional import design exists.
 
 ## Final release gate
 

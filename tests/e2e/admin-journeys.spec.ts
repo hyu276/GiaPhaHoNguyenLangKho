@@ -61,9 +61,11 @@ test("synthetic admin CRUD relationship and archive journey", async ({
     .getByRole("button", { name: "Lưu" })
     .click();
 
-  await expect(
-    page.getByText("Nguyễn Test Journey", { exact: true }),
-  ).toBeVisible();
+  const createdNode = page.locator("#nodes .person-node", {
+    hasText: "Nguyễn Test Journey",
+  });
+  await expect(createdNode).toHaveCount(1);
+  await expect(createdNode).toBeVisible();
 
   await page.locator('[data-person-id="P003"]').click();
   await page.getByRole("button", { name: "+ Con" }).click();

@@ -4,12 +4,10 @@ import { previewStructuredImport } from "@/features/tree/bulk-utils";
 import { requireAdmin } from "@/lib/auth/admin";
 
 export type StructuredImportPreviewResult =
-  | ReturnType<typeof previewStructuredImport>
-  | { ok: false; message: string };
+  ReturnType<typeof previewStructuredImport> | { ok: false; message: string };
 
 export type GenealogyBackupResult =
-  | { ok: true; filename: string; json: string }
-  | { ok: false; message: string };
+  { ok: true; filename: string; json: string } | { ok: false; message: string };
 
 export async function previewGenealogyImport(
   text: string,

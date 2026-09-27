@@ -40,8 +40,8 @@ function ImportPreviewSummary({
   if (!preview) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        Chọn JSON backup để kiểm tra cấu trúc và tham chiếu. Step 10 chỉ preview;
-        không có thao tác import ghi dữ liệu.
+        Chọn JSON backup để kiểm tra cấu trúc và tham chiếu. Step 10 chỉ
+        preview; không có thao tác import ghi dữ liệu.
       </p>
     );
   }
@@ -53,8 +53,8 @@ function ImportPreviewSummary({
           {fileName ?? "Import preview"}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {preview.counts.people} người · {preview.counts.relationships} quan hệ ·{" "}
-          {preview.counts.layouts} layout · {preview.counts.sources} nguồn ·{" "}
+          {preview.counts.people} người · {preview.counts.relationships} quan hệ
+          · {preview.counts.layouts} layout · {preview.counts.sources} nguồn ·{" "}
           {preview.counts.citations} citation
         </p>
       </div>
@@ -160,9 +160,7 @@ function VisibilityImpactSummary({
       </div>
       <div className="rounded-xl border border-border bg-background p-3">
         <strong className="text-lg">{impact.livingPublicAfterCount}</strong>
-        <p className="text-xs text-muted-foreground">
-          living-public sau batch
-        </p>
+        <p className="text-xs text-muted-foreground">living-public sau batch</p>
       </div>
     </div>
   );
@@ -183,7 +181,9 @@ export function BulkUtilitiesPanel() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [confirmation, setConfirmation] = useState("");
-  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(
+    null,
+  );
   const [importFileName, setImportFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -410,9 +410,7 @@ export function BulkUtilitiesPanel() {
                   <select
                     className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
                     onChange={(event) => {
-                      setVisibility(
-                        event.target.value as "public" | "private",
-                      );
+                      setVisibility(event.target.value as "public" | "private");
                       setConfirmation("");
                     }}
                     value={visibility}

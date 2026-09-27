@@ -39,7 +39,9 @@ function numberOrNull(value: unknown) {
   return typeof value === "number" ? value : null;
 }
 
-function mapPersonSex(value: unknown) {
+function mapPersonSex(
+  value: unknown,
+): GenealogyBackup["people"][number]["sex"] {
   if (value === "male" || value === "female") return value;
   return null;
 }

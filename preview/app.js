@@ -2032,6 +2032,347 @@ function executeDuplicateMerge() {
   setDuplicateReviewVisibility(false);
 }
 
+function activeQualityPeople() {
+  return state.people.filter(
+    (person) => !person.archived && !person.mergedInto,
+  );
+}
+
+function activeQualityRelationships(people) {
+  const activeIds = new Set(people.map((person) => person.id));
+  return state.relationships.filter(
+    (relation) =>
+      activeIds.has(relation.source) && activeIds.has(relation.target),
+  );
+}
+
+function qualityRelationshipDegree(relationships, personId) {
+  return relationships.filter(
+    (relation) =>
+      relation.source === personId || relation.target === personId,
+  ).length;
+}
+
+function qualityParentCount(relationships, personId) {
+  return relationships.filter(
+    (relation) =>
+      relation.kind === "parent_child" && relation.target === personId,
+  ).length;
+}
+
+function missingQualityIssues(people, relationships) {
+  const issues = [];
+
+  people.forEach((person) => {
+    const degree = qualityRelationshipDegree(relationships, person.id);
+    if (degree > 0 && qualityParentCount(relationships, person.id) === 0) {
+      issues.push({
+        kind: "missing_parents",
+        severity: "info",
+        personId: person.id,
+        relationshipId: null,
+        relatedPersonId: null,
+        title: "Chưa ghi nhận cha/mẹ",
+        detail:
+          "Hồ sơ có quan hệ gia phả nhưng chưa có cha/mẹ canonical. Có thể là root hợp lệ và chỉ cần review.",
+      });
+    }
+
+    if (degree > 0 && person.birth === null) {
+      issues.push({
+        kind: "missing_birth_year",
+        severity: "info",
+        personId: person.id,
+        relationshipId: null,
+        relatedPersonId: null,
+        title: "Thiếu năm sinh canonical",
+        detail:
+          "Hồ sơ đang tham gia cây nhưng chưa có năm sinh canonical.",
+      });
+    }
+  });
+
+  return issues;
+}
+
+function personChronologyQualityIssues(people) {
+  return people.flatMap((person) => {
+    const invalid =
+      person.birth !== null &&
+      person.death !== null &&
+      person.birth > person.death;
+    if (!invalid) return [];
+
+    return [
+      {
+        kind: "chronology",
+        severity: "error",
+        personId: person.id,
+        relationshipId: null,
+        relatedPersonId: null,
+        title: "Năm sinh sau năm mất",
+        detail: `Năm sinh ${person.birth} lớn hơn năm mất ${person.death}.`,
+      },
+    ];
+  });
+}
+
+function qualityParentChildIssue(relation) {
+  if (relation.kind !== "parent_child") return null;
+  const parent = getPerson(relation.source);
+  const child = getPerson(relation.target);
+  if (!parent || !child) return null;
+  if (parent.birth === null || child.birth === null) return null;
+
+  const age = child.birth - parent.birth;
+  if (age < 12) {
+    return {
+      kind: "chronology",
+      severity: "warning",
+      personId: parent.id,
+      relationshipId: relation.id,
+      relatedPersonId: child.id,
+      title: "Tuổi cha/mẹ khi sinh con bất thường",
+      detail: `Chênh lệch năm sinh chỉ ${age} năm.`,
+    };
+  }
+
+  if (age > 80) {
+    return {
+      kind: "chronology",
+      severity: "warning",
+      personId: parent.id,
+      relationshipId: relation.id,
+      relatedPersonId: child.id,
+      title: "Khoảng cách thế hệ bất thường",
+      detail: `Chênh lệch năm sinh là ${age} năm.`,
+    };
+  }
+
+  if (parent.death !== null && parent.death < child.birth - 1) {
+    return {
+      kind: "chronology",
+      severity: "warning",
+      personId: parent.id,
+      relationshipId: relation.id,
+      relatedPersonId: child.id,
+      title: "Con sinh sau năm mất của cha/mẹ",
+      detail: `Năm mất ${parent.death} sớm hơn năm sinh của con ${child.birth} quá một năm.`,
+    };
+  }
+
+  return null;
+}
+
+function relationshipChronologyQualityIssues(relationships) {
+  return relationships.flatMap((relation) => {
+    const issue = qualityParentChildIssue(relation);
+    return issue ? [issue] : [];
+  });
+}
+
+function duplicateQualityIssues() {
+  return findDuplicateCandidates().map((candidate) => ({
+    kind: "duplicate_candidate",
+    severity: "warning",
+    personId: candidate.firstPersonId,
+    relationshipId: null,
+    relatedPersonId: candidate.secondPersonId,
+    title: "Ứng viên hồ sơ trùng",
+    detail: `${candidate.reasons.join(" · ")}. Chỉ review; không tự merge.`,
+  }));
+}
+
+function isolatedQualityIssues(people, relationships) {
+  return people.flatMap((person) => {
+    if (qualityRelationshipDegree(relationships, person.id) > 0) return [];
+
+    return [
+      {
+        kind: "isolated_person",
+        severity: "info",
+        personId: person.id,
+        relationshipId: null,
+        relatedPersonId: null,
+        title: "Hồ sơ đang cô lập",
+        detail: "Hồ sơ active chưa có quan hệ canonical với người khác.",
+      },
+    ];
+  });
+}
+
+function livingExposureQualityIssues(people) {
+  return people.flatMap((person) => {
+    if (person.death !== null || person.visibility !== "public") return [];
+
+    return [
+      {
+        kind: "living_public_exposure",
+        severity: "warning",
+        personId: person.id,
+        relationshipId: null,
+        relatedPersonId: null,
+        title: "Người được xem là còn sống đang public",
+        detail:
+          "Theo heuristic hiện tại, chưa có năm mất được xem là còn sống. Hãy review visibility.",
+      },
+    ];
+  });
+}
+
+function provenanceQualityIssues(relationships) {
+  const citedIds = new Set(
+    state.citations
+      .map((citation) => citation.relationshipId)
+      .filter((relationshipId) => relationshipId !== null),
+  );
+
+  return relationships.flatMap((relation) => {
+    if (citedIds.has(relation.id)) return [];
+
+    return [
+      {
+        kind: "relationship_missing_provenance",
+        severity: "info",
+        personId: relation.source,
+        relationshipId: relation.id,
+        relatedPersonId: relation.target,
+        title: "Quan hệ chưa có citation",
+        detail:
+          "Quan hệ canonical chưa có nguồn/citation gắn trực tiếp.",
+      },
+    ];
+  });
+}
+
+function buildQualityIssues() {
+  const people = activeQualityPeople();
+  const relationships = activeQualityRelationships(people);
+  const issues = [
+    ...missingQualityIssues(people, relationships),
+    ...personChronologyQualityIssues(people),
+    ...relationshipChronologyQualityIssues(relationships),
+    ...duplicateQualityIssues(),
+    ...isolatedQualityIssues(people, relationships),
+    ...livingExposureQualityIssues(people),
+    ...provenanceQualityIssues(relationships),
+  ];
+  const order = { error: 0, warning: 1, info: 2 };
+
+  return issues.sort(
+    (first, second) =>
+      order[first.severity] - order[second.severity] ||
+      first.kind.localeCompare(second.kind),
+  );
+}
+
+function qualityPersonName(personId) {
+  return getPerson(personId)?.name || personId || "";
+}
+
+function qualityRelationshipText(relationshipId) {
+  if (!relationshipId) return "";
+  const relation = state.relationships.find((item) => item.id === relationshipId);
+  if (!relation) return relationshipId;
+  return `${qualityPersonName(relation.source)} → ${qualityPersonName(
+    relation.target,
+  )}`;
+}
+
+function qualityIssueContext(issue) {
+  const parts = [];
+  if (issue.personId) parts.push(`Hồ sơ: ${qualityPersonName(issue.personId)}`);
+  if (issue.relatedPersonId) {
+    parts.push(`Liên quan: ${qualityPersonName(issue.relatedPersonId)}`);
+  }
+  if (issue.relationshipId) {
+    parts.push(`Quan hệ: ${qualityRelationshipText(issue.relationshipId)}`);
+  }
+  return parts.join(" · ");
+}
+
+function qualityKindLabel(kind) {
+  const labels = {
+    missing_parents: "Thiếu cha/mẹ",
+    missing_birth_year: "Thiếu năm sinh",
+    chronology: "Chronology",
+    duplicate_candidate: "Duplicate candidate",
+    isolated_person: "Hồ sơ cô lập",
+    living_public_exposure: "Living-public exposure",
+    relationship_missing_provenance: "Quan hệ thiếu provenance",
+  };
+  return labels[kind] || kind;
+}
+
+function renderQualityCounts(issues) {
+  const count = (severity) =>
+    issues.filter((issue) => issue.severity === severity).length;
+  document.querySelector("#qualityErrorCount").textContent = count("error");
+  document.querySelector("#qualityWarningCount").textContent = count("warning");
+  document.querySelector("#qualityInfoCount").textContent = count("info");
+}
+
+function qualityIssueCard(issue) {
+  const article = document.createElement("article");
+  article.className = "quality-issue";
+
+  const heading = document.createElement("div");
+  heading.className = "quality-issue-heading";
+
+  const titleWrap = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = qualityKindLabel(issue.kind);
+  const title = document.createElement("h3");
+  title.textContent = issue.title;
+  titleWrap.append(eyebrow, title);
+
+  const badge = document.createElement("span");
+  badge.className = `quality-badge ${issue.severity}`;
+  badge.textContent = issue.severity;
+
+  const detail = document.createElement("p");
+  detail.textContent = issue.detail;
+  const context = document.createElement("p");
+  context.textContent = qualityIssueContext(issue);
+
+  heading.append(titleWrap, badge);
+  article.append(heading, detail, context);
+  return article;
+}
+
+function renderQualityIssues() {
+  const allIssues = buildQualityIssues();
+  renderQualityCounts(allIssues);
+
+  const severity = document.querySelector("#qualitySeverityFilter").value;
+  const kind = document.querySelector("#qualityKindFilter").value;
+  const filtered = allIssues.filter(
+    (issue) =>
+      (severity === "all" || issue.severity === severity) &&
+      (kind === "all" || issue.kind === kind),
+  );
+  const list = document.querySelector("#qualityIssueList");
+  list.replaceChildren();
+
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "quality-empty";
+    empty.textContent = "Không có tín hiệu phù hợp với filter hiện tại.";
+    list.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((issue) => list.appendChild(qualityIssueCard(issue)));
+}
+
+function openQualityDialog() {
+  document.querySelector("#qualitySeverityFilter").value = "all";
+  document.querySelector("#qualityKindFilter").value = "all";
+  renderQualityIssues();
+  document.querySelector("#qualityDialog").showModal();
+}
+
 function toggleSelectedBranch() {
   const person = getPerson(selectedId);
   if (!person) return;
@@ -2172,6 +2513,15 @@ document
 document
   .querySelector("#reviewDuplicates")
   .addEventListener("click", openDuplicateDialog);
+document
+  .querySelector("#reviewDataQuality")
+  .addEventListener("click", openQualityDialog);
+document
+  .querySelector("#qualitySeverityFilter")
+  .addEventListener("change", renderQualityIssues);
+document
+  .querySelector("#qualityKindFilter")
+  .addEventListener("change", renderQualityIssues);
 document
   .querySelector("#swapDuplicatePair")
   .addEventListener("click", swapDuplicatePair);

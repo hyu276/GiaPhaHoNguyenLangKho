@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   loadDataQualityReport,
@@ -288,6 +288,18 @@ export function DataQualityPanel() {
   const [error, setError] = useState<string | null>(null);
   const [severity, setSeverity] = useState<"all" | DataQualitySeverity>("all");
   const [kind, setKind] = useState<"all" | DataQualityIssueKind>("all");
+  const panelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    panelRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   async function refresh() {
     setLoading(true);
@@ -322,7 +334,11 @@ export function DataQualityPanel() {
           aria-modal="true"
           aria-label="Data-quality dashboard"
         >
-          <section className="w-full max-w-4xl rounded-3xl border border-border bg-card p-5 shadow-xl sm:p-6">
+          <section
+            className="w-full max-w-4xl rounded-3xl border border-border bg-card p-5 shadow-xl outline-none sm:p-6"
+            ref={panelRef}
+            tabIndex={-1}
+          >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -347,6 +363,7 @@ export function DataQualityPanel() {
                   Refresh
                 </Button>
                 <Button
+                  autoFocus
                   onClick={() => setOpen(false)}
                   type="button"
                   variant="ghost"

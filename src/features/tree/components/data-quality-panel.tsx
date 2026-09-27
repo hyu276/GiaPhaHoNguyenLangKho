@@ -34,14 +34,12 @@ const KIND_LABELS: Record<DataQualityIssueKind, string> = {
 function personName(data: QualityData, personId: string | null) {
   if (!personId) return null;
   return (
-    data.people.find((person) => person.id === personId)?.displayName ?? personId
+    data.people.find((person) => person.id === personId)?.displayName ??
+    personId
   );
 }
 
-function relationshipContext(
-  data: QualityData,
-  relationshipId: string | null,
-) {
+function relationshipContext(data: QualityData, relationshipId: string | null) {
   if (!relationshipId) return null;
   const relationship = data.relationships.find(
     (item) => item.id === relationshipId,
@@ -93,7 +91,9 @@ function SeverityBadge({ severity }: { severity: DataQualitySeverity }) {
 
   return (
     <span
-      className={"rounded-full px-2 py-1 text-[11px] font-semibold " + className}
+      className={
+        "rounded-full px-2 py-1 text-[11px] font-semibold " + className
+      }
     >
       {SEVERITY_LABELS[severity]}
     </span>
@@ -128,13 +128,7 @@ function QualityIssueCard({
   );
 }
 
-function CountCard({
-  count,
-  label,
-}: {
-  count: number;
-  label: string;
-}) {
+function CountCard({ count, label }: { count: number; label: string }) {
   return (
     <div className="rounded-2xl border border-border bg-background p-3">
       <p className="text-2xl font-semibold text-card-foreground">{count}</p>
@@ -171,9 +165,7 @@ function FilterControls({
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
           onChange={(event) =>
-            onSeverityChange(
-              event.target.value as "all" | DataQualitySeverity,
-            )
+            onSeverityChange(event.target.value as "all" | DataQualitySeverity)
           }
           value={severity}
         >
@@ -260,7 +252,9 @@ function DashboardBody({
   }, [data, kind, severity]);
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Đang kiểm tra dữ liệu…</p>;
+    return (
+      <p className="text-sm text-muted-foreground">Đang kiểm tra dữ liệu…</p>
+    );
   }
 
   if (error) {

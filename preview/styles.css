@@ -929,3 +929,81 @@ dialog::backdrop {
   color: var(--muted);
   font-size: 12px;
 }
+
+
+.bulk-review-launch {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.bulk-dialog {
+  width: min(980px, calc(100vw - 48px));
+}
+
+.bulk-dialog-card {
+  padding: 22px;
+}
+
+.bulk-section {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.bulk-section h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.bulk-people {
+  display: grid;
+  max-height: 250px;
+  margin-top: 12px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.bulk-person-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.bulk-person-option:last-child {
+  border-bottom: 0;
+}
+
+.bulk-person-option span:first-of-type {
+  flex: 1;
+}
+
+.bulk-person-option small {
+  color: var(--muted);
+}
+
+.bulk-result {
+  margin-top: 12px;
+  padding: 10px 11px;
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.bulk-result.warning {
+  background: #fff2c9;
+  color: #665827;
+}
+
+.bulk-result.danger {
+  background: #f6dfdc;
+  color: var(--danger);
+}

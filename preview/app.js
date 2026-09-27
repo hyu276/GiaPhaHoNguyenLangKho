@@ -2479,7 +2479,9 @@ function previewBulkImport() {
 }
 
 function activeBulkPeople() {
-  return state.people.filter((person) => !person.archived && !person.mergedInto);
+  return state.people.filter(
+    (person) => !person.archived && !person.mergedInto,
+  );
 }
 
 function filteredBulkPeople() {
@@ -2548,7 +2550,9 @@ function clearBulkSelection() {
 }
 
 function buildBulkVisibilityPreview() {
-  const targetVisibility = document.querySelector("#bulkVisibilityTarget").value;
+  const targetVisibility = document.querySelector(
+    "#bulkVisibilityTarget",
+  ).value;
   const selectedPeople = activeBulkPeople().filter((person) =>
     bulkSelectedIds.has(person.id),
   );
@@ -2775,7 +2779,9 @@ document
 document
   .querySelector("#reviewBulkTools")
   .addEventListener("click", openBulkDialog);
-document.querySelector("#bulkExport").addEventListener("click", downloadBulkBackup);
+document
+  .querySelector("#bulkExport")
+  .addEventListener("click", downloadBulkBackup);
 document
   .querySelector("#bulkImportFile")
   .addEventListener("change", (event) => void readBulkImportFile(event));

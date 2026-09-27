@@ -701,14 +701,16 @@
           <h3>Structured import dry-run</h3>
           <label class="field">
             <span>Chọn backup JSON</span>
-            <input accept=".json,application/json" id="bulkImportFile" type="file" />
+            <input
+              accept=".json,application/json"
+              id="bulkImportFile"
+              type="file"
+            />
           </label>
           <button class="button secondary" id="bulkImportPreview" type="button">
             Preview import
           </button>
-          <div class="bulk-result" id="bulkImportResult">
-            Chưa chọn file.
-          </div>
+          <div class="bulk-result" id="bulkImportResult">Chưa chọn file.</div>
         </section>
 
         <section class="bulk-section">
@@ -728,13 +730,25 @@
           </div>
           <div class="bulk-people" id="bulkPeopleList"></div>
           <div class="branch-actions">
-            <button class="button secondary" id="bulkSelectVisible" type="button">
+            <button
+              class="button secondary"
+              id="bulkSelectVisible"
+              type="button"
+            >
               Chọn các mục hiển thị
             </button>
-            <button class="button secondary" id="bulkClearSelection" type="button">
+            <button
+              class="button secondary"
+              id="bulkClearSelection"
+              type="button"
+            >
               Bỏ chọn
             </button>
-            <button class="button secondary" id="bulkVisibilityPreview" type="button">
+            <button
+              class="button secondary"
+              id="bulkVisibilityPreview"
+              type="button"
+            >
               Preview impact
             </button>
           </div>
@@ -743,7 +757,11 @@
           </div>
           <label class="field">
             <span>Nhập chính xác APPLY để xác nhận</span>
-            <input autocomplete="off" id="bulkConfirmation" placeholder="APPLY" />
+            <input
+              autocomplete="off"
+              id="bulkConfirmation"
+              placeholder="APPLY"
+            />
           </label>
           <button
             class="button danger"

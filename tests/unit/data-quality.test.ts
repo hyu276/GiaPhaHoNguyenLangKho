@@ -133,9 +133,10 @@ describe("data quality report", () => {
   });
 
   it("flags public records treated as living by the current editor heuristic", () => {
-    const kinds = issueKinds([
-      person("P1", { deathYear: null, visibility: "public" }),
-    ]);
+    const kinds = issueKinds(
+      [person("P1", { deathYear: null, visibility: "public" })],
+      [],
+    );
 
     expect(kinds).toContain("living_public_exposure");
   });

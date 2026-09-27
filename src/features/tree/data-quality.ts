@@ -45,7 +45,8 @@ const severityOrder: Record<DataQualitySeverity, number> = {
 
 function activePeople(people: DuplicatePerson[]) {
   return people.filter(
-    (person) => person.archivedAt === null && person.mergedIntoPersonId === null,
+    (person) =>
+      person.archivedAt === null && person.mergedIntoPersonId === null,
   );
 }
 
@@ -198,10 +199,7 @@ function parentChildChronologyIssue(
     };
   }
 
-  if (
-    parent.deathYear !== null &&
-    parent.deathYear < child.birthYear - 1
-  ) {
+  if (parent.deathYear !== null && parent.deathYear < child.birthYear - 1) {
     return {
       id: `chronology:post-death-child:${relationship.id}`,
       kind: "chronology" as const,
@@ -341,10 +339,7 @@ export function buildDataQualityReport(
     ...duplicateIssues(people),
     ...isolatedPersonIssues(people, relationships),
     ...livingExposureIssues(people),
-    ...relationshipProvenanceIssues(
-      relationships,
-      input.citedRelationshipIds,
-    ),
+    ...relationshipProvenanceIssues(relationships, input.citedRelationshipIds),
   ]);
 
   return { issues, counts: countIssues(issues) };

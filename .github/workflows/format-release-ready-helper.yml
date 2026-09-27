@@ -1,0 +1,32 @@
+name: Format release readiness helper
+
+on:
+  push:
+    branches:
+      - chore/format-release-ready
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx prettier --write .github/workflows/quality.yml docs/ADMIN-EDITOR-ROADMAP.md src/features/tree/components/data-quality-panel.tsx src/features/tree/components/duplicate-review-panel.tsx tests/e2e/admin-journeys.spec.ts tests/unit/large-graph-performance.test.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/quality.yml docs/ADMIN-EDITOR-ROADMAP.md src/features/tree/components/data-quality-panel.tsx src/features/tree/components/duplicate-review-panel.tsx tests/e2e/admin-journeys.spec.ts tests/unit/large-graph-performance.test.ts
+          git commit -m "style(release): Format readiness files"
+          git push

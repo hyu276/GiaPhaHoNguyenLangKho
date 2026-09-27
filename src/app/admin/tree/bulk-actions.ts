@@ -31,22 +31,36 @@ export type BatchVisibilityMutationResult =
     }
   | { ok: false; message: string; kind?: "conflict" };
 
+function stringOrNull(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function numberOrNull(value: unknown) {
+  return typeof value === "number" ? value : null;
+}
+
+function mapPersonSex(value: unknown) {
+  if (value === "male" || value === "female") return value;
+  return null;
+}
+
+function mapVisibility(value: unknown) {
+  return value === "private" ? ("private" as const) : ("public" as const);
+}
+
 function mapBackupPerson(row: Record<string, unknown>) {
   return {
     id: String(row.id),
     displayName: String(row.display_name),
-    description: typeof row.description === "string" ? row.description : null,
-    birthYear: typeof row.birth_year === "number" ? row.birth_year : null,
-    deathYear: typeof row.death_year === "number" ? row.death_year : null,
-    sex: row.sex === "male" || row.sex === "female" ? row.sex : null,
-    visibility: row.visibility === "private" ? "private" : "public",
-    archivedAt: typeof row.archived_at === "string" ? row.archived_at : null,
-    mergedIntoPersonId:
-      typeof row.merged_into_person_id === "string"
-        ? row.merged_into_person_id
-        : null,
+    description: stringOrNull(row.description),
+    birthYear: numberOrNull(row.birth_year),
+    deathYear: numberOrNull(row.death_year),
+    sex: mapPersonSex(row.sex),
+    visibility: mapVisibility(row.visibility),
+    archivedAt: stringOrNull(row.archived_at),
+    mergedIntoPersonId: stringOrNull(row.merged_into_person_id),
     revision: Number(row.revision),
-  } as const;
+  };
 }
 
 function mapBackupRelationship(row: Record<string, unknown>) {
@@ -137,44 +151,48 @@ async function loadBackupTables(supabase: SupabaseAdminClient) {
   ]);
 }
 
+function backupLoadFailed(
+  results: Awaited<ReturnType<typeof loadBackupTables>>,
+) {
+  return results.some((result) => Boolean(result.error));
+}
+
+function buildBackup(
+  results: Awaited<ReturnType<typeof loadBackupTables>>,
+): GenealogyBackup {
+  const [people, relationships, layouts, sources, citations] = results;
+
+  return {
+    format: "nguyen-lang-kho-genealogy",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    people: (people.data ?? []).map((row) =>
+      mapBackupPerson(row as Record<string, unknown>),
+    ),
+    relationships: (relationships.data ?? []).map((row) =>
+      mapBackupRelationship(row as Record<string, unknown>),
+    ),
+    layouts: (layouts.data ?? []).map((row) =>
+      mapBackupLayout(row as Record<string, unknown>),
+    ),
+    sources: (sources.data ?? []).map((row) =>
+      mapBackupSource(row as Record<string, unknown>),
+    ),
+    citations: (citations.data ?? []).map((row) =>
+      mapBackupCitation(row as Record<string, unknown>),
+    ),
+  };
+}
+
 export async function exportGenealogyBackup(): Promise<ExportBackupResult> {
   const { supabase } = await requireAdmin();
-  const [people, relationships, layouts, sources, citations] =
-    await loadBackupTables(supabase);
+  const results = await loadBackupTables(supabase);
 
-  if (
-    people.error ||
-    relationships.error ||
-    layouts.error ||
-    sources.error ||
-    citations.error
-  ) {
+  if (backupLoadFailed(results)) {
     return { ok: false, message: "Không thể tạo backup gia phả." };
   }
 
-  return {
-    ok: true,
-    backup: {
-      format: "nguyen-lang-kho-genealogy",
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      people: (people.data ?? []).map((row) =>
-        mapBackupPerson(row as Record<string, unknown>),
-      ),
-      relationships: (relationships.data ?? []).map((row) =>
-        mapBackupRelationship(row as Record<string, unknown>),
-      ),
-      layouts: (layouts.data ?? []).map((row) =>
-        mapBackupLayout(row as Record<string, unknown>),
-      ),
-      sources: (sources.data ?? []).map((row) =>
-        mapBackupSource(row as Record<string, unknown>),
-      ),
-      citations: (citations.data ?? []).map((row) =>
-        mapBackupCitation(row as Record<string, unknown>),
-      ),
-    },
-  };
+  return { ok: true, backup: buildBackup(results) };
 }
 
 function parseJson(text: string) {
@@ -269,6 +287,34 @@ export async function previewBatchVisibility(input: unknown) {
   };
 }
 
+function batchVisibilityFailure(error: {
+  code?: string;
+  message: string;
+}): BatchVisibilityMutationResult {
+  const isConflict =
+    error.code === "40001" || error.message.includes("stale");
+
+  if (isConflict) {
+    return {
+      ok: false,
+      kind: "conflict",
+      message:
+        "Một hồ sơ đã thay đổi sau preview. Batch đã rollback toàn bộ; hãy preview lại.",
+    };
+  }
+
+  return { ok: false, message: "Không thể cập nhật visibility theo batch." };
+}
+
+function parseBatchVisibilityRevisions(data: unknown) {
+  if (!Array.isArray(data)) return [];
+
+  return data.map((row) => ({
+    personId: String((row as { person_id: string }).person_id),
+    revision: Number((row as { revision: number }).revision),
+  }));
+}
+
 export async function executeBatchVisibility(
   input: unknown,
 ): Promise<BatchVisibilityMutationResult> {
@@ -286,24 +332,9 @@ export async function executeBatchVisibility(
     { p_changes: parsed.data.changes },
   );
 
-  if (error) {
-    if (error.code === "40001" || error.message.includes("stale")) {
-      return {
-        ok: false,
-        kind: "conflict",
-        message:
-          "Một hồ sơ đã thay đổi sau preview. Batch đã rollback toàn bộ; hãy preview lại.",
-      };
-    }
-    return { ok: false, message: "Không thể cập nhật visibility theo batch." };
-  }
+  if (error) return batchVisibilityFailure(error);
 
-  const revisions = Array.isArray(data)
-    ? data.map((row) => ({
-        personId: String((row as { person_id: string }).person_id),
-        revision: Number((row as { revision: number }).revision),
-      }))
-    : [];
+  const revisions = parseBatchVisibilityRevisions(data);
 
   revalidatePath("/admin/tree");
   return { ok: true, revisions };

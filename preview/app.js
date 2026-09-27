@@ -205,6 +205,9 @@ let editingSourceId = null;
 let editingCitationId = null;
 let duplicatePair = null;
 let duplicatePreview = null;
+let bulkImportText = null;
+let bulkSelectedIds = new Set();
+let bulkVisibilityPreview = null;
 let dragContext = null;
 
 const canvas = document.querySelector("#canvas");
@@ -2384,6 +2387,248 @@ function openQualityDialog() {
   document.querySelector("#qualityDialog").showModal();
 }
 
+function makeBulkBackup() {
+  return {
+    format: "nguyen-lang-kho-genealogy-preview",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state: clone(state),
+  };
+}
+
+function downloadBulkBackup() {
+  const backup = makeBulkBackup();
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `gia-pha-preview-${backup.exportedAt.slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function setBulkImportResult(message, tone = "") {
+  const result = document.querySelector("#bulkImportResult");
+  result.textContent = message;
+  result.classList.remove("warning", "danger");
+  if (tone) result.classList.add(tone);
+}
+
+async function readBulkImportFile(event) {
+  const file = event.target.files?.item(0) || null;
+  bulkImportText = null;
+
+  if (!file) {
+    setBulkImportResult("Chưa chọn file.");
+    return;
+  }
+
+  if (file.size > 10_000_000) {
+    setBulkImportResult("File vượt giới hạn 10 MB.", "danger");
+    return;
+  }
+
+  bulkImportText = await file.text();
+  setBulkImportResult(`Đã nạp ${file.name}. Nhấn Preview import để kiểm tra.`);
+}
+
+function isPreviewBackupShape(value) {
+  return (
+    value &&
+    value.format === "nguyen-lang-kho-genealogy-preview" &&
+    value.version === 1 &&
+    value.state &&
+    Array.isArray(value.state.people) &&
+    Array.isArray(value.state.relationships) &&
+    Array.isArray(value.state.sources) &&
+    Array.isArray(value.state.citations)
+  );
+}
+
+function previewBulkImport() {
+  if (!bulkImportText) {
+    setBulkImportResult("Hãy chọn backup JSON trước.", "warning");
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(bulkImportText);
+  } catch {
+    setBulkImportResult("JSON không hợp lệ.", "danger");
+    return;
+  }
+
+  if (!isPreviewBackupShape(parsed)) {
+    setBulkImportResult(
+      "Backup không đúng format/version hoặc thiếu các collection bắt buộc.",
+      "danger",
+    );
+    return;
+  }
+
+  const summary =
+    `${parsed.state.people.length} people · ` +
+    `${parsed.state.relationships.length} relationships · ` +
+    `${parsed.state.sources.length} sources · ` +
+    `${parsed.state.citations.length} citations. ` +
+    "Dry-run hợp lệ; preview không có nút import.";
+  setBulkImportResult(summary);
+}
+
+function activeBulkPeople() {
+  return state.people.filter((person) => !person.archived && !person.mergedInto);
+}
+
+function filteredBulkPeople() {
+  const query = document
+    .querySelector("#bulkPersonSearch")
+    .value.trim()
+    .toLocaleLowerCase("vi-VN");
+  const people = activeBulkPeople();
+  if (!query) return people;
+  return people.filter((person) =>
+    person.name.toLocaleLowerCase("vi-VN").includes(query),
+  );
+}
+
+function resetBulkVisibilityPreview() {
+  bulkVisibilityPreview = null;
+  document.querySelector("#bulkConfirmation").value = "";
+  document.querySelector("#bulkVisibilityImpact").textContent =
+    "Chưa có preview.";
+  document.querySelector("#bulkVisibilityImpact").classList.remove("warning");
+  document.querySelector("#bulkVisibilityExecute").disabled = true;
+}
+
+function renderBulkPeople() {
+  const list = document.querySelector("#bulkPeopleList");
+  list.replaceChildren();
+
+  filteredBulkPeople()
+    .slice(0, 250)
+    .forEach((person) => {
+      const label = document.createElement("label");
+      label.className = "bulk-person-option";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = bulkSelectedIds.has(person.id);
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) bulkSelectedIds.add(person.id);
+        else bulkSelectedIds.delete(person.id);
+        resetBulkVisibilityPreview();
+      });
+
+      const name = document.createElement("span");
+      name.textContent = person.name;
+      const visibility = document.createElement("small");
+      visibility.textContent =
+        person.visibility === "public" ? "Public" : "Private";
+
+      label.append(checkbox, name, visibility);
+      list.appendChild(label);
+    });
+}
+
+function selectVisibleBulkPeople() {
+  filteredBulkPeople()
+    .slice(0, 250)
+    .forEach((person) => bulkSelectedIds.add(person.id));
+  resetBulkVisibilityPreview();
+  renderBulkPeople();
+}
+
+function clearBulkSelection() {
+  bulkSelectedIds = new Set();
+  resetBulkVisibilityPreview();
+  renderBulkPeople();
+}
+
+function buildBulkVisibilityPreview() {
+  const targetVisibility = document.querySelector("#bulkVisibilityTarget").value;
+  const selectedPeople = activeBulkPeople().filter((person) =>
+    bulkSelectedIds.has(person.id),
+  );
+  const changes = selectedPeople.filter(
+    (person) => person.visibility !== targetVisibility,
+  );
+  const livingPublicAfter = selectedPeople.filter(
+    (person) => person.death === null && targetVisibility === "public",
+  ).length;
+
+  return {
+    targetVisibility,
+    selectedCount: selectedPeople.length,
+    changes,
+    livingPublicAfter,
+  };
+}
+
+function renderBulkVisibilityPreview() {
+  bulkVisibilityPreview = buildBulkVisibilityPreview();
+  const impact = document.querySelector("#bulkVisibilityImpact");
+  impact.classList.remove("warning");
+
+  if (bulkVisibilityPreview.selectedCount === 0) {
+    impact.textContent = "Chưa chọn hồ sơ nào.";
+    document.querySelector("#bulkVisibilityExecute").disabled = true;
+    return;
+  }
+
+  impact.textContent =
+    `${bulkVisibilityPreview.selectedCount} đã chọn · ` +
+    `${bulkVisibilityPreview.changes.length} sẽ đổi · ` +
+    `${bulkVisibilityPreview.livingPublicAfter} living-public sau batch.`;
+
+  if (bulkVisibilityPreview.livingPublicAfter > 0) {
+    impact.classList.add("warning");
+  }
+
+  document.querySelector("#bulkConfirmation").value = "";
+  document.querySelector("#bulkVisibilityExecute").disabled = true;
+}
+
+function updateBulkExecuteState() {
+  const confirmation = document.querySelector("#bulkConfirmation").value;
+  const hasChanges =
+    bulkVisibilityPreview && bulkVisibilityPreview.changes.length > 0;
+  document.querySelector("#bulkVisibilityExecute").disabled =
+    !hasChanges || confirmation !== "APPLY";
+}
+
+function executeBulkVisibility() {
+  if (!bulkVisibilityPreview) return;
+  if (document.querySelector("#bulkConfirmation").value !== "APPLY") return;
+  if (!bulkVisibilityPreview.changes.length) return;
+  if (!window.confirm("Áp dụng batch visibility synthetic này?")) return;
+
+  checkpoint();
+  bulkVisibilityPreview.changes.forEach((person) => {
+    person.visibility = bulkVisibilityPreview.targetVisibility;
+  });
+  persistState("Đã áp dụng batch visibility synthetic");
+  bulkSelectedIds = new Set();
+  resetBulkVisibilityPreview();
+  render();
+  renderBulkPeople();
+}
+
+function openBulkDialog() {
+  bulkImportText = null;
+  bulkSelectedIds = new Set();
+  bulkVisibilityPreview = null;
+  document.querySelector("#bulkImportFile").value = "";
+  document.querySelector("#bulkPersonSearch").value = "";
+  document.querySelector("#bulkVisibilityTarget").value = "private";
+  setBulkImportResult("Chưa chọn file.");
+  resetBulkVisibilityPreview();
+  renderBulkPeople();
+  document.querySelector("#bulkDialog").showModal();
+}
+
 function toggleSelectedBranch() {
   const person = getPerson(selectedId);
   if (!person) return;
@@ -2528,6 +2773,37 @@ document
   .querySelector("#reviewDataQuality")
   .addEventListener("click", openQualityDialog);
 document
+  .querySelector("#reviewBulkTools")
+  .addEventListener("click", openBulkDialog);
+document.querySelector("#bulkExport").addEventListener("click", downloadBulkBackup);
+document
+  .querySelector("#bulkImportFile")
+  .addEventListener("change", (event) => void readBulkImportFile(event));
+document
+  .querySelector("#bulkImportPreview")
+  .addEventListener("click", previewBulkImport);
+document
+  .querySelector("#bulkPersonSearch")
+  .addEventListener("input", renderBulkPeople);
+document
+  .querySelector("#bulkVisibilityTarget")
+  .addEventListener("change", resetBulkVisibilityPreview);
+document
+  .querySelector("#bulkSelectVisible")
+  .addEventListener("click", selectVisibleBulkPeople);
+document
+  .querySelector("#bulkClearSelection")
+  .addEventListener("click", clearBulkSelection);
+document
+  .querySelector("#bulkVisibilityPreview")
+  .addEventListener("click", renderBulkVisibilityPreview);
+document
+  .querySelector("#bulkConfirmation")
+  .addEventListener("input", updateBulkExecuteState);
+document
+  .querySelector("#bulkVisibilityExecute")
+  .addEventListener("click", executeBulkVisibility);
+document
   .querySelector("#qualitySeverityFilter")
   .addEventListener("change", renderQualityIssues);
 document
@@ -2615,6 +2891,9 @@ document.querySelector("#resetDemo").addEventListener("click", () => {
   editingCitationId = null;
   duplicatePair = null;
   duplicatePreview = null;
+  bulkImportText = null;
+  bulkSelectedIds = new Set();
+  bulkVisibilityPreview = null;
   resetFilterControls();
   localStorage.removeItem(STORAGE_KEY);
   render();

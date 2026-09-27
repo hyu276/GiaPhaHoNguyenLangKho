@@ -291,8 +291,7 @@ function batchVisibilityFailure(error: {
   code?: string;
   message: string;
 }): BatchVisibilityMutationResult {
-  const isConflict =
-    error.code === "40001" || error.message.includes("stale");
+  const isConflict = error.code === "40001" || error.message.includes("stale");
 
   if (isConflict) {
     return {

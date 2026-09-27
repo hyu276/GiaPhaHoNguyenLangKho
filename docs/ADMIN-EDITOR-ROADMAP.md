@@ -220,18 +220,30 @@ Core contract:
 
 ## Step 9 — Data-quality dashboard
 
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
+
 Goal: surface genealogy problems before publication.
 
 Checks:
 
-- missing parents or dates where noteworthy;
-- impossible/suspicious chronology;
-- duplicate candidates;
-- isolated people;
-- private living-person exposure;
-- relationships with incomplete provenance.
+- missing recorded parents where a person already participates in the graph;
+- missing canonical birth year where a person participates in the graph;
+- impossible/suspicious chronology, including birth-after-death and implausible parent/child generation gaps;
+- conservative duplicate candidates by reusing the Step 7 detection contract;
+- isolated active people;
+- public visibility on records treated as living by the current editor heuristic;
+- canonical relationships without direct citation coverage.
 
-These are review signals, not automatic corrections.
+Dashboard contract:
+
+- admin-only entry point;
+- lazy-load report on demand rather than expanding the initial tree payload;
+- severity summary plus issue-type filtering;
+- show affected people/relationship context for manual review;
+- archived and already-merged people are excluded from active quality signals;
+- checks are deterministic from current canonical/provenance data;
+- no issue creates, edits, archives, merges, or otherwise mutates genealogy data;
+- these are review signals, not automatic corrections.
 
 ## Step 10 — Bulk utilities and release preparation
 

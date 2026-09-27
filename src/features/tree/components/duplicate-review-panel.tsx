@@ -521,14 +521,22 @@ function ReviewContent({
 
 function DuplicateReviewModal(props: DuplicateReviewModalProps) {
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6">
+    <div
+      aria-labelledby="duplicate-review-title"
+      aria-modal="true"
+      className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6"
+      role="dialog"
+    >
       <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
               Duplicate Detection & Merge Review
             </p>
-            <h2 className="font-display mt-1 text-3xl text-card-foreground">
+            <h2
+              className="font-display mt-1 text-3xl text-card-foreground"
+              id="duplicate-review-title"
+            >
               Review trước, merge sau
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -546,7 +554,13 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
             >
               Quét lại
             </Button>
-            <Button onClick={props.onClose} type="button" variant="ghost">
+            <Button
+              aria-label="Đóng Duplicate Detection & Merge Review"
+              autoFocus
+              onClick={props.onClose}
+              type="button"
+              variant="ghost"
+            >
               Đóng
             </Button>
           </div>

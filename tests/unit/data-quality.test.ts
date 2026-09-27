@@ -111,8 +111,7 @@ describe("data quality report", () => {
 
     expect(
       report.issues.some(
-        (issue) =>
-          issue.kind === "chronology" && issue.relationshipId === "R1",
+        (issue) => issue.kind === "chronology" && issue.relationshipId === "R1",
       ),
     ).toBe(true);
   });

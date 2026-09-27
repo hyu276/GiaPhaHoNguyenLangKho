@@ -167,9 +167,7 @@ function addDuplicateIdErrors(
 ) {
   const duplicates = duplicateValues(values);
   if (duplicates.length === 0) return;
-  errors.push(
-    `${label} chứa ID trùng: ${duplicates.slice(0, 5).join(", ")}`,
-  );
+  errors.push(`${label} chứa ID trùng: ${duplicates.slice(0, 5).join(", ")}`);
 }
 
 function validateRelationshipReferences(
@@ -360,9 +358,7 @@ export function previewGenealogyImport(
   if (!parsed.success) {
     return {
       valid: false,
-      errors: parsed.error.issues
-        .slice(0, 20)
-        .map((issue) => issue.message),
+      errors: parsed.error.issues.slice(0, 20).map((issue) => issue.message),
       warnings: [],
       counts: {
         people: 0,
@@ -412,7 +408,9 @@ export function buildBatchVisibilityImpact(
   ).length;
   const livingPublicAfterCount = people.filter((person) => {
     const finalVisibility =
-      person.visibility === targetVisibility ? person.visibility : targetVisibility;
+      person.visibility === targetVisibility
+        ? person.visibility
+        : targetVisibility;
     return person.deathYear === null && finalVisibility === "public";
   }).length;
 

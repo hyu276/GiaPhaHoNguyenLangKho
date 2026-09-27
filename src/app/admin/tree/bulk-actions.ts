@@ -15,16 +15,14 @@ import { requireAdmin } from "@/lib/auth/admin";
 type SupabaseAdminClient = Awaited<ReturnType<typeof requireAdmin>>["supabase"];
 
 export type ExportBackupResult =
-  | { ok: true; backup: GenealogyBackup }
-  | { ok: false; message: string };
+  { ok: true; backup: GenealogyBackup } | { ok: false; message: string };
 
 export type ImportPreviewResult =
   | { ok: true; preview: ReturnType<typeof previewGenealogyImport> }
   | { ok: false; message: string };
 
 export type BatchVisibilityPreviewResult =
-  | { ok: true; impact: BatchVisibilityImpact }
-  | { ok: false; message: string };
+  { ok: true; impact: BatchVisibilityImpact } | { ok: false; message: string };
 
 export type BatchVisibilityMutationResult =
   | {
@@ -37,14 +35,12 @@ function mapBackupPerson(row: Record<string, unknown>) {
   return {
     id: String(row.id),
     displayName: String(row.display_name),
-    description:
-      typeof row.description === "string" ? row.description : null,
+    description: typeof row.description === "string" ? row.description : null,
     birthYear: typeof row.birth_year === "number" ? row.birth_year : null,
     deathYear: typeof row.death_year === "number" ? row.death_year : null,
     sex: row.sex === "male" || row.sex === "female" ? row.sex : null,
     visibility: row.visibility === "private" ? "private" : "public",
-    archivedAt:
-      typeof row.archived_at === "string" ? row.archived_at : null,
+    archivedAt: typeof row.archived_at === "string" ? row.archived_at : null,
     mergedIntoPersonId:
       typeof row.merged_into_person_id === "string"
         ? row.merged_into_person_id
@@ -79,7 +75,8 @@ function mapBackupSource(row: Record<string, unknown>) {
   return {
     id: String(row.id),
     title: String(row.title),
-    sourceType: row.source_type as GenealogyBackup["sources"][number]["sourceType"],
+    sourceType:
+      row.source_type as GenealogyBackup["sources"][number]["sourceType"],
     repositoryName:
       typeof row.repository_name === "string" ? row.repository_name : null,
     referenceCode:
@@ -96,12 +93,14 @@ function mapBackupCitation(row: Record<string, unknown>) {
     personId: typeof row.person_id === "string" ? row.person_id : null,
     relationshipId:
       typeof row.relationship_id === "string" ? row.relationship_id : null,
-    claimKind: row.claim_kind as GenealogyBackup["citations"][number]["claimKind"],
+    claimKind:
+      row.claim_kind as GenealogyBackup["citations"][number]["claimKind"],
     claimText: String(row.claim_text),
     citationLocator:
       typeof row.citation_locator === "string" ? row.citation_locator : null,
     note: typeof row.note === "string" ? row.note : null,
-    certainty: row.certainty as GenealogyBackup["citations"][number]["certainty"],
+    certainty:
+      row.certainty as GenealogyBackup["citations"][number]["certainty"],
     dateText: typeof row.date_text === "string" ? row.date_text : null,
     dateQualifier:
       row.date_qualifier as GenealogyBackup["citations"][number]["dateQualifier"],
@@ -201,7 +200,10 @@ export async function previewStructuredImport(
   const { supabase } = await requireAdmin();
   const { data, error } = await supabase.from("people").select("id");
   if (error) {
-    return { ok: false, message: "Không thể tải ID hiện có để preview import." };
+    return {
+      ok: false,
+      message: "Không thể tải ID hiện có để preview import.",
+    };
   }
 
   const existingIds = new Set(
@@ -231,7 +233,8 @@ async function loadVisibilityPeople(
     id: String(row.id),
     displayName: String(row.display_name),
     deathYear: typeof row.death_year === "number" ? row.death_year : null,
-    visibility: row.visibility === "private" ? ("private" as const) : ("public" as const),
+    visibility:
+      row.visibility === "private" ? ("private" as const) : ("public" as const),
     revision: Number(row.revision),
   }));
 }
@@ -262,10 +265,7 @@ export async function previewBatchVisibility(input: unknown) {
 
   return {
     ok: true as const,
-    impact: buildBatchVisibilityImpact(
-      people,
-      parsed.data.targetVisibility,
-    ),
+    impact: buildBatchVisibilityImpact(people, parsed.data.targetVisibility),
   };
 }
 

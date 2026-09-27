@@ -158,23 +158,49 @@ export function scoreDuplicatePair(
   };
 }
 
-export function findDuplicateSuggestions(people: DuplicatePerson[]) {
-  const suggestions: DuplicateSuggestion[] = [];
+function groupPeopleByDuplicateName(people: DuplicatePerson[]) {
+  const groups = new Map<string, DuplicatePerson[]>();
 
-  for (let firstIndex = 0; firstIndex < people.length; firstIndex += 1) {
-    const first = people[firstIndex];
+  for (const person of people) {
+    if (!isMergeCandidatePerson(person)) continue;
+
+    const normalizedName = normalizeDuplicateName(person.displayName);
+    if (!normalizedName) continue;
+
+    const group = groups.get(normalizedName) ?? [];
+    group.push(person);
+    groups.set(normalizedName, group);
+  }
+
+  return [...groups.values()].filter((group) => group.length > 1);
+}
+
+function collectGroupDuplicateSuggestions(
+  group: DuplicatePerson[],
+  suggestions: DuplicateSuggestion[],
+) {
+  for (let firstIndex = 0; firstIndex < group.length; firstIndex += 1) {
+    const first = group[firstIndex];
     if (!first) continue;
 
     for (
       let secondIndex = firstIndex + 1;
-      secondIndex < people.length;
+      secondIndex < group.length;
       secondIndex += 1
     ) {
-      const second = people[secondIndex];
+      const second = group[secondIndex];
       if (!second) continue;
       const suggestion = scoreDuplicatePair(first, second);
       if (suggestion) suggestions.push(suggestion);
     }
+  }
+}
+
+export function findDuplicateSuggestions(people: DuplicatePerson[]) {
+  const suggestions: DuplicateSuggestion[] = [];
+
+  for (const group of groupPeopleByDuplicateName(people)) {
+    collectGroupDuplicateSuggestions(group, suggestions);
   }
 
   return suggestions.sort(

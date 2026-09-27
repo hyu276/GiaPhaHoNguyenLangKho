@@ -46,9 +46,7 @@ function validationMessage(error: { issues: Array<{ message: string }> }) {
   return error.issues[0]?.message ?? "Batch visibility không hợp lệ.";
 }
 
-function isStaleBatchError(
-  error: { code?: string; message?: string } | null,
-) {
+function isStaleBatchError(error: { code?: string; message?: string } | null) {
   return (
     error?.code === "40001" ||
     Boolean(error?.message?.includes("stale person revision"))

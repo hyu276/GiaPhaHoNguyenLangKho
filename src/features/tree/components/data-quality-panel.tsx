@@ -347,6 +347,8 @@ export function DataQualityPanel() {
                   Refresh
                 </Button>
                 <Button
+                  aria-label="Đóng Data-quality dashboard"
+                  autoFocus
                   onClick={() => setOpen(false)}
                   type="button"
                   variant="ghost"

@@ -287,6 +287,12 @@ function createNodes(
       id: person.id,
       type: "person",
       position: positions?.get(person.id) ?? person.position,
+      ariaLabel:
+        person.displayName +
+        ", " +
+        formatYears(person) +
+        ", " +
+        getVisibilityLabel(person.visibility),
       deletable: false,
       draggable: !isArchived(person) && !locked,
       data: {
@@ -1361,7 +1367,10 @@ export function AdminTreeEditor({
 
   return (
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card">
+      <section
+        aria-label="Sơ đồ gia phả tương tác"
+        className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card"
+      >
         <ReactFlow<PersonNode, RelationshipEdge>
           nodes={nodes}
           onInit={(instance) => {
@@ -1378,6 +1387,7 @@ export function AdminTreeEditor({
           }}
           nodesDraggable={!readOnly}
           nodesConnectable={false}
+          nodesFocusable
           edgesFocusable
           deleteKeyCode={null}
           fitView

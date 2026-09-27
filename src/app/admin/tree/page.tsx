@@ -8,6 +8,10 @@ import {
   undoMutationAudit,
 } from "@/app/admin/tree/audit-actions";
 import { AuditHistoryPanel } from "@/features/tree/components/audit-history-panel";
+import {
+  BulkToolsPanel,
+  type BulkPersonOption,
+} from "@/features/tree/components/bulk-tools-panel";
 import { DataQualityPanel } from "@/features/tree/components/data-quality-panel";
 import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import {
@@ -308,6 +312,17 @@ async function signOut() {
   redirect("/admin/login");
 }
 
+function AdminBulkEntry({
+  people,
+  readOnly,
+}: {
+  people: BulkPersonOption[];
+  readOnly: boolean;
+}) {
+  if (readOnly) return null;
+  return <BulkToolsPanel people={people} />;
+}
+
 function AdminQualityEntry({ readOnly }: { readOnly: boolean }) {
   if (readOnly) return null;
   return <DataQualityPanel />;
@@ -326,6 +341,14 @@ export default async function AdminTreePage() {
   const auditResult = await getAuditHistory(readOnly);
   const { people, relationships } = await loadEditorGraphData(supabase);
   const { activePeopleCount, archivedPeopleCount } = getPeopleCounts(people);
+  const bulkPeople: BulkPersonOption[] = people
+    .filter((person) => person.archivedAt === null)
+    .map((person) => ({
+      id: person.id,
+      displayName: person.displayName,
+      deathYear: person.deathYear,
+      visibility: person.visibility,
+    }));
 
   return (
     <main className="flex min-h-svh flex-col bg-background px-4 py-4 sm:px-6 sm:py-6">
@@ -344,6 +367,7 @@ export default async function AdminTreePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <AdminBulkEntry people={bulkPeople} readOnly={readOnly} />
           <AdminQualityEntry readOnly={readOnly} />
           <DuplicateReviewEntry readOnly={readOnly} />
           <AuditHistoryEntry auditResult={auditResult} />

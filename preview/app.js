@@ -2048,8 +2048,7 @@ function activeQualityRelationships(people) {
 
 function qualityRelationshipDegree(relationships, personId) {
   return relationships.filter(
-    (relation) =>
-      relation.source === personId || relation.target === personId,
+    (relation) => relation.source === personId || relation.target === personId,
   ).length;
 }
 
@@ -2086,8 +2085,7 @@ function missingQualityIssues(people, relationships) {
         relationshipId: null,
         relatedPersonId: null,
         title: "Thiếu năm sinh canonical",
-        detail:
-          "Hồ sơ đang tham gia cây nhưng chưa có năm sinh canonical.",
+        detail: "Hồ sơ đang tham gia cây nhưng chưa có năm sinh canonical.",
       });
     }
   });
@@ -2238,8 +2236,7 @@ function provenanceQualityIssues(relationships) {
         relationshipId: relation.id,
         relatedPersonId: relation.target,
         title: "Quan hệ chưa có citation",
-        detail:
-          "Quan hệ canonical chưa có nguồn/citation gắn trực tiếp.",
+        detail: "Quan hệ canonical chưa có nguồn/citation gắn trực tiếp.",
       },
     ];
   });
@@ -2272,7 +2269,9 @@ function qualityPersonName(personId) {
 
 function qualityRelationshipText(relationshipId) {
   if (!relationshipId) return "";
-  const relation = state.relationships.find((item) => item.id === relationshipId);
+  const relation = state.relationships.find(
+    (item) => item.id === relationshipId,
+  );
   if (!relation) return relationshipId;
   return `${qualityPersonName(relation.source)} → ${qualityPersonName(
     relation.target,

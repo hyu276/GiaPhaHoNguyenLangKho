@@ -23,8 +23,7 @@ const batchVisibilityInputSchema = z.object({
 });
 
 export type BulkPeopleLoadResult =
-  | { ok: true; people: BulkPersonSummary[] }
-  | { ok: false; message: string };
+  { ok: true; people: BulkPersonSummary[] } | { ok: false; message: string };
 
 export type BatchVisibilityResult =
   | {

@@ -33,29 +33,25 @@ function makeRelationships(): DuplicateRelationship[] {
 }
 
 describe("large synthetic graph performance", () => {
-  it(
-    "builds the Step 9 quality report for 1,500 people within the release budget",
-    () => {
-      const people = makePeople();
-      const relationships = makeRelationships();
-      const citedRelationshipIds = new Set(
-        relationships
-          .filter((_, index) => index % 3 === 0)
-          .map((relationship) => relationship.id),
-      );
+  it("builds the Step 9 quality report for 1,500 people within the release budget", () => {
+    const people = makePeople();
+    const relationships = makeRelationships();
+    const citedRelationshipIds = new Set(
+      relationships
+        .filter((_, index) => index % 3 === 0)
+        .map((relationship) => relationship.id),
+    );
 
-      const startedAt = performance.now();
-      const report = buildDataQualityReport({
-        people,
-        relationships,
-        citedRelationshipIds,
-      });
-      const durationMs = performance.now() - startedAt;
+    const startedAt = performance.now();
+    const report = buildDataQualityReport({
+      people,
+      relationships,
+      citedRelationshipIds,
+    });
+    const durationMs = performance.now() - startedAt;
 
-      expect(report.issues.length).toBeGreaterThan(0);
-      expect(report.counts.info).toBeGreaterThan(0);
-      expect(durationMs).toBeLessThan(MAX_DURATION_MS);
-    },
-    10_000,
-  );
+    expect(report.issues.length).toBeGreaterThan(0);
+    expect(report.counts.info).toBeGreaterThan(0);
+    expect(durationMs).toBeLessThan(MAX_DURATION_MS);
+  }, 10_000);
 });

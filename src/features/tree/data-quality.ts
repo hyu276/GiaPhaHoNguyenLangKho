@@ -221,7 +221,7 @@ function postDeathChildIssue(
   };
 }
 
-function parentChildChronologyIssue(
+function getParentChildPair(
   relationship: DuplicateRelationship,
   personById: ReadonlyMap<string, DuplicatePerson>,
 ) {
@@ -232,11 +232,21 @@ function parentChildChronologyIssue(
   if (!parent || !child) return null;
   if (parent.birthYear === null || child.birthYear === null) return null;
 
-  const parentAge = child.birthYear - parent.birthYear;
+  return { parent, child };
+}
+
+function parentChildChronologyIssue(
+  relationship: DuplicateRelationship,
+  personById: ReadonlyMap<string, DuplicatePerson>,
+) {
+  const pair = getParentChildPair(relationship, personById);
+  if (!pair) return null;
+
+  const parentAge = pair.child.birthYear! - pair.parent.birthYear!;
   return (
-    youngParentIssue(relationship, parent, child, parentAge) ??
-    oldParentIssue(relationship, parent, child, parentAge) ??
-    postDeathChildIssue(relationship, parent, child)
+    youngParentIssue(relationship, pair.parent, pair.child, parentAge) ??
+    oldParentIssue(relationship, pair.parent, pair.child, parentAge) ??
+    postDeathChildIssue(relationship, pair.parent, pair.child)
   );
 }
 

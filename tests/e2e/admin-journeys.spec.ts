@@ -43,18 +43,27 @@ async function openSyntheticAdmin(page: Page) {
   });
 
   await page.goto("http://preview.local/index.html");
-  await expect(page.getByRole("heading", { name: "Admin Genealogy Editor" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Admin Genealogy Editor" }),
+  ).toBeVisible();
 }
 
-test("synthetic admin CRUD relationship and archive journey", async ({ page }) => {
+test("synthetic admin CRUD relationship and archive journey", async ({
+  page,
+}) => {
   await openSyntheticAdmin(page);
 
   await page.getByRole("button", { name: "+ Thêm người" }).click();
   await page.locator("#nameField").fill("Nguyễn Test Journey");
   await page.locator("#birthField").fill("1990");
-  await page.locator("#personDialog").getByRole("button", { name: "Lưu" }).click();
+  await page
+    .locator("#personDialog")
+    .getByRole("button", { name: "Lưu" })
+    .click();
 
-  await expect(page.getByText("Nguyễn Test Journey", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Nguyễn Test Journey", { exact: true }),
+  ).toBeVisible();
 
   await page.locator('[data-person-id="P003"]').click();
   await page.getByRole("button", { name: "+ Con" }).click();
@@ -81,12 +90,19 @@ test("synthetic provenance review journey preserves explicit claims", async ({
   await page.getByRole("button", { name: "+ Nguồn" }).click();
   await page.locator("#sourceTitle").fill("Nguồn E2E synthetic");
   await page.locator("#sourceReference").fill("E2E-001");
-  await page.locator("#sourceDialog").getByRole("button", { name: "Lưu nguồn" }).click();
+  await page
+    .locator("#sourceDialog")
+    .getByRole("button", { name: "Lưu nguồn" })
+    .click();
 
   await page.getByRole("button", { name: "+ Citation" }).click();
-  await page.locator("#citationSource").selectOption({ label: "Nguồn E2E synthetic" });
+  await page
+    .locator("#citationSource")
+    .selectOption({ label: "Nguồn E2E synthetic" });
   await page.locator("#citationKind").selectOption("identity");
-  await page.locator("#citationClaim").fill("Claim E2E không thay đổi canonical profile.");
+  await page
+    .locator("#citationClaim")
+    .fill("Claim E2E không thay đổi canonical profile.");
   await page
     .locator("#citationDialog")
     .getByRole("button", { name: "Lưu citation" })
@@ -97,7 +113,9 @@ test("synthetic provenance review journey preserves explicit claims", async ({
   );
 });
 
-test("synthetic duplicate quality and bulk release journey", async ({ page }) => {
+test("synthetic duplicate quality and bulk release journey", async ({
+  page,
+}) => {
   await openSyntheticAdmin(page);
 
   await page

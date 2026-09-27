@@ -930,7 +930,6 @@ dialog::backdrop {
   font-size: 12px;
 }
 
-
 .bulk-preview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

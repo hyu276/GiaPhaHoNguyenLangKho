@@ -2449,9 +2449,7 @@ function validateBulkImportReferences(backup) {
   }
 
   const peopleIds = new Set(people.map((person) => person.id));
-  const relationshipIds = new Set(
-    relationships.map((relation) => relation.id),
-  );
+  const relationshipIds = new Set(relationships.map((relation) => relation.id));
   const sourceIds = new Set(sources.map((source) => source.id));
 
   const invalidRelationship = relationships.find(
@@ -2471,8 +2469,7 @@ function validateBulkImportReferences(backup) {
     if (!sourceIds.has(citation.source_id) || targetCount !== 1) return true;
     if (citation.person_id && !peopleIds.has(citation.person_id)) return true;
     return (
-      citation.relationship_id &&
-      !relationshipIds.has(citation.relationship_id)
+      citation.relationship_id && !relationshipIds.has(citation.relationship_id)
     );
   });
 
@@ -2777,17 +2774,19 @@ document
 document
   .querySelector("#reviewBulkUtilities")
   .addEventListener("click", openBulkDialog);
-document.querySelector("#bulkExport").addEventListener("click", downloadBulkBackup);
+document
+  .querySelector("#bulkExport")
+  .addEventListener("click", downloadBulkBackup);
 document
   .querySelector("#bulkPreviewImport")
   .addEventListener("click", previewBulkImport);
-document.querySelector("#bulkSelectAll").addEventListener("click", selectAllBulkPeople);
 document
-  .querySelector("#bulkVisibility")
-  .addEventListener("change", () => {
-    document.querySelector("#bulkConfirmation").value = "";
-    renderBulkImpact();
-  });
+  .querySelector("#bulkSelectAll")
+  .addEventListener("click", selectAllBulkPeople);
+document.querySelector("#bulkVisibility").addEventListener("change", () => {
+  document.querySelector("#bulkConfirmation").value = "";
+  renderBulkImpact();
+});
 document
   .querySelector("#bulkConfirmation")
   .addEventListener("input", renderBulkImpact);

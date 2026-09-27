@@ -2476,44 +2476,58 @@ function validateBulkImportReferences(backup) {
   return invalidCitation ? "Có citation tham chiếu không hợp lệ." : null;
 }
 
-function previewBulkImport() {
-  const result = document.querySelector("#bulkImportResult");
-  const raw = document.querySelector("#bulkImportText").value.trim();
+function parseBulkImportPreview(raw) {
   if (!raw) {
-    result.textContent = "Hãy dán backup JSON để preview.";
-    return;
+    return { ok: false, message: "Hãy dán backup JSON để preview." };
   }
 
   let backup;
   try {
     backup = JSON.parse(raw);
   } catch {
-    result.textContent = "JSON không hợp lệ. Không có dữ liệu nào được ghi.";
-    return;
+    return {
+      ok: false,
+      message: "JSON không hợp lệ. Không có dữ liệu nào được ghi.",
+    };
   }
 
   if (backup?.version !== 1) {
-    result.textContent = "Backup version không được hỗ trợ.";
-    return;
+    return { ok: false, message: "Backup version không được hỗ trợ." };
   }
 
   const referenceError = validateBulkImportReferences(backup);
   if (referenceError) {
-    result.textContent = referenceError + " Không có dữ liệu nào được ghi.";
-    return;
+    return {
+      ok: false,
+      message: referenceError + " Không có dữ liệu nào được ghi.",
+    };
   }
 
+  return { ok: true, backup };
+}
+
+function bulkImportSummary(backup) {
   const people = importArray(backup, "people") || [];
   const relationships = importArray(backup, "relationships") || [];
   const citations = importArray(backup, "genealogy_citations") || [];
-  result.textContent =
+  return (
     "Preview hợp lệ: " +
     people.length +
     " người · " +
     relationships.length +
     " quan hệ · " +
     citations.length +
-    " citation. Import write vẫn bị vô hiệu hóa.";
+    " citation. Import write vẫn bị vô hiệu hóa."
+  );
+}
+
+function previewBulkImport() {
+  const result = document.querySelector("#bulkImportResult");
+  const raw = document.querySelector("#bulkImportText").value.trim();
+  const preview = parseBulkImportPreview(raw);
+  result.textContent = preview.ok
+    ? bulkImportSummary(preview.backup)
+    : preview.message;
 }
 
 function activeBulkPeople() {

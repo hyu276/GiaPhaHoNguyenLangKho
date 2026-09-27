@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   executeDuplicatePersonMerge,
@@ -520,9 +520,29 @@ function ReviewContent({
 }
 
 function DuplicateReviewModal(props: DuplicateReviewModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    panelRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") props.onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [props.onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6">
-      <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl">
+    <div
+      aria-label="Duplicate Detection & Merge Review"
+      aria-modal="true"
+      className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6"
+      role="dialog"
+    >
+      <div
+        className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl outline-none"
+        ref={panelRef}
+        tabIndex={-1}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -546,7 +566,12 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
             >
               Quét lại
             </Button>
-            <Button onClick={props.onClose} type="button" variant="ghost">
+            <Button
+              autoFocus
+              onClick={props.onClose}
+              type="button"
+              variant="ghost"
+            >
               Đóng
             </Button>
           </div>

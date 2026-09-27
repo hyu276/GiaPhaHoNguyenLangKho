@@ -139,8 +139,8 @@ function ImportMessages({ preview }: { preview: ImportPreview }) {
       ))}
       {preview.valid ? (
         <p className="rounded-xl bg-primary/10 p-3 text-xs font-medium text-primary">
-          Cấu trúc hợp lệ cho review. Step 10 không cung cấp nút thực thi import;
-          import thực tế vẫn bị khóa.
+          Cấu trúc hợp lệ cho review. Step 10 không cung cấp nút thực thi
+          import; import thực tế vẫn bị khóa.
         </p>
       ) : null}
     </div>

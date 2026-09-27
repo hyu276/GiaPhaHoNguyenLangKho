@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   executeDuplicatePersonMerge,
@@ -419,7 +419,6 @@ type DuplicateReviewModalProps = {
   loading: boolean;
   message: string | null;
   pair: ReviewPair | null;
-  panelRef: RefObject<HTMLDivElement | null>;
   preview: MergePreviewData | null;
   previewLoading: boolean;
   onClose: () => void;
@@ -521,6 +520,17 @@ function ReviewContent({
 }
 
 function DuplicateReviewModal(props: DuplicateReviewModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    panelRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") props.onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [props.onClose]);
+
   return (
     <div
       aria-label="Duplicate Detection & Merge Review"
@@ -530,7 +540,7 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
     >
       <div
         className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl outline-none"
-        ref={props.panelRef}
+        ref={panelRef}
         tabIndex={-1}
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -607,18 +617,6 @@ export function DuplicateReviewPanel() {
   const [executing, setExecuting] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    panelRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
 
   const candidateCount = useMemo(
     () => data?.suggestions.length ?? 0,
@@ -732,7 +730,6 @@ export function DuplicateReviewPanel() {
       onReview={(suggestion) => void reviewSuggestion(suggestion)}
       onSwap={() => void swapPair()}
       pair={pair}
-      panelRef={panelRef}
       preview={preview}
       previewLoading={previewLoading}
     />

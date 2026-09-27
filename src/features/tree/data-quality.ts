@@ -161,6 +161,66 @@ function personChronologyIssues(people: DuplicatePerson[]) {
   });
 }
 
+function youngParentIssue(
+  relationship: DuplicateRelationship,
+  parent: DuplicatePerson,
+  child: DuplicatePerson,
+  parentAge: number,
+) {
+  if (parentAge >= 12) return null;
+
+  return {
+    id: `chronology:young-parent:${relationship.id}`,
+    kind: "chronology" as const,
+    severity: "warning" as const,
+    personId: parent.id,
+    relationshipId: relationship.id,
+    relatedPersonId: child.id,
+    title: "Tuổi cha/mẹ khi sinh con bất thường",
+    detail: `Chênh lệch năm sinh chỉ ${parentAge} năm. Cần kiểm tra lại hồ sơ và nguồn.`,
+  };
+}
+
+function oldParentIssue(
+  relationship: DuplicateRelationship,
+  parent: DuplicatePerson,
+  child: DuplicatePerson,
+  parentAge: number,
+) {
+  if (parentAge <= 80) return null;
+
+  return {
+    id: `chronology:old-parent:${relationship.id}`,
+    kind: "chronology" as const,
+    severity: "warning" as const,
+    personId: parent.id,
+    relationshipId: relationship.id,
+    relatedPersonId: child.id,
+    title: "Khoảng cách thế hệ bất thường",
+    detail: `Chênh lệch năm sinh là ${parentAge} năm. Đây là tín hiệu review, không phải kết luận sai dữ liệu.`,
+  };
+}
+
+function postDeathChildIssue(
+  relationship: DuplicateRelationship,
+  parent: DuplicatePerson,
+  child: DuplicatePerson,
+) {
+  if (parent.deathYear === null || child.birthYear === null) return null;
+  if (parent.deathYear >= child.birthYear - 1) return null;
+
+  return {
+    id: `chronology:post-death-child:${relationship.id}`,
+    kind: "chronology" as const,
+    severity: "warning" as const,
+    personId: parent.id,
+    relationshipId: relationship.id,
+    relatedPersonId: child.id,
+    title: "Con sinh sau năm mất của cha/mẹ",
+    detail: `Năm mất ${parent.deathYear} sớm hơn năm sinh của con ${child.birthYear} quá một năm.`,
+  };
+}
+
 function parentChildChronologyIssue(
   relationship: DuplicateRelationship,
   personById: ReadonlyMap<string, DuplicatePerson>,
@@ -173,46 +233,11 @@ function parentChildChronologyIssue(
   if (parent.birthYear === null || child.birthYear === null) return null;
 
   const parentAge = child.birthYear - parent.birthYear;
-  if (parentAge < 12) {
-    return {
-      id: `chronology:young-parent:${relationship.id}`,
-      kind: "chronology" as const,
-      severity: "warning" as const,
-      personId: parent.id,
-      relationshipId: relationship.id,
-      relatedPersonId: child.id,
-      title: "Tuổi cha/mẹ khi sinh con bất thường",
-      detail: `Chênh lệch năm sinh chỉ ${parentAge} năm. Cần kiểm tra lại hồ sơ và nguồn.`,
-    };
-  }
-
-  if (parentAge > 80) {
-    return {
-      id: `chronology:old-parent:${relationship.id}`,
-      kind: "chronology" as const,
-      severity: "warning" as const,
-      personId: parent.id,
-      relationshipId: relationship.id,
-      relatedPersonId: child.id,
-      title: "Khoảng cách thế hệ bất thường",
-      detail: `Chênh lệch năm sinh là ${parentAge} năm. Đây là tín hiệu review, không phải kết luận sai dữ liệu.`,
-    };
-  }
-
-  if (parent.deathYear !== null && parent.deathYear < child.birthYear - 1) {
-    return {
-      id: `chronology:post-death-child:${relationship.id}`,
-      kind: "chronology" as const,
-      severity: "warning" as const,
-      personId: parent.id,
-      relationshipId: relationship.id,
-      relatedPersonId: child.id,
-      title: "Con sinh sau năm mất của cha/mẹ",
-      detail: `Năm mất ${parent.deathYear} sớm hơn năm sinh của con ${child.birthYear} quá một năm.`,
-    };
-  }
-
-  return null;
+  return (
+    youngParentIssue(relationship, parent, child, parentAge) ??
+    oldParentIssue(relationship, parent, child, parentAge) ??
+    postDeathChildIssue(relationship, parent, child)
+  );
 }
 
 function relationshipChronologyIssues(

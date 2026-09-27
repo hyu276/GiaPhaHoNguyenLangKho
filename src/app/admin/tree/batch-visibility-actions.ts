@@ -77,9 +77,7 @@ export async function loadBatchVisibilityCandidates(): Promise<BatchVisibilityLo
   const { supabase } = await requireAdmin();
   const { data, error } = await supabase
     .from("people")
-    .select(
-      "id, display_name, visibility, birth_year, death_year, revision",
-    )
+    .select("id, display_name, visibility, birth_year, death_year, revision")
     .is("archived_at", null)
     .is("merged_into_person_id", null)
     .order("display_name");
@@ -88,14 +86,17 @@ export async function loadBatchVisibilityCandidates(): Promise<BatchVisibilityLo
     return { ok: false, message: "Không thể tải hồ sơ cho batch visibility." };
   }
 
-  const people = z.array(candidateSchema).parse(data ?? []).map((person) => ({
-    id: person.id,
-    displayName: person.display_name,
-    visibility: person.visibility,
-    birthYear: person.birth_year,
-    deathYear: person.death_year,
-    revision: person.revision,
-  }));
+  const people = z
+    .array(candidateSchema)
+    .parse(data ?? [])
+    .map((person) => ({
+      id: person.id,
+      displayName: person.display_name,
+      visibility: person.visibility,
+      birthYear: person.birth_year,
+      deathYear: person.death_year,
+      revision: person.revision,
+    }));
 
   return { ok: true, people };
 }

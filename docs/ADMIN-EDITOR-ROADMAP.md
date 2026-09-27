@@ -247,14 +247,29 @@ Dashboard contract:
 
 ## Step 10 — Bulk utilities and release preparation
 
-Add only after single-record workflows are stable:
+**Status: complete in GitHub development stack; not deployed to Vercel production.**
 
-- structured import preview;
-- export/backup;
-- batch visibility changes with impact review;
-- large synthetic graph performance test;
-- keyboard-accessibility pass;
-- full Playwright admin journeys.
+Goal: prepare the editor for controlled bulk operations and a production release gate without bypassing the single-record safety model.
+
+Add:
+
+- versioned JSON export/backup covering people, relationships, layouts, sources, and citations;
+- structured import dry-run for the same format, including schema validation, duplicate IDs, broken references, self-links, citation target checks, and ancestry-cycle warnings;
+- no bulk-import execution path in this step: import remains preview-only until a separately reviewed transactional restore design exists;
+- batch visibility changes for up to 500 active/unmerged people with impact review, typed APPLY confirmation, expected-revision checks, immutable mutation audit entries, and all-or-nothing rollback on stale records;
+- explicit living-public exposure count before a private → public batch is allowed to proceed;
+- large synthetic graph performance regression test for the data-quality pipeline;
+- keyboard accessibility pass for the Step 7 duplicate review, Step 9 data-quality dashboard, and Step 10 bulk workspace, including focus placement and Escape-to-close behavior;
+- Playwright login focus-order coverage plus optional credentialed admin/spectator release journeys;
+- CI wiring for Supabase public configuration and E2E credentials through repository secrets, while safely skipping credentialed journeys when those secrets are absent.
+
+Release-preparation contract:
+
+- spectator never receives bulk, duplicate-review, or data-quality controls;
+- backup and import preview are admin-only;
+- no production migration is applied as part of GitHub development;
+- no Vercel production deployment occurs until the Final release gate below is intentionally executed;
+- credentialed E2E journeys must be green before production release even though they may be skipped on PRs where protected secrets are unavailable.
 
 ## Final release gate
 

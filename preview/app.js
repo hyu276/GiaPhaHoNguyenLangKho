@@ -2115,51 +2115,63 @@ function personChronologyQualityIssues(people) {
   });
 }
 
-function qualityParentChildIssue(relation) {
+function getQualityParentChildPair(relation) {
   if (relation.kind !== "parent_child") return null;
   const parent = getPerson(relation.source);
   const child = getPerson(relation.target);
   if (!parent || !child) return null;
   if (parent.birth === null || child.birth === null) return null;
+  return { parent, child };
+}
 
-  const age = child.birth - parent.birth;
-  if (age < 12) {
-    return {
-      kind: "chronology",
-      severity: "warning",
-      personId: parent.id,
-      relationshipId: relation.id,
-      relatedPersonId: child.id,
-      title: "Tuổi cha/mẹ khi sinh con bất thường",
-      detail: `Chênh lệch năm sinh chỉ ${age} năm.`,
-    };
-  }
+function youngQualityParentIssue(relation, parent, child, age) {
+  if (age >= 12) return null;
+  return {
+    kind: "chronology",
+    severity: "warning",
+    personId: parent.id,
+    relationshipId: relation.id,
+    relatedPersonId: child.id,
+    title: "Tuổi cha/mẹ khi sinh con bất thường",
+    detail: `Chênh lệch năm sinh chỉ ${age} năm.`,
+  };
+}
 
-  if (age > 80) {
-    return {
-      kind: "chronology",
-      severity: "warning",
-      personId: parent.id,
-      relationshipId: relation.id,
-      relatedPersonId: child.id,
-      title: "Khoảng cách thế hệ bất thường",
-      detail: `Chênh lệch năm sinh là ${age} năm.`,
-    };
-  }
+function oldQualityParentIssue(relation, parent, child, age) {
+  if (age <= 80) return null;
+  return {
+    kind: "chronology",
+    severity: "warning",
+    personId: parent.id,
+    relationshipId: relation.id,
+    relatedPersonId: child.id,
+    title: "Khoảng cách thế hệ bất thường",
+    detail: `Chênh lệch năm sinh là ${age} năm.`,
+  };
+}
 
-  if (parent.death !== null && parent.death < child.birth - 1) {
-    return {
-      kind: "chronology",
-      severity: "warning",
-      personId: parent.id,
-      relationshipId: relation.id,
-      relatedPersonId: child.id,
-      title: "Con sinh sau năm mất của cha/mẹ",
-      detail: `Năm mất ${parent.death} sớm hơn năm sinh của con ${child.birth} quá một năm.`,
-    };
-  }
+function postDeathQualityIssue(relation, parent, child) {
+  if (parent.death === null || parent.death >= child.birth - 1) return null;
+  return {
+    kind: "chronology",
+    severity: "warning",
+    personId: parent.id,
+    relationshipId: relation.id,
+    relatedPersonId: child.id,
+    title: "Con sinh sau năm mất của cha/mẹ",
+    detail: `Năm mất ${parent.death} sớm hơn năm sinh của con ${child.birth} quá một năm.`,
+  };
+}
 
-  return null;
+function qualityParentChildIssue(relation) {
+  const pair = getQualityParentChildPair(relation);
+  if (!pair) return null;
+  const age = pair.child.birth - pair.parent.birth;
+  return (
+    youngQualityParentIssue(relation, pair.parent, pair.child, age) ||
+    oldQualityParentIssue(relation, pair.parent, pair.child, age) ||
+    postDeathQualityIssue(relation, pair.parent, pair.child)
+  );
 }
 
 function relationshipChronologyQualityIssues(relationships) {

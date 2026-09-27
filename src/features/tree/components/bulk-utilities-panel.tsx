@@ -309,6 +309,8 @@ export function BulkUtilitiesPanel() {
                 </p>
               </div>
               <Button
+                aria-label="Đóng Bulk utilities & backup"
+                autoFocus
                 onClick={() => setOpen(false)}
                 type="button"
                 variant="ghost"

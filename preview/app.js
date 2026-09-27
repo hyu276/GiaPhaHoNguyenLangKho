@@ -2384,6 +2384,253 @@ function openQualityDialog() {
   document.querySelector("#qualityDialog").showModal();
 }
 
+function buildBulkBackup() {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    people: state.people.map((person) => ({
+      id: person.id,
+      display_name: person.name,
+      birth_year: person.birth,
+      death_year: person.death,
+      visibility: person.visibility,
+      archived_at: person.archived ? "synthetic" : null,
+      merged_into_person_id: person.mergedInto || null,
+    })),
+    relationships: state.relationships.map((relation) => ({
+      id: relation.id,
+      relationship_kind: relation.kind,
+      source_person_id: relation.source,
+      target_person_id: relation.target,
+    })),
+    person_layouts: state.people.map((person) => ({
+      person_id: person.id,
+      position_x: person.x,
+      position_y: person.y,
+    })),
+    genealogy_sources: state.sources.map((source) => ({
+      id: source.id,
+      title: source.title,
+    })),
+    genealogy_citations: state.citations.map((citation) => ({
+      id: citation.id,
+      source_id: citation.sourceId,
+      person_id: citation.personId,
+      relationship_id: citation.relationshipId,
+    })),
+  };
+}
+
+function downloadBulkBackup() {
+  const blob = new Blob([JSON.stringify(buildBulkBackup(), null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchorElement = document.createElement("a");
+  anchorElement.href = url;
+  anchorElement.download = "gia-pha-synthetic-backup.json";
+  document.body.appendChild(anchorElement);
+  anchorElement.click();
+  anchorElement.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importArray(value, key) {
+  return value && Array.isArray(value[key]) ? value[key] : null;
+}
+
+function validateBulkImportReferences(backup) {
+  const people = importArray(backup, "people");
+  const relationships = importArray(backup, "relationships");
+  const sources = importArray(backup, "genealogy_sources");
+  const citations = importArray(backup, "genealogy_citations");
+  if (!people || !relationships || !sources || !citations) {
+    return "Thiếu một hoặc nhiều collection bắt buộc.";
+  }
+
+  const peopleIds = new Set(people.map((person) => person.id));
+  const relationshipIds = new Set(
+    relationships.map((relation) => relation.id),
+  );
+  const sourceIds = new Set(sources.map((source) => source.id));
+
+  const invalidRelationship = relationships.find(
+    (relation) =>
+      !peopleIds.has(relation.source_person_id) ||
+      !peopleIds.has(relation.target_person_id) ||
+      relation.source_person_id === relation.target_person_id,
+  );
+  if (invalidRelationship) {
+    return "Có relationship tham chiếu person không hợp lệ hoặc self-link.";
+  }
+
+  const invalidCitation = citations.find((citation) => {
+    const targetCount =
+      Number(Boolean(citation.person_id)) +
+      Number(Boolean(citation.relationship_id));
+    if (!sourceIds.has(citation.source_id) || targetCount !== 1) return true;
+    if (citation.person_id && !peopleIds.has(citation.person_id)) return true;
+    return (
+      citation.relationship_id &&
+      !relationshipIds.has(citation.relationship_id)
+    );
+  });
+
+  return invalidCitation ? "Có citation tham chiếu không hợp lệ." : null;
+}
+
+function previewBulkImport() {
+  const result = document.querySelector("#bulkImportResult");
+  const raw = document.querySelector("#bulkImportText").value.trim();
+  if (!raw) {
+    result.textContent = "Hãy dán backup JSON để preview.";
+    return;
+  }
+
+  let backup;
+  try {
+    backup = JSON.parse(raw);
+  } catch {
+    result.textContent = "JSON không hợp lệ. Không có dữ liệu nào được ghi.";
+    return;
+  }
+
+  if (backup?.version !== 1) {
+    result.textContent = "Backup version không được hỗ trợ.";
+    return;
+  }
+
+  const referenceError = validateBulkImportReferences(backup);
+  if (referenceError) {
+    result.textContent = referenceError + " Không có dữ liệu nào được ghi.";
+    return;
+  }
+
+  const people = importArray(backup, "people") || [];
+  const relationships = importArray(backup, "relationships") || [];
+  const citations = importArray(backup, "genealogy_citations") || [];
+  result.textContent =
+    "Preview hợp lệ: " +
+    people.length +
+    " người · " +
+    relationships.length +
+    " quan hệ · " +
+    citations.length +
+    " citation. Import write vẫn bị vô hiệu hóa.";
+}
+
+function activeBulkPeople() {
+  return state.people.filter(
+    (person) => !person.archived && !person.mergedInto,
+  );
+}
+
+function renderBulkPeople() {
+  const list = document.querySelector("#bulkPersonList");
+  list.replaceChildren();
+
+  activeBulkPeople().forEach((person) => {
+    const label = document.createElement("label");
+    label.className = "bulk-person-row";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.personId = person.id;
+    input.addEventListener("change", renderBulkImpact);
+
+    const text = document.createElement("span");
+    text.textContent =
+      person.name +
+      " · " +
+      (person.visibility === "public" ? "Công khai" : "Riêng tư");
+
+    const life = document.createElement("small");
+    life.textContent = person.death === null ? "living heuristic" : "deceased";
+
+    label.append(input, text, life);
+    list.appendChild(label);
+  });
+}
+
+function selectedBulkPeople() {
+  return [...document.querySelectorAll("#bulkPersonList input:checked")]
+    .map((input) => getPerson(input.dataset.personId))
+    .filter(Boolean);
+}
+
+function calculateBulkImpact() {
+  const selected = selectedBulkPeople();
+  const visibility = document.querySelector("#bulkVisibility").value;
+  const changing = selected.filter(
+    (person) => person.visibility !== visibility,
+  );
+  const livingPublic = selected.filter(
+    (person) => person.death === null && visibility === "public",
+  );
+
+  return {
+    selected,
+    visibility,
+    changingCount: changing.length,
+    livingPublicCount: livingPublic.length,
+  };
+}
+
+function renderBulkImpact() {
+  const impact = calculateBulkImpact();
+  document.querySelector("#bulkSelectedCount").textContent =
+    impact.selected.length;
+  document.querySelector("#bulkChangingCount").textContent =
+    impact.changingCount;
+  document.querySelector("#bulkLivingPublicCount").textContent =
+    impact.livingPublicCount;
+
+  const message = document.querySelector("#bulkImpactMessage");
+  message.textContent = impact.livingPublicCount
+    ? impact.livingPublicCount +
+      " hồ sơ living heuristic sẽ ở trạng thái public sau batch."
+    : "Không phát hiện living-public exposure mới trong selection hiện tại.";
+
+  const confirmation = document.querySelector("#bulkConfirmation").value;
+  document.querySelector("#bulkExecuteVisibility").disabled =
+    confirmation !== "APPLY" || impact.changingCount === 0;
+}
+
+function selectAllBulkPeople() {
+  document
+    .querySelectorAll("#bulkPersonList input")
+    .forEach((input) => (input.checked = true));
+  document.querySelector("#bulkConfirmation").value = "";
+  renderBulkImpact();
+}
+
+function openBulkDialog() {
+  renderBulkPeople();
+  document.querySelector("#bulkVisibility").value = "private";
+  document.querySelector("#bulkConfirmation").value = "";
+  document.querySelector("#bulkImportText").value = "";
+  document.querySelector("#bulkImportResult").textContent =
+    "Import write bị vô hiệu hóa trong preview.";
+  renderBulkImpact();
+  document.querySelector("#bulkDialog").showModal();
+}
+
+function executeBulkVisibility() {
+  const impact = calculateBulkImpact();
+  if (document.querySelector("#bulkConfirmation").value !== "APPLY") return;
+  if (!impact.changingCount) return;
+
+  checkpoint();
+  impact.selected.forEach((person) => {
+    person.visibility = impact.visibility;
+  });
+  persistState("Đã áp dụng batch visibility synthetic");
+  document.querySelector("#bulkConfirmation").value = "";
+  renderBulkPeople();
+  renderBulkImpact();
+  render();
+}
+
 function toggleSelectedBranch() {
   const person = getPerson(selectedId);
   if (!person) return;
@@ -2527,6 +2774,26 @@ document
 document
   .querySelector("#reviewDataQuality")
   .addEventListener("click", openQualityDialog);
+document
+  .querySelector("#reviewBulkUtilities")
+  .addEventListener("click", openBulkDialog);
+document.querySelector("#bulkExport").addEventListener("click", downloadBulkBackup);
+document
+  .querySelector("#bulkPreviewImport")
+  .addEventListener("click", previewBulkImport);
+document.querySelector("#bulkSelectAll").addEventListener("click", selectAllBulkPeople);
+document
+  .querySelector("#bulkVisibility")
+  .addEventListener("change", () => {
+    document.querySelector("#bulkConfirmation").value = "";
+    renderBulkImpact();
+  });
+document
+  .querySelector("#bulkConfirmation")
+  .addEventListener("input", renderBulkImpact);
+document
+  .querySelector("#bulkExecuteVisibility")
+  .addEventListener("click", executeBulkVisibility);
 document
   .querySelector("#qualitySeverityFilter")
   .addEventListener("change", renderQualityIssues);

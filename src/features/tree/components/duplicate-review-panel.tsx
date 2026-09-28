@@ -1,10 +1,3 @@
-/**
- * DUPLICATE_REVIEW_PANEL
- *
- * Purpose: Guides administrators through conservative duplicate detection and controlled record merging in plain Vietnamese.
- * Connections: Duplicate detection actions, merge preview, provenance migration, and audit recording.
- * Risk: High because a confirmed merge archives one record and rewires genealogy references.
- */
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -59,8 +52,8 @@ function ProfileCard({
 }) {
   const targetDescription =
     tone === "target"
-      ? "Hồ sơ này sẽ được giữ làm hồ sơ chính. Thông tin từ hồ sơ còn lại không tự ghi đè."
-      : "Hồ sơ này sẽ được lưu trữ sau khi gộp thành công.";
+      ? "Hồ sơ này được giữ làm canonical. Merge không tự sao chép field từ source."
+      : "Hồ sơ này sẽ được lưu trữ và đánh dấu merged_into nếu merge thành công.";
 
   return (
     <article className="rounded-2xl border border-border bg-background p-4">
@@ -118,7 +111,7 @@ function DeduplicationNote({
 
   return (
     <p className="mt-1 text-muted-foreground">
-      Dẫn chứng của quan hệ trùng sẽ được chuyển sang quan hệ được giữ lại.
+      Citation của cạnh trùng sẽ chuyển sang relationship hiện có.
     </p>
   );
 }
@@ -149,7 +142,7 @@ function RelationshipChangeRow({
         {fromSource} → {fromTarget}
       </p>
       <p className="mt-1 font-medium text-card-foreground">
-        Sau khi gộp: {toSource} → {toTarget}
+        Sau merge: {toSource} → {toTarget}
       </p>
       <DeduplicationNote
         existingRelationshipId={change.existingRelationshipId}
@@ -171,7 +164,7 @@ function BlockerList({ blockers }: { blockers: string[] }) {
   return (
     <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3">
       <p className="text-xs font-semibold text-destructive">
-        Chưa thể gộp hồ sơ
+        Merge đang bị chặn
       </p>
       <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-destructive">
         {blockers.map((blocker) => (
@@ -223,7 +216,7 @@ function SuggestionRow({
         type="button"
         variant="outline"
       >
-        So sánh hai hồ sơ
+        Review side-by-side
       </Button>
     </article>
   );
@@ -239,7 +232,8 @@ function SuggestionList({
   if (data.suggestions.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-        Không có hồ sơ nghi trùng nào đủ rõ để đề xuất. Hệ thống không tự gộp và không kết luận chỉ vì tên giống nhau.
+        Không có candidate nào vượt ngưỡng bảo thủ hiện tại. Hệ thống không tự
+        merge và không gợi ý chỉ dựa trên tên giống nhau.
       </p>
     );
   }
@@ -268,7 +262,7 @@ function MergeImpact({
   return (
     <section className="mt-4 rounded-2xl border border-border bg-muted/20 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        Xem trước thay đổi
+        Migration preview
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-background p-3">
@@ -282,14 +276,16 @@ function MergeImpact({
             {data.sourcePersonCitationCount}
           </p>
           <p className="text-xs text-muted-foreground">
-            dẫn chứng của hồ sơ sẽ gộp
+            citation của source person
           </p>
         </div>
         <div className="rounded-xl bg-background p-3">
           <p className="text-2xl font-semibold text-card-foreground">
             {data.sourceRelationshipCitationCount}
           </p>
-          <p className="text-xs text-muted-foreground">dẫn chứng của quan hệ</p>
+          <p className="text-xs text-muted-foreground">
+            citation của relationship
+          </p>
         </div>
       </div>
 
@@ -309,7 +305,7 @@ function MergeImpact({
         </ul>
       ) : (
         <p className="mt-3 text-xs text-muted-foreground">
-          Hồ sơ sẽ gộp không có quan hệ nào cần chuyển.
+          Source không có relationship cần migrate.
         </p>
       )}
     </section>
@@ -332,25 +328,25 @@ function MergeConfirmation({
   return (
     <section className="mt-4 rounded-2xl border border-border bg-background p-4">
       <p className="text-sm font-semibold text-card-foreground">
-        Xác nhận gộp hồ sơ
+        Xác nhận merge có kiểm soát
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        Nhập chính xác <strong>GOP</strong> để xác nhận. Hệ thống không tự gộp
-        và sẽ chặn thao tác nếu còn xung đột.
+        Nhập chính xác <strong>MERGE</strong>. Không có auto-merge, không có
+        merge khi preview còn blocker.
       </p>
       <input
         className="mt-3 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
         onChange={(event) => onConfirmationChange(event.target.value)}
-        placeholder="GOP"
+        placeholder="MERGE"
         value={confirmation}
       />
       <Button
         className="mt-3"
-        disabled={blocked || confirmation !== "GOP" || executing}
+        disabled={blocked || confirmation !== "MERGE" || executing}
         onClick={onExecute}
         type="button"
       >
-        {executing ? "Đang gộp…" : "Gộp hai hồ sơ"}
+        {executing ? "Đang merge…" : "Thực thi merge"}
       </Button>
     </section>
   );
@@ -385,16 +381,20 @@ function ReviewWorkspace({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button onClick={onCloseReview} size="sm" type="button" variant="ghost">
-          ← Danh sách nghi trùng
+          ← Candidate list
         </Button>
         <Button onClick={onSwap} size="sm" type="button" variant="outline">
-          Đổi hồ sơ giữ lại
+          Đổi Target ↔ Source
         </Button>
       </div>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <ProfileCard label="HỒ SƠ GIỮ LẠI" person={target} tone="target" />
-        <ProfileCard label="HỒ SƠ SẼ GỘP" person={source} tone="source" />
+        <ProfileCard label="TARGET · giữ lại" person={target} tone="target" />
+        <ProfileCard
+          label="SOURCE · sẽ lưu trữ"
+          person={source}
+          tone="source"
+        />
       </div>
 
       {preview ? <MergeImpact data={preview} people={data.people} /> : null}
@@ -450,7 +450,7 @@ function LoadingStatus({
   if (loading) {
     return (
       <p className="mt-5 text-sm text-muted-foreground">
-        Đang tìm hồ sơ nghi trùng…
+        Đang quét duplicate candidates…
       </p>
     );
   }
@@ -458,7 +458,7 @@ function LoadingStatus({
   if (previewLoading) {
     return (
       <p className="mt-5 text-sm text-muted-foreground">
-        Đang tính các thay đổi liên quan…
+        Đang tính migration preview…
       </p>
     );
   }
@@ -531,18 +531,18 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-              Kiểm tra và gộp hồ sơ trùng
+              Duplicate Detection & Merge Review
             </p>
             <h2
               className="font-display mt-1 text-3xl text-card-foreground"
               id="duplicate-review-title"
             >
-              Kiểm tra kỹ trước khi gộp
+              Review trước, merge sau
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Hệ thống chỉ gợi ý khi tên và thông tin thời gian có dấu hiệu trùng.
-              Không có thao tác gộp tự động. Hồ sơ giữ lại không bị hồ sơ còn lại
-              ghi đè.
+              Detector chỉ gợi ý khi tên chuẩn hóa trùng và có tín hiệu ngày
+              mạnh. Không có auto-merge. Target canonical không bị source ghi
+              đè.
             </p>
           </div>
           <div className="flex gap-2">
@@ -555,7 +555,7 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
               Quét lại
             </Button>
             <Button
-              aria-label="Đóng Kiểm tra và gộp hồ sơ trùng"
+              aria-label="Đóng Duplicate Detection & Merge Review"
               autoFocus
               onClick={props.onClose}
               type="button"
@@ -567,9 +567,9 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
         </div>
 
         <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{props.candidateCount} hồ sơ nghi trùng</span>
+          <span>{props.candidateCount} candidate</span>
           <span aria-hidden="true">·</span>
-          <span>Không gộp tự động</span>
+          <span>Không merge tự động</span>
         </div>
 
         <PanelMessage message={props.message} />
@@ -664,7 +664,7 @@ export function DuplicateReviewPanel() {
   }
 
   async function executeMerge() {
-    if (!pair || confirmation !== "GOP") return;
+    if (!pair || confirmation !== "MERGE") return;
     if (!preview || preview.preview.blockers.length > 0) return;
 
     setExecuting(true);
@@ -680,7 +680,7 @@ export function DuplicateReviewPanel() {
       return;
     }
 
-    setMessage("Đã gộp hồ sơ thành công và ghi vào lịch sử thay đổi.");
+    setMessage(`Merge hoàn tất. Audit ID: ${result.auditId}`);
     setPair(null);
     setPreview(null);
     setConfirmation("");
@@ -697,13 +697,8 @@ export function DuplicateReviewPanel() {
 
   if (!open) {
     return (
-      <Button
-        className="w-full justify-start"
-        onClick={() => void openPanel()}
-        type="button"
-        variant="outline"
-      >
-        Kiểm tra hồ sơ trùng
+      <Button onClick={() => void openPanel()} type="button" variant="outline">
+        Review duplicates
       </Button>
     );
   }

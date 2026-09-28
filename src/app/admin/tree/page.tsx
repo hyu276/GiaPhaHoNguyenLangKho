@@ -1,16 +1,18 @@
+/**
+ * ADMIN_TREE_PAGE
+ *
+ * Purpose: Renders the authenticated genealogy workspace with a calm product shell and progressive admin tools.
+ * Connections: Supabase auth/data, genealogy editor, audit history, data-quality, duplicate review, and backup tools.
+ * Risk: High because this route is the primary authenticated genealogy workspace.
+ */
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { Button } from "@/components/ui/button";
 import {
   loadRecentMutationAudits,
   undoMutationAudit,
 } from "@/app/admin/tree/audit-actions";
-import { AuditHistoryPanel } from "@/features/tree/components/audit-history-panel";
-import { BulkUtilitiesPanel } from "@/features/tree/components/bulk-utilities-panel";
-import { DataQualityPanel } from "@/features/tree/components/data-quality-panel";
-import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import {
   archivePerson,
   createPerson,
@@ -22,6 +24,7 @@ import {
   createPartnership,
   removeRelationship,
 } from "@/app/admin/tree/relationship-actions";
+import { Button } from "@/components/ui/button";
 import {
   AdminTreeEditor,
   type EditorPerson,
@@ -29,6 +32,10 @@ import {
   type SaveLayoutInput,
   type SaveLayoutResult,
 } from "@/features/tree/components/admin-tree-editor";
+import { AuditHistoryPanel } from "@/features/tree/components/audit-history-panel";
+import { BulkUtilitiesPanel } from "@/features/tree/components/bulk-utilities-panel";
+import { DataQualityPanel } from "@/features/tree/components/data-quality-panel";
+import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
 import { getFallbackPosition } from "@/features/tree/tree-layout";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -81,7 +88,7 @@ function getTreeViewerRole(value: unknown): TreeViewerRole | null {
 }
 
 function getViewerLabel(role: TreeViewerRole) {
-  return role === "spectator" ? "Spectator · chỉ xem" : "Admin editor";
+  return role === "spectator" ? "Chỉ xem" : "Quản trị viên";
 }
 
 async function requireTreeViewer() {
@@ -113,7 +120,7 @@ function getLayoutSaveFailure(error: { code?: string; message: string }) {
       ok: false as const,
       kind: "conflict" as const,
       message:
-        "Bố cục đã được thay đổi bởi một phiên quản trị khác. Hãy tải lại dữ liệu mới trước khi thử lại.",
+        "Bố cục vừa được thay đổi ở một phiên khác. Hãy tải lại dữ liệu mới trước khi thử lại.",
     };
   }
 
@@ -217,10 +224,7 @@ async function loadEditorGraphData(supabase: SupabaseServerClient) {
       .select("person_id, position_x, position_y, revision"),
   ]);
 
-  const loadFailed = Boolean(
-    peopleResult.error || relationshipsResult.error || layoutsResult.error,
-  );
-  if (loadFailed) {
+  if (peopleResult.error || relationshipsResult.error || layoutsResult.error) {
     throw new Error("Không thể tải dữ liệu sơ đồ gia phả.");
   }
 
@@ -309,56 +313,97 @@ async function signOut() {
   redirect("/admin/login");
 }
 
-function AdminBulkEntry({ readOnly }: { readOnly: boolean }) {
+function AdminToolsMenu({
+  auditResult,
+  readOnly,
+}: {
+  auditResult: Awaited<ReturnType<typeof loadRecentMutationAudits>> | null;
+  readOnly: boolean;
+}) {
   if (readOnly) return null;
-  return <BulkUtilitiesPanel />;
+
+  return (
+    <details className="group relative">
+      <summary className="flex h-10 cursor-pointer list-none items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+        Công cụ quản trị
+      </summary>
+      <div className="absolute right-0 top-12 z-50 grid w-[min(21rem,calc(100vw-2rem))] gap-2 rounded-2xl border border-border bg-card p-3 shadow-xl">
+        <p className="px-2 pb-1 text-xs leading-5 text-muted-foreground">
+          Các chức năng kiểm tra và bảo trì dữ liệu được gom riêng để không làm
+          rối thao tác gia phả hằng ngày.
+        </p>
+        <BulkUtilitiesPanel />
+        <DataQualityPanel />
+        <DuplicateReviewPanel />
+        <AuditHistoryEntry auditResult={auditResult} />
+      </div>
+    </details>
+  );
 }
 
-function AdminQualityEntry({ readOnly }: { readOnly: boolean }) {
-  if (readOnly) return null;
-  return <DataQualityPanel />;
-}
-
-function DuplicateReviewEntry({ readOnly }: { readOnly: boolean }) {
-  if (readOnly) return null;
-  return <DuplicateReviewPanel />;
+function AccountMenu({
+  email,
+  role,
+}: {
+  email: string | undefined;
+  role: TreeViewerRole;
+}) {
+  return (
+    <details className="group relative">
+      <summary className="flex h-10 cursor-pointer list-none items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+        Tài khoản
+      </summary>
+      <div className="absolute right-0 top-12 z-50 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card p-4 shadow-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          {getViewerLabel(role)}
+        </p>
+        <p className="mt-2 truncate text-sm text-foreground">
+          {email ?? "Tài khoản gia phả"}
+        </p>
+        <form action={signOut} className="mt-4">
+          <Button className="w-full" type="submit" variant="outline">
+            Đăng xuất
+          </Button>
+        </form>
+      </div>
+    </details>
+  );
 }
 
 export default async function AdminTreePage() {
   const { supabase, user, role } = await requireTreeViewer();
   const readOnly = role === "spectator";
-  const viewerLabel = getViewerLabel(role);
   const mutations = getAdminMutations(role);
   const auditResult = await getAuditHistory(readOnly);
   const { people, relationships } = await loadEditorGraphData(supabase);
   const { activePeopleCount, archivedPeopleCount } = getPeopleCounts(people);
 
   return (
-    <main className="flex min-h-svh flex-col bg-background px-4 py-4 sm:px-6 sm:py-6">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card px-5 py-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-            {viewerLabel}
+    <main className="flex min-h-svh flex-col bg-background p-3 sm:p-4 lg:p-5">
+      <header className="relative z-40 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-card px-4 py-3 shadow-sm sm:px-5">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            Gia phả họ Nguyễn Làng Khô
           </p>
-          <h1 className="font-display mt-1 text-3xl text-card-foreground sm:text-4xl">
-            Sơ đồ gia phả
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {activePeopleCount} hiện hành · {archivedPeopleCount} lưu trữ ·{" "}
-            {relationships.length} quan hệ · {user.email}
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="font-display text-3xl tracking-tight text-card-foreground sm:text-4xl">
+              Sơ đồ gia phả
+            </h1>
+            <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-accent-foreground">
+              {getViewerLabel(role)}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            {activePeopleCount} thành viên · {relationships.length} quan hệ
+            {archivedPeopleCount > 0
+              ? ` · ${archivedPeopleCount} hồ sơ lưu trữ`
+              : ""}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <AdminBulkEntry readOnly={readOnly} />
-          <AdminQualityEntry readOnly={readOnly} />
-          <DuplicateReviewEntry readOnly={readOnly} />
-          <AuditHistoryEntry auditResult={auditResult} />
-          <form action={signOut}>
-            <Button type="submit" variant="outline">
-              Đăng xuất
-            </Button>
-          </form>
+        <div className="flex items-center gap-2">
+          <AdminToolsMenu auditResult={auditResult} readOnly={readOnly} />
+          <AccountMenu email={user.email} role={role} />
         </div>
       </header>
 

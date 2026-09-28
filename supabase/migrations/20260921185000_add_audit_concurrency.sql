@@ -617,7 +617,7 @@ returns table(person_id uuid, revision bigint)
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $$
 declare
   item jsonb;
   item_person_id uuid;

@@ -155,8 +155,8 @@ function BlockerList({ blockers }: { blockers: string[] }) {
   if (blockers.length === 0) {
     return (
       <p className="rounded-xl bg-primary/10 p-3 text-xs font-medium text-primary">
-        Không phát hiện trở ngại. Vẫn cần xác nhận thủ công trước khi
-        gộp hồ sơ.
+        Không phát hiện trở ngại. Vẫn cần xác nhận thủ công trước khi gộp hồ
+        sơ.
       </p>
     );
   }
@@ -232,8 +232,8 @@ function SuggestionList({
   if (data.suggestions.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-        Không có hồ sơ nghi trùng nào đủ rõ để đề xuất. Hệ thống không tự
-        gộp và không kết luận chỉ vì tên giống nhau.
+        Không có hồ sơ nghi trùng nào đủ rõ để đề xuất. Hệ thống không tự gộp
+        và không kết luận chỉ vì tên giống nhau.
       </p>
     );
   }
@@ -331,8 +331,8 @@ function MergeConfirmation({
         Xác nhận gộp hồ sơ
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        Nhập chính xác <strong>GỘP</strong>. Hệ thống không tự động gộp và
-        không cho thực hiện khi còn trở ngại.
+        Nhập chính xác <strong>GỘP</strong>. Hệ thống không tự động gộp và không
+        cho thực hiện khi còn trở ngại.
       </p>
       <input
         className="mt-3 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"

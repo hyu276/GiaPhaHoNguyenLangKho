@@ -657,7 +657,7 @@ function ProvenanceToolbar({
         type="button"
         variant="outline"
       >
-        + Citation
+        + Dẫn chứng
       </Button>
     </div>
   );
@@ -666,7 +666,7 @@ function ProvenanceToolbar({
 function LoadingMessage({ loading }: { loading: boolean }) {
   if (!loading) return null;
   return (
-    <p className="mt-3 text-xs text-muted-foreground">Đang tải provenance…</p>
+    <p className="mt-3 text-xs text-muted-foreground">Đang tải nguồn tư liệu…</p>
   );
 }
 
@@ -778,10 +778,10 @@ function CitationList({
     return (
       <div className="mt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Citations
+          Dẫn chứng
         </p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Chưa có citation cho mục đang chọn.
+          Chưa có dẫn chứng cho mục đang chọn.
         </p>
       </div>
     );
@@ -963,7 +963,7 @@ export function ProvenancePanel({
 
   async function removeCitation(citationId: string) {
     const confirmed = window.confirm(
-      "Xóa citation này? Nguồn tư liệu sẽ được giữ lại.",
+      "Xóa dẫn chứng này? Nguồn tư liệu gốc vẫn được giữ lại.",
     );
     if (!confirmed) return;
 

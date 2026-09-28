@@ -666,7 +666,9 @@ function ProvenanceToolbar({
 function LoadingMessage({ loading }: { loading: boolean }) {
   if (!loading) return null;
   return (
-    <p className="mt-3 text-xs text-muted-foreground">Đang tải nguồn tư liệu…</p>
+    <p className="mt-3 text-xs text-muted-foreground">
+      Đang tải nguồn tư liệu…
+    </p>
   );
 }
 
@@ -790,7 +792,7 @@ function CitationList({
   return (
     <div className="mt-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        Citations
+        Dẫn chứng
       </p>
       <div className="mt-2 grid gap-2">
         {citations.map((citation) => (

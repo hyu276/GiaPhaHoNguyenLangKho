@@ -1097,13 +1097,13 @@ function updatePersonRecord(id, draft) {
 }
 
 function createPersonRecord(draft) {
-  const bounds = canvas.getBoundingClientRect();
+  const position = getFallbackPosition(state.people.length);
   const person = {
     id: nextPersonId(),
     ...draft,
     archived: false,
-    x: Math.max(40, bounds.width / 2 - 89),
-    y: Math.max(40, bounds.height / 2 - 39),
+    x: position.x,
+    y: position.y,
   };
 
   state.people.push(person);

@@ -1432,10 +1432,10 @@ export function AdminTreeEditor({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="relative min-h-[72svh] flex-1">
       <section
         aria-label="Sơ đồ gia phả tương tác"
-        className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card"
+        className="absolute inset-0 overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
       >
         <ReactFlow<PersonNode, RelationshipEdge>
           nodes={nodes}
@@ -1461,17 +1461,11 @@ export function AdminTreeEditor({
           minZoom={0.2}
           maxZoom={2}
         >
-          <Background gap={24} size={1} />
+          <Background gap={28} size={1} />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable />
         </ReactFlow>
 
-        <div
-          aria-live="polite"
-          className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-border bg-background/90 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur"
-        >
-          {statusMessage}
-        </div>
         <TreeFilterPanel
           archiveFilter={archiveFilter}
           lifeFilter={lifeFilter}
@@ -1480,11 +1474,23 @@ export function AdminTreeEditor({
           onClear={clearFilters}
           onLifeFilterChange={setLifeFilter}
           onQueryChange={setQuery}
+          onStartCreate={() => {
+            setSelectedPersonId(null);
+            setSelectedRelationshipId(null);
+            setFormMode("create");
+          }}
           onVisibilityFilterChange={setVisibilityFilter}
           query={query}
           readOnly={readOnly}
           visibilityFilter={visibilityFilter}
         />
+
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-[min(28rem,calc(100%-2rem))] rounded-full border border-border bg-background/90 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur"
+        >
+          {statusMessage}
+        </div>
       </section>
 
       <EditorSidebar
@@ -1502,6 +1508,11 @@ export function AdminTreeEditor({
         lockedPersonIds={lockedPersonIds}
         onAutoLayoutBranch={autoLayoutBranch}
         onCancelForm={() => setFormMode(null)}
+        onClose={() => {
+          setSelectedPersonId(null);
+          setSelectedRelationshipId(null);
+          setFormMode(null);
+        }}
         onFocusPerson={focusPerson}
         onJumpToPerson={revealAndFocusPerson}
         onPersonStateChanged={handlePersonStateChanged}

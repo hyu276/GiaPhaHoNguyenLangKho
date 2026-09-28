@@ -1,3 +1,10 @@
+/**
+ * DATA_QUALITY_PANEL
+ *
+ * Purpose: Presents genealogy data checks in plain Vietnamese without changing or auto-fixing records.
+ * Connections: Data-quality actions and the admin genealogy workspace.
+ * Risk: Low because this component is review-only presentation logic.
+ */
 "use client";
 
 import { useMemo, useState } from "react";
@@ -24,11 +31,11 @@ const SEVERITY_LABELS: Record<DataQualitySeverity, string> = {
 const KIND_LABELS: Record<DataQualityIssueKind, string> = {
   missing_parents: "Thiếu cha/mẹ",
   missing_birth_year: "Thiếu năm sinh",
-  chronology: "Chronology",
-  duplicate_candidate: "Duplicate candidate",
+  chronology: "Mốc thời gian bất thường",
+  duplicate_candidate: "Hồ sơ nghi trùng",
   isolated_person: "Hồ sơ cô lập",
-  living_public_exposure: "Living-public exposure",
-  relationship_missing_provenance: "Quan hệ thiếu provenance",
+  living_public_exposure: "Người còn sống đang công khai",
+  relationship_missing_provenance: "Quan hệ thiếu nguồn tư liệu",
 };
 
 function personName(data: QualityData, personId: string | null) {
@@ -169,7 +176,7 @@ function FilterControls({
           }
           value={severity}
         >
-          <option value="all">Tất cả severity</option>
+          <option value="all">Tất cả mức độ</option>
           {Object.entries(SEVERITY_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -312,7 +319,7 @@ export function DataQualityPanel() {
   return (
     <>
       <Button onClick={openDashboard} type="button" variant="outline">
-        Data quality
+        Kiểm tra dữ liệu
       </Button>
 
       {open ? (
@@ -320,16 +327,16 @@ export function DataQualityPanel() {
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8"
           role="dialog"
           aria-modal="true"
-          aria-label="Data-quality dashboard"
+          aria-label="Kiểm tra chất lượng dữ liệu"
         >
           <section className="w-full max-w-4xl rounded-3xl border border-border bg-card p-5 shadow-xl sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  Step 9 · Review-only
+                  Kiểm tra dữ liệu
                 </p>
                 <h2 className="font-display mt-1 text-3xl text-card-foreground">
-                  Data-quality dashboard
+                  Kiểm tra chất lượng dữ liệu
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                   Tập trung các tín hiệu cần kiểm tra trước khi xuất bản, không
@@ -344,10 +351,10 @@ export function DataQualityPanel() {
                   type="button"
                   variant="outline"
                 >
-                  Refresh
+                  Làm mới
                 </Button>
                 <Button
-                  aria-label="Đóng Data-quality dashboard"
+                  aria-label="Đóng kiểm tra chất lượng dữ liệu"
                   autoFocus
                   onClick={() => setOpen(false)}
                   type="button"

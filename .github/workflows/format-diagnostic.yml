@@ -1,0 +1,26 @@
+name: Format diagnostic
+
+on:
+  push:
+    branches:
+      - feat/step-12a-product-ui-preview
+    paths:
+      - ".github/workflows/format-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Show exact Prettier diff
+        run: |
+          npx prettier --write             src/features/tree/components/audit-history-panel.tsx             src/features/tree/components/bulk-utilities-panel.tsx             src/features/tree/components/duplicate-review-panel.tsx             src/features/tree/components/provenance-panel.tsx
+          git diff --             src/features/tree/components/audit-history-panel.tsx             src/features/tree/components/bulk-utilities-panel.tsx             src/features/tree/components/duplicate-review-panel.tsx             src/features/tree/components/provenance-panel.tsx

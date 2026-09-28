@@ -496,8 +496,8 @@ function CitationForm({
         {defaults.heading}
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        Thông tin chưa chắc chắn hoặc mâu thuẫn được lưu riêng tại đây; biểu
-        mẫu này không tự sửa năm sinh, năm mất hay quan hệ chính.
+        Thông tin chưa chắc chắn hoặc mâu thuẫn được lưu riêng tại đây; biểu mẫu
+        này không tự sửa năm sinh, năm mất hay quan hệ chính.
       </p>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">

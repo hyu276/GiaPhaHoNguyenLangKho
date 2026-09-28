@@ -387,11 +387,7 @@ function ReviewWorkspace({
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <ProfileCard label="HỒ SƠ GIỮ LẠI" person={target} tone="target" />
-        <ProfileCard
-          label="HỒ SƠ SẼ GỘP"
-          person={source}
-          tone="source"
-        />
+        <ProfileCard label="HỒ SƠ SẼ GỘP" person={source} tone="source" />
       </div>
 
       {preview ? <MergeImpact data={preview} people={data.people} /> : null}

@@ -155,8 +155,7 @@ function BlockerList({ blockers }: { blockers: string[] }) {
   if (blockers.length === 0) {
     return (
       <p className="rounded-xl bg-primary/10 p-3 text-xs font-medium text-primary">
-        Không phát hiện trở ngại. Vẫn cần xác nhận thủ công trước khi gộp hồ
-        sơ.
+        Không phát hiện trở ngại. Vẫn cần xác nhận thủ công trước khi gộp hồ sơ.
       </p>
     );
   }
@@ -232,8 +231,8 @@ function SuggestionList({
   if (data.suggestions.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-        Không có hồ sơ nghi trùng nào đủ rõ để đề xuất. Hệ thống không tự gộp
-        và không kết luận chỉ vì tên giống nhau.
+        Không có hồ sơ nghi trùng nào đủ rõ để đề xuất. Hệ thống không tự gộp và
+        không kết luận chỉ vì tên giống nhau.
       </p>
     );
   }
@@ -283,9 +282,7 @@ function MergeImpact({
           <p className="text-2xl font-semibold text-card-foreground">
             {data.sourceRelationshipCitationCount}
           </p>
-          <p className="text-xs text-muted-foreground">
-            dẫn chứng của quan hệ
-          </p>
+          <p className="text-xs text-muted-foreground">dẫn chứng của quan hệ</p>
         </div>
       </div>
 
@@ -541,8 +538,8 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
               Hệ thống chỉ gợi ý khi tên và thông tin thời gian có dấu hiệu
-              trùng. Không có thao tác gộp tự động và hồ sơ giữ lại không bị
-              hồ sơ còn lại ghi đè.
+              trùng. Không có thao tác gộp tự động và hồ sơ giữ lại không bị hồ
+              sơ còn lại ghi đè.
             </p>
           </div>
           <div className="flex gap-2">

@@ -664,7 +664,7 @@ export function DuplicateReviewPanel() {
   }
 
   async function executeMerge() {
-    if (!pair || confirmation !== "MERGE") return;
+    if (!pair || confirmation !== "GỘP") return;
     if (!preview || preview.preview.blockers.length > 0) return;
 
     setExecuting(true);
@@ -680,7 +680,7 @@ export function DuplicateReviewPanel() {
       return;
     }
 
-    setMessage(`Merge hoàn tất. Audit ID: ${result.auditId}`);
+    setMessage("Đã gộp hồ sơ thành công và ghi lại lịch sử thay đổi.");
     setPair(null);
     setPreview(null);
     setConfirmation("");

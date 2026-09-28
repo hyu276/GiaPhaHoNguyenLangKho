@@ -239,8 +239,7 @@ function SuggestionList({
   if (data.suggestions.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-        Không có candidate nào vượt ngưỡng bảo thủ hiện tại. Hệ thống không tự
-        merge và không gợi ý chỉ dựa trên tên giống nhau.
+        Không có hồ sơ nghi trùng nào đủ rõ để đề xuất. Hệ thống không tự gộp và không kết luận chỉ vì tên giống nhau.
       </p>
     );
   }

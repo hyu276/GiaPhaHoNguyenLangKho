@@ -334,7 +334,7 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 revoke all on function public.audit_genealogy_mutation() from public;
 
@@ -693,7 +693,7 @@ begin
     where layout.person_id = item_person_id;
   end loop;
 end;
-$;
+$$;
 
 revoke all on function public.save_person_layouts_if_current(jsonb) from public;
 grant execute on function public.save_person_layouts_if_current(jsonb)

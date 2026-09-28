@@ -1,3 +1,10 @@
+/**
+ * AUDIT_HISTORY_PANEL
+ *
+ * Purpose: Presents recent genealogy changes and safe undo actions in family-friendly Vietnamese.
+ * Connections: Audit server actions, optimistic revisions, and the authenticated admin workspace.
+ * Risk: Medium because undo can write inverse mutations when database safeguards allow it.
+ */
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -24,12 +31,12 @@ const COMMAND_LABELS: Record<string, string> = {
   create_layout: "Tạo vị trí",
   save_layout: "Sửa vị trí",
   remove_layout: "Xóa vị trí",
-  create_provenance_source: "Thêm nguồn",
-  update_provenance_source: "Sửa nguồn",
-  create_provenance_citation: "Thêm citation",
-  update_provenance_citation: "Sửa citation",
-  remove_provenance_citation: "Xóa citation",
-  merge_person_source_archive: "Merge duplicate",
+  create_provenance_source: "Thêm nguồn tư liệu",
+  update_provenance_source: "Sửa nguồn tư liệu",
+  create_provenance_citation: "Thêm dẫn chứng",
+  update_provenance_citation: "Sửa dẫn chứng",
+  remove_provenance_citation: "Xóa dẫn chứng",
+  merge_person_source_archive: "Gộp hồ sơ trùng",
 };
 
 function commandLabel(command: string) {
@@ -68,7 +75,7 @@ export function AuditHistoryPanel({
 
   async function handleUndo(audit: MutationAuditRecord) {
     const confirmed = window.confirm(
-      "Hoàn tác mutation này theo snapshot đã audit? Hệ thống vẫn kiểm tra revision và các ràng buộc hiện tại trước khi ghi.",
+      "Hoàn tác thay đổi này? Hệ thống sẽ kiểm tra phiên bản dữ liệu và các ràng buộc an toàn trước khi ghi.",
     );
     if (!confirmed) return;
 
@@ -82,7 +89,7 @@ export function AuditHistoryPanel({
       return;
     }
 
-    setMessage("Đã hoàn tác và ghi một audit entry mới.");
+    setMessage("Đã hoàn tác và ghi lại thao tác trong lịch sử.");
     router.refresh();
   }
 
@@ -97,7 +104,7 @@ export function AuditHistoryPanel({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                Audit log
+                Lịch sử hệ thống
               </p>
               <h2 className="font-display mt-1 text-2xl text-card-foreground">
                 Thay đổi gần đây
@@ -129,7 +136,7 @@ export function AuditHistoryPanel({
           <div className="mt-4 max-h-[65vh] space-y-2 overflow-y-auto pr-1">
             {audits.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Chưa có mutation audit.
+                Chưa có thay đổi nào được ghi nhận.
               </p>
             ) : (
               audits.map((audit) => (

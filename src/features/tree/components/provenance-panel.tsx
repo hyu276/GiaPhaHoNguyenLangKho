@@ -1,3 +1,10 @@
+/**
+ * PROVENANCE_PANEL
+ *
+ * Purpose: Manages reusable genealogy sources and evidence records with family-friendly Vietnamese terminology.
+ * Connections: Provenance actions, selected people, selected relationships, and optimistic concurrency handling.
+ * Risk: Medium because edits persist source and evidence records.
+ */
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -127,7 +134,7 @@ function getSourceFormDefaults(
       sourceUrl: source.sourceUrl ?? "",
       heading: "Sửa nguồn tư liệu",
       helpText:
-        "Nguồn có thể được dùng bởi nhiều citation; sửa metadata nguồn sẽ hiển thị ở tất cả citation tham chiếu đến nguồn này.",
+        "Một nguồn tư liệu có thể được dùng cho nhiều dẫn chứng; khi sửa thông tin nguồn, mọi dẫn chứng liên quan sẽ dùng thông tin mới.",
     };
   }
 
@@ -165,7 +172,7 @@ function getCitationFormDefaults(
       dateQualifier: textOrEmpty(citation.dateQualifier),
       dateText: textOrEmpty(citation.dateText),
       note: textOrEmpty(citation.note),
-      heading: "Sửa citation",
+      heading: "Sửa dẫn chứng",
     };
   }
 
@@ -179,7 +186,7 @@ function getCitationFormDefaults(
     dateQualifier: "",
     dateText: "",
     note: "",
-    heading: "Thêm citation",
+    heading: "Thêm dẫn chứng",
   };
 }
 
@@ -616,7 +623,7 @@ function CitationForm({
           size="sm"
           type="submit"
         >
-          {saving ? "Đang lưu…" : "Lưu citation"}
+          {saving ? "Đang lưu…" : "Lưu dẫn chứng"}
         </Button>
         <Button
           disabled={saving}
@@ -781,7 +788,7 @@ function CitationList({
           Citations
         </p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Chưa có citation cho mục đang chọn.
+          Chưa có dẫn chứng cho mục đang chọn.
         </p>
       </div>
     );
@@ -956,14 +963,14 @@ export function ProvenancePanel({
 
     setEditor(null);
     setStatusMessage(
-      editor.citation ? "Đã cập nhật citation." : "Đã thêm citation.",
+      editor.citation ? "Đã cập nhật dẫn chứng." : "Đã thêm dẫn chứng.",
     );
     await refreshProvenance();
   }
 
   async function removeCitation(citationId: string) {
     const confirmed = window.confirm(
-      "Xóa citation này? Nguồn tư liệu sẽ được giữ lại.",
+      "Xóa dẫn chứng này? Nguồn tư liệu gốc vẫn được giữ lại.",
     );
     if (!confirmed) return;
 
@@ -986,7 +993,7 @@ export function ProvenancePanel({
     }
 
     setEditor(null);
-    setStatusMessage("Đã xóa citation.");
+    setStatusMessage("Đã xóa dẫn chứng.");
     await refreshProvenance();
   }
 

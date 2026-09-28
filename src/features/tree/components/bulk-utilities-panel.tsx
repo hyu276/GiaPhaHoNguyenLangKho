@@ -40,8 +40,8 @@ function ImportPreviewSummary({
   if (!preview) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        Chọn tệp sao lưu JSON để kiểm tra cấu trúc và liên kết. Thao tác này
-        chỉ xem trước và không ghi dữ liệu.
+        Chọn tệp sao lưu JSON để kiểm tra cấu trúc và liên kết. Thao tác này chỉ
+        xem trước và không ghi dữ liệu.
       </p>
     );
   }
@@ -304,9 +304,9 @@ export function BulkUtilitiesPanel() {
                   Dữ liệu & sao lưu
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  Tệp nhập chỉ được kiểm tra trước, chưa ghi dữ liệu. Bản sao lưu
-                  chỉ tải xuống. Thay đổi hàng loạt luôn cần xem trước ảnh hưởng
-                  và xác nhận thủ công.
+                  Tệp nhập chỉ được kiểm tra trước, chưa ghi dữ liệu. Bản sao
+                  lưu chỉ tải xuống. Thay đổi hàng loạt luôn cần xem trước ảnh
+                  hưởng và xác nhận thủ công.
                 </p>
               </div>
               <Button
@@ -328,8 +328,8 @@ export function BulkUtilitiesPanel() {
                       Tạo bản sao lưu
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Tải xuống bản sao gồm thành viên, quan hệ, bố cục, nguồn tư
-                      liệu và lịch sử thay đổi dưới dạng tệp JSON.
+                      Tải xuống bản sao gồm thành viên, quan hệ, bố cục, nguồn
+                      tư liệu và lịch sử thay đổi dưới dạng tệp JSON.
                     </p>
                   </div>
                   <Button

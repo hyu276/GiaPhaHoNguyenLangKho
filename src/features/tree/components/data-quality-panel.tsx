@@ -194,7 +194,7 @@ function FilterControls({
           }
           value={kind}
         >
-          <option value="all">Tất cả loại</option>
+          <option value="all">Tất cả nhóm kiểm tra</option>
           {Object.entries(KIND_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -280,7 +280,7 @@ function DashboardBody({
         severity={severity}
       />
       <p className="text-xs leading-5 text-muted-foreground">
-        Đây là tín hiệu review, không phải kết luận dữ liệu sai. Dashboard không
+        Đây là các dấu hiệu cần xem lại, không phải kết luận dữ liệu sai. Màn hình này không
         có thao tác tự sửa.
       </p>
       <QualityIssueList data={data} issues={issues} />

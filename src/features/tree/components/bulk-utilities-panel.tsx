@@ -316,8 +316,8 @@ export function BulkUtilitiesPanel() {
                   Dữ liệu & sao lưu
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  Import chỉ preview. Backup chỉ export. Batch visibility cần
-                  impact review, optimistic revision và xác nhận thủ công.
+                  Tệp nhập chỉ được kiểm tra trước, chưa ghi dữ liệu. Bản sao lưu chỉ tải xuống. Thay đổi hàng loạt cần
+                  xem trước ảnh hưởng và xác nhận thủ công.
                 </p>
               </div>
               <Button
@@ -339,8 +339,8 @@ export function BulkUtilitiesPanel() {
                       Tạo bản sao lưu
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Xuất people, relationships, layouts, provenance và audit
-                      history thành một JSON snapshot.
+                      Tải xuống bản sao gồm thành viên, quan hệ, bố cục, nguồn tư liệu và
+                      lịch sử thay đổi dưới dạng tệp JSON.
                     </p>
                   </div>
                   <Button
@@ -357,11 +357,11 @@ export function BulkUtilitiesPanel() {
               <section className="grid gap-3 rounded-2xl border border-border p-4">
                 <div>
                   <h3 className="font-semibold text-card-foreground">
-                    Structured import preview
+                    Kiểm tra tệp sao lưu
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Validate cấu trúc, ID và tham chiếu trước khi một import
-                    write workflow được thiết kế ở tương lai.
+                    Kiểm tra cấu trúc và liên kết dữ liệu trước khi sử dụng tệp.
+                    Hiện tại thao tác này không ghi dữ liệu vào gia phả.
                   </p>
                 </div>
                 <label className="text-xs font-medium text-muted-foreground">
@@ -438,9 +438,9 @@ export function BulkUtilitiesPanel() {
 
                 {impact.livingPublicAfterCount > 0 ? (
                   <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
-                    Batch này sẽ để {impact.livingPublicAfterCount} hồ sơ được
-                    heuristic hiện tại xem là còn sống ở trạng thái public. Hãy
-                    review trước khi xác nhận.
+                    Thao tác này sẽ để {impact.livingPublicAfterCount} hồ sơ có thể là người còn sống
+                    ở trạng thái công khai. Hãy
+                    kiểm tra kỹ trước khi xác nhận.
                   </p>
                 ) : null}
 

@@ -79,6 +79,7 @@ test("synthetic admin CRUD relationship and archive journey", async ({
   await page.locator('[data-person-id="P005"]').click();
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "Lưu trữ" }).click();
+  await page.locator("details.filter-menu > summary").click();
   await page.locator("#archiveFilter").selectOption("all");
   await expect(page.locator('[data-person-id="P005"]')).toHaveClass(/archived/);
 });

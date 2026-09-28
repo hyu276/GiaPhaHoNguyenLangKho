@@ -124,7 +124,8 @@ function BulkPersonList({
               {person.displayName}
             </strong>
             <span className="text-xs text-muted-foreground">
-              {person.visibility === "public" ? "Công khai" : "Riêng tư"} · phiên bản{" "}
+              {person.visibility === "public" ? "Công khai" : "Riêng tư"}
+              {" · phiên bản "}
               {person.revision}
             </span>
           </span>
@@ -160,7 +161,9 @@ function VisibilityImpactSummary({
       </div>
       <div className="rounded-xl border border-border bg-background p-3">
         <strong className="text-lg">{impact.livingPublicAfterCount}</strong>
-        <p className="text-xs text-muted-foreground">có thể còn sống và công khai</p>
+        <p className="text-xs text-muted-foreground">
+          có thể còn sống và công khai
+        </p>
       </div>
     </div>
   );

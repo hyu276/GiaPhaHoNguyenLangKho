@@ -137,12 +137,12 @@ test("synthetic duplicate quality and bulk release journey", async ({
   await page.locator("#bulkVisibility").selectOption("public");
   await expect(page.locator("#bulkLivingPublicCount")).not.toHaveText("0");
 
-  await page.locator("#bulkConfirmation").fill("XACNHAN");
+  await page.locator("#bulkConfirmation").fill("XÁC NHẬN");
   await expect(page.locator("#bulkExecuteVisibility")).toBeEnabled();
   await page.locator("#bulkExecuteVisibility").click();
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Tải backup JSON" }).click();
+  await page.getByRole("button", { name: "Tải bản sao lưu JSON" }).click();
   const download = await downloadPromise;
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();
@@ -151,6 +151,6 @@ test("synthetic duplicate quality and bulk release journey", async ({
   await page.locator("#bulkImportText").fill(backupText);
   await page.getByRole("button", { name: "Kiểm tra tệp" }).click();
   await expect(page.locator("#bulkImportResult")).toContainText(
-    "Preview hợp lệ",
+    "Tệp hợp lệ",
   );
 });

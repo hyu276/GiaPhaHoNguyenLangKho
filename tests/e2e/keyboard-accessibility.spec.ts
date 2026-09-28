@@ -10,5 +10,5 @@ test("admin login remains keyboard navigable", async ({ page }) => {
   await expect(page.getByLabel("Mật khẩu")).toBeFocused();
 
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Đăng nhập" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Vào gia phả" })).toBeFocused();
 });

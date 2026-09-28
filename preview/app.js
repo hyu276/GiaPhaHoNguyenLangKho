@@ -633,6 +633,8 @@ function renderNodes() {
 
 function renderInspector() {
   const person = getPerson(selectedId);
+  const inspector = document.querySelector(".inspector");
+  inspector.hidden = !person;
   document.querySelector("#inspectorEmpty").hidden = Boolean(person);
   document.querySelector("#inspectorContent").hidden = !person;
 

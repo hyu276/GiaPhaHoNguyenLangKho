@@ -1,10 +1,3 @@
-/**
- * DATA_QUALITY_PANEL
- *
- * Purpose: Presents genealogy data checks in plain Vietnamese without changing or auto-fixing records.
- * Connections: Data-quality actions and the admin genealogy workspace.
- * Risk: Low because this component is review-only presentation logic.
- */
 "use client";
 
 import { useMemo, useState } from "react";
@@ -17,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import type {
   DataQualityIssue,
   DataQualityIssueKind,
-  DataQualityMức độ,
+  DataQualitySeverity,
 } from "@/features/tree/data-quality";
 
 type QualityData = Extract<DataQualityLoadResult, { ok: true }>;
 
-const SEVERITY_LABELS: Record<DataQualityMức độ, string> = {
+const SEVERITY_LABELS: Record<DataQualitySeverity, string> = {
   error: "Lỗi",
   warning: "Cảnh báo",
   info: "Thông tin",
@@ -31,11 +24,11 @@ const SEVERITY_LABELS: Record<DataQualityMức độ, string> = {
 const KIND_LABELS: Record<DataQualityIssueKind, string> = {
   missing_parents: "Thiếu cha/mẹ",
   missing_birth_year: "Thiếu năm sinh",
-  chronology: "Mốc thời gian bất thường",
-  duplicate_candidate: "Hồ sơ nghi trùng",
+  chronology: "Chronology",
+  duplicate_candidate: "Duplicate candidate",
   isolated_person: "Hồ sơ cô lập",
-  living_public_exposure: "Người còn sống đang công khai",
-  relationship_missing_provenance: "Quan hệ thiếu nguồn tư liệu",
+  living_public_exposure: "Living-public exposure",
+  relationship_missing_provenance: "Quan hệ thiếu provenance",
 };
 
 function personName(data: QualityData, personId: string | null) {
@@ -88,7 +81,7 @@ function IssueContext({
   );
 }
 
-function Mức độBadge({ severity }: { severity: DataQualityMức độ }) {
+function SeverityBadge({ severity }: { severity: DataQualitySeverity }) {
   const className =
     severity === "error"
       ? "bg-destructive/10 text-destructive"
@@ -125,7 +118,7 @@ function QualityIssueCard({
             {issue.title}
           </h4>
         </div>
-        <Mức độBadge severity={issue.severity} />
+        <SeverityBadge severity={issue.severity} />
       </div>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
         {issue.detail}
@@ -157,26 +150,26 @@ function DashboardSummary({ data }: { data: QualityData }) {
 function FilterControls({
   kind,
   onKindChange,
-  onMức độChange,
+  onSeverityChange,
   severity,
 }: {
   kind: "all" | DataQualityIssueKind;
   onKindChange: (value: "all" | DataQualityIssueKind) => void;
-  onMức độChange: (value: "all" | DataQualityMức độ) => void;
-  severity: "all" | DataQualityMức độ;
+  onSeverityChange: (value: "all" | DataQualitySeverity) => void;
+  severity: "all" | DataQualitySeverity;
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       <label className="text-xs font-medium text-muted-foreground">
-        Mức độ
+        Severity
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
           onChange={(event) =>
-            onMức độChange(event.target.value as "all" | DataQualityMức độ)
+            onSeverityChange(event.target.value as "all" | DataQualitySeverity)
           }
           value={severity}
         >
-          <option value="all">Tất cả mức độ</option>
+          <option value="all">Tất cả severity</option>
           {Object.entries(SEVERITY_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -194,7 +187,7 @@ function FilterControls({
           }
           value={kind}
         >
-          <option value="all">Tất cả nhóm kiểm tra</option>
+          <option value="all">Tất cả loại</option>
           {Object.entries(KIND_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -238,7 +231,7 @@ function DashboardBody({
   kind,
   loading,
   onKindChange,
-  onMức độChange,
+  onSeverityChange,
   severity,
 }: {
   data: QualityData | null;
@@ -246,8 +239,8 @@ function DashboardBody({
   kind: "all" | DataQualityIssueKind;
   loading: boolean;
   onKindChange: (value: "all" | DataQualityIssueKind) => void;
-  onMức độChange: (value: "all" | DataQualityMức độ) => void;
-  severity: "all" | DataQualityMức độ;
+  onSeverityChange: (value: "all" | DataQualitySeverity) => void;
+  severity: "all" | DataQualitySeverity;
 }) {
   const issues = useMemo(() => {
     if (!data) return [];
@@ -276,11 +269,11 @@ function DashboardBody({
       <FilterControls
         kind={kind}
         onKindChange={onKindChange}
-        onMức độChange={onMức độChange}
+        onSeverityChange={onSeverityChange}
         severity={severity}
       />
       <p className="text-xs leading-5 text-muted-foreground">
-        Đây là các dấu hiệu cần xem lại, không phải kết luận dữ liệu sai. Màn hình này không
+        Đây là tín hiệu review, không phải kết luận dữ liệu sai. Dashboard không
         có thao tác tự sửa.
       </p>
       <QualityIssueList data={data} issues={issues} />
@@ -293,7 +286,7 @@ export function DataQualityPanel() {
   const [data, setData] = useState<QualityData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [severity, setMức độ] = useState<"all" | DataQualityMức độ>("all");
+  const [severity, setSeverity] = useState<"all" | DataQualitySeverity>("all");
   const [kind, setKind] = useState<"all" | DataQualityIssueKind>("all");
 
   async function refresh() {
@@ -318,13 +311,8 @@ export function DataQualityPanel() {
 
   return (
     <>
-      <Button
-        className="w-full justify-start"
-        onClick={openDashboard}
-        type="button"
-        variant="outline"
-      >
-        Kiểm tra dữ liệu
+      <Button onClick={openDashboard} type="button" variant="outline">
+        Data quality
       </Button>
 
       {open ? (
@@ -332,16 +320,16 @@ export function DataQualityPanel() {
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8"
           role="dialog"
           aria-modal="true"
-          aria-label="Kiểm tra chất lượng dữ liệu"
+          aria-label="Data-quality dashboard"
         >
           <section className="w-full max-w-4xl rounded-3xl border border-border bg-card p-5 shadow-xl sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  Kiểm tra dữ liệu
+                  Step 9 · Review-only
                 </p>
                 <h2 className="font-display mt-1 text-3xl text-card-foreground">
-                  Kiểm tra chất lượng dữ liệu
+                  Data-quality dashboard
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                   Tập trung các tín hiệu cần kiểm tra trước khi xuất bản, không
@@ -356,10 +344,10 @@ export function DataQualityPanel() {
                   type="button"
                   variant="outline"
                 >
-                  Làm mới
+                  Refresh
                 </Button>
                 <Button
-                  aria-label="Đóng kiểm tra chất lượng dữ liệu"
+                  aria-label="Đóng Data-quality dashboard"
                   autoFocus
                   onClick={() => setOpen(false)}
                   type="button"
@@ -377,7 +365,7 @@ export function DataQualityPanel() {
                 kind={kind}
                 loading={loading}
                 onKindChange={setKind}
-                onMức độChange={setMức độ}
+                onSeverityChange={setSeverity}
                 severity={severity}
               />
             </div>

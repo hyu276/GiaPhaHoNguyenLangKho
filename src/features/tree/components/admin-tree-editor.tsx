@@ -1,3 +1,10 @@
+/**
+ * ADMIN_TREE_EDITOR
+ *
+ * Purpose: Provides the interactive genealogy canvas, contextual member drawer, filtering, layout, and relationship workflows.
+ * Connections: React Flow, genealogy mutations, relationship editor, provenance panel, and persisted layout services.
+ * Risk: High because this is the primary interactive editing surface for the genealogy graph.
+ */
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -138,6 +145,7 @@ type SidebarProps = {
   createPerson: CreatePerson | undefined;
   formMode: PersonFormMode;
   onCancelForm: () => void;
+  onClose: () => void;
   onPersonStateChanged: (personId: string, archived: boolean) => void;
   onFocusPerson: (personId: string) => void;
   layoutCanRedo: boolean;
@@ -357,6 +365,7 @@ type TreeFilterPanelProps = {
   onClear: () => void;
   onLifeFilterChange: (value: LifeFilter) => void;
   onQueryChange: (value: string) => void;
+  onStartCreate: () => void;
   onVisibilityFilterChange: (value: VisibilityFilter) => void;
   query: string;
   readOnly: boolean;
@@ -371,81 +380,104 @@ function TreeFilterPanel({
   onClear,
   onLifeFilterChange,
   onQueryChange,
+  onStartCreate,
   onVisibilityFilterChange,
   query,
   readOnly,
   visibilityFilter,
 }: TreeFilterPanelProps) {
+  const hasFilters =
+    lifeFilter !== "all" ||
+    visibilityFilter !== "all" ||
+    (!readOnly && archiveFilter !== "active");
+
   return (
-    <div className="absolute left-4 top-16 z-10 w-[min(22rem,calc(100%-2rem))] rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur">
-      <label className="block text-xs font-semibold text-card-foreground">
-        Tìm theo tên
+    <div className="absolute left-3 right-3 top-3 z-20 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-background/95 p-2 shadow-sm backdrop-blur md:left-4 md:right-auto md:w-[min(46rem,calc(100%-2rem))]">
+      <label className="min-w-[13rem] flex-1">
+        <span className="sr-only">Tìm thành viên</span>
         <input
-          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Nhập họ tên…"
+          placeholder="Tìm thành viên theo tên…"
           type="search"
           value={query}
         />
       </label>
 
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <label className="text-xs font-medium text-muted-foreground">
-          Sinh trạng
-          <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
-            onChange={(event) =>
-              onLifeFilterChange(event.target.value as LifeFilter)
-            }
-            value={lifeFilter}
-          >
-            <option value="all">Tất cả</option>
-            <option value="living">Còn sống</option>
-            <option value="deceased">Đã mất</option>
-          </select>
-        </label>
+      <details className="group relative">
+        <summary className="flex h-10 cursor-pointer list-none items-center rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted">
+          Bộ lọc{hasFilters ? " · đang dùng" : ""}
+        </summary>
+        <div className="absolute left-0 top-12 z-30 grid w-64 gap-3 rounded-2xl border border-border bg-card p-3 shadow-xl">
+          <label className="text-xs font-medium text-muted-foreground">
+            Tình trạng
+            <select
+              className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+              onChange={(event) =>
+                onLifeFilterChange(event.target.value as LifeFilter)
+              }
+              value={lifeFilter}
+            >
+              <option value="all">Tất cả</option>
+              <option value="living">Còn sống</option>
+              <option value="deceased">Đã mất</option>
+            </select>
+          </label>
 
-        <label className="text-xs font-medium text-muted-foreground">
-          Hiển thị
-          <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
-            onChange={(event) =>
-              onVisibilityFilterChange(event.target.value as VisibilityFilter)
-            }
-            value={visibilityFilter}
-          >
-            <option value="all">Tất cả</option>
-            <option value="public">Công khai</option>
-            <option value="private">Riêng tư</option>
-          </select>
-        </label>
-      </div>
+          <label className="text-xs font-medium text-muted-foreground">
+            Quyền hiển thị
+            <select
+              className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+              onChange={(event) =>
+                onVisibilityFilterChange(
+                  event.target.value as VisibilityFilter,
+                )
+              }
+              value={visibilityFilter}
+            >
+              <option value="all">Tất cả</option>
+              <option value="public">Công khai</option>
+              <option value="private">Riêng tư</option>
+            </select>
+          </label>
+
+          {readOnly ? null : (
+            <label className="text-xs font-medium text-muted-foreground">
+              Hồ sơ
+              <select
+                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                onChange={(event) =>
+                  onArchiveFilterChange(
+                    event.target.value as ArchiveFilterValue,
+                  )
+                }
+                value={archiveFilter}
+              >
+                <option value="active">Đang sử dụng</option>
+                <option value="all">Tất cả</option>
+                <option value="archived">Đã lưu trữ</option>
+              </select>
+            </label>
+          )}
+
+          <Button onClick={onClear} size="sm" type="button" variant="outline">
+            Đặt lại bộ lọc
+          </Button>
+        </div>
+      </details>
+
+      <span
+        aria-live="polite"
+        className="hidden text-xs text-muted-foreground sm:inline"
+      >
+        {matchCount} thành viên
+      </span>
 
       {readOnly ? null : (
-        <label className="mt-2 block text-xs font-medium text-muted-foreground">
-          Lưu trữ
-          <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
-            onChange={(event) =>
-              onArchiveFilterChange(event.target.value as ArchiveFilterValue)
-            }
-            value={archiveFilter}
-          >
-            <option value="active">Đang hoạt động</option>
-            <option value="all">Tất cả</option>
-            <option value="archived">Đã lưu trữ</option>
-          </select>
-        </label>
-      )}
-
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <span aria-live="polite" className="text-xs text-muted-foreground">
-          {matchCount} người phù hợp
-        </span>
-        <Button onClick={onClear} size="sm" type="button" variant="ghost">
-          Xóa lọc
+        <Button className="ml-auto" onClick={onStartCreate} type="button">
+          Thêm thành viên
         </Button>
-      </div>
+      )}
     </div>
   );
 }
@@ -586,8 +618,8 @@ function LayoutAdministrationControls({
         Quản trị bố cục
       </p>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Khóa vị trí áp dụng trong phiên editor. Reset và auto-layout chỉ thay
-        đổi tọa độ trình bày, không thay đổi quan hệ gia phả.
+        Các thao tác trong mục này chỉ thay đổi cách trình bày sơ đồ, không
+        làm thay đổi quan hệ gia đình.
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button

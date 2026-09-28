@@ -1,3 +1,10 @@
+/**
+ * BULK_UTILITIES_PANEL
+ *
+ * Purpose: Provides backup, safe file checking, and controlled multi-record visibility changes for administrators.
+ * Connections: Bulk server actions, backup export, import validation, and optimistic concurrency.
+ * Risk: Medium because batch visibility can update many genealogy records.
+ */
 "use client";
 
 import { useMemo, useState } from "react";
@@ -50,7 +57,7 @@ function ImportPreviewSummary({
     <div className="grid gap-3 rounded-2xl border border-border bg-background p-4">
       <div>
         <p className="text-sm font-semibold text-card-foreground">
-          {fileName ?? "Import preview"}
+          {fileName ?? "Xem trước dữ liệu nhập"}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           {preview.counts.people} người · {preview.counts.relationships} quan hệ
@@ -67,8 +74,8 @@ function ImportPreviewSummary({
         }
       >
         {preview.ok
-          ? "Cấu trúc vượt qua validation preview."
-          : "Import preview đang có blocker."}
+          ? "Cấu trúc dữ liệu hợp lệ ở bước kiểm tra trước."
+          : "Dữ liệu nhập còn lỗi cần xử lý."}
       </p>
 
       {preview.errors.length > 0 ? (
@@ -102,7 +109,7 @@ function BulkPersonList({
   if (people.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Không có hồ sơ active chưa merge.
+        Không có hồ sơ đang sử dụng cần xử lý.
       </p>
     );
   }
@@ -124,13 +131,13 @@ function BulkPersonList({
               {person.displayName}
             </strong>
             <span className="text-xs text-muted-foreground">
-              {person.visibility === "public" ? "Công khai" : "Riêng tư"} · rev{" "}
+              {person.visibility === "public" ? "Công khai" : "Riêng tư"} · phiên bản{" "}
               {person.revision}
             </span>
           </span>
           {person.deathYear === null ? (
             <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground">
-              living heuristic
+              có thể còn sống
             </span>
           ) : null}
         </label>
@@ -160,7 +167,7 @@ function VisibilityImpactSummary({
       </div>
       <div className="rounded-xl border border-border bg-background p-3">
         <strong className="text-lg">{impact.livingPublicAfterCount}</strong>
-        <p className="text-xs text-muted-foreground">living-public sau batch</p>
+        <p className="text-xs text-muted-foreground">còn sống sẽ công khai</p>
       </div>
     </div>
   );
@@ -239,7 +246,7 @@ export function BulkUtilitiesPanel() {
     }
 
     downloadBackup(result.backup);
-    setMessage("Backup JSON đã được tạo từ snapshot hiện tại.");
+    setMessage("Đã tạo bản sao lưu JSON từ dữ liệu hiện tại.");
   }
 
   async function previewImportFile(file: File | null) {
@@ -250,7 +257,7 @@ export function BulkUtilitiesPanel() {
   }
 
   async function applyVisibilityBatch() {
-    if (confirmation !== "APPLY" || impact.changingCount === 0) return;
+    if (confirmation !== "XACNHAN" || impact.changingCount === 0) return;
 
     const selectedPeople = people.filter(
       (person) =>
@@ -277,19 +284,19 @@ export function BulkUtilitiesPanel() {
     setMessage(
       "Đã cập nhật " +
         result.revisions.length +
-        " hồ sơ. Mỗi update được audit riêng.",
+        " hồ sơ và ghi lại từng thay đổi trong lịch sử.",
     );
   }
 
   return (
     <>
       <Button onClick={() => void openPanel()} type="button" variant="outline">
-        Bulk & backup
+        Dữ liệu & sao lưu
       </Button>
 
       {open ? (
         <div
-          aria-label="Bulk utilities and backup"
+          aria-label="Dữ liệu và sao lưu"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8"
           role="dialog"
@@ -298,10 +305,10 @@ export function BulkUtilitiesPanel() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  Step 10 · controlled utilities
+                  Quản lý dữ liệu
                 </p>
                 <h2 className="font-display mt-1 text-3xl text-card-foreground">
-                  Bulk utilities & backup
+                  Dữ liệu & sao lưu
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                   Import chỉ preview. Backup chỉ export. Batch visibility cần
@@ -309,7 +316,7 @@ export function BulkUtilitiesPanel() {
                 </p>
               </div>
               <Button
-                aria-label="Đóng Bulk utilities & backup"
+                aria-label="Đóng dữ liệu và sao lưu"
                 autoFocus
                 onClick={() => setOpen(false)}
                 type="button"
@@ -324,7 +331,7 @@ export function BulkUtilitiesPanel() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-card-foreground">
-                      Export / backup
+                      Tạo bản sao lưu
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Xuất people, relationships, layouts, provenance và audit
@@ -373,10 +380,10 @@ export function BulkUtilitiesPanel() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-card-foreground">
-                      Batch visibility
+                      Đổi quyền hiển thị hàng loạt
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Tối đa 500 active/unmerged hồ sơ mỗi transaction.
+                      Tối đa 500 hồ sơ đang sử dụng trong mỗi lần áp dụng.
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -396,7 +403,7 @@ export function BulkUtilitiesPanel() {
                       type="button"
                       variant="outline"
                     >
-                      Refresh
+                      Làm mới
                     </Button>
                   </div>
                 </div>
@@ -408,7 +415,7 @@ export function BulkUtilitiesPanel() {
                 />
 
                 <label className="text-xs font-medium text-muted-foreground">
-                  Visibility sau batch
+                  Quyền hiển thị sau khi áp dụng
                   <select
                     className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
                     onChange={(event) => {
@@ -433,11 +440,11 @@ export function BulkUtilitiesPanel() {
                 ) : null}
 
                 <label className="text-xs font-medium text-muted-foreground">
-                  Nhập chính xác APPLY để thực thi
+                  Nhập XACNHAN để xác nhận
                   <input
                     className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
                     onChange={(event) => setConfirmation(event.target.value)}
-                    placeholder="APPLY"
+                    placeholder="XACNHAN"
                     value={confirmation}
                   />
                 </label>
@@ -445,13 +452,13 @@ export function BulkUtilitiesPanel() {
                 <Button
                   disabled={
                     busy ||
-                    confirmation !== "APPLY" ||
+                    confirmation !== "XACNHAN" ||
                     impact.changingCount === 0
                   }
                   onClick={() => void applyVisibilityBatch()}
                   type="button"
                 >
-                  Áp dụng batch visibility
+                  Áp dụng thay đổi
                 </Button>
               </section>
 

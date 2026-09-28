@@ -60,7 +60,7 @@ function ProfileCard({
   const targetDescription =
     tone === "target"
       ? "Hồ sơ này sẽ được giữ làm hồ sơ chính. Thông tin từ hồ sơ còn lại không tự ghi đè."
-       : "Hồ sơ này sẽ được lưu trữ sau khi gộp thành công.";
+      : "Hồ sơ này sẽ được lưu trữ sau khi gộp thành công.";
 
   return (
     <article className="rounded-2xl border border-border bg-background p-4">
@@ -290,9 +290,7 @@ function MergeImpact({
           <p className="text-2xl font-semibold text-card-foreground">
             {data.sourceRelationshipCitationCount}
           </p>
-          <p className="text-xs text-muted-foreground">
-            dẫn chứng của quan hệ
-          </p>
+          <p className="text-xs text-muted-foreground">dẫn chứng của quan hệ</p>
         </div>
       </div>
 
@@ -397,11 +395,7 @@ function ReviewWorkspace({
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <ProfileCard label="HỒ SƠ GIỮ LẠI" person={target} tone="target" />
-        <ProfileCard
-          label="HỒ SƠ SẼ GỘP"
-          person={source}
-          tone="source"
-        />
+        <ProfileCard label="HỒ SƠ SẼ GỘP" person={source} tone="source" />
       </div>
 
       {preview ? <MergeImpact data={preview} people={data.people} /> : null}
@@ -704,7 +698,12 @@ export function DuplicateReviewPanel() {
 
   if (!open) {
     return (
-      <Button className="w-full justify-start" onClick={() => void openPanel()} type="button" variant="outline">
+      <Button
+        className="w-full justify-start"
+        onClick={() => void openPanel()}
+        type="button"
+        variant="outline"
+      >
         Kiểm tra hồ sơ trùng
       </Button>
     );

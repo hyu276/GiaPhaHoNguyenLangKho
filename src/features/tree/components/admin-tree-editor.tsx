@@ -436,9 +436,7 @@ function TreeFilterPanel({
             <select
               className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
               onChange={(event) =>
-                onVisibilityFilterChange(
-                  event.target.value as VisibilityFilter,
-                )
+                onVisibilityFilterChange(event.target.value as VisibilityFilter)
               }
               value={visibilityFilter}
             >
@@ -625,8 +623,8 @@ function LayoutAdministrationControls({
         Sắp xếp sơ đồ
       </p>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Các thao tác trong mục này chỉ thay đổi cách trình bày sơ đồ, không
-        làm thay đổi quan hệ gia đình.
+        Các thao tác trong mục này chỉ thay đổi cách trình bày sơ đồ, không làm
+        thay đổi quan hệ gia đình.
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button
@@ -957,7 +955,9 @@ function EditorDrawer({
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
             Gia phả
           </p>
-          <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
+          <h2 className="text-sm font-semibold text-card-foreground">
+            {title}
+          </h2>
         </div>
         <Button
           aria-label="Đóng bảng thông tin"

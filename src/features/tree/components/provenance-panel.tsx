@@ -673,7 +673,9 @@ function ProvenanceToolbar({
 function LoadingMessage({ loading }: { loading: boolean }) {
   if (!loading) return null;
   return (
-    <p className="mt-3 text-xs text-muted-foreground">Đang tải nguồn tư liệu…</p>
+    <p className="mt-3 text-xs text-muted-foreground">
+      Đang tải nguồn tư liệu…
+    </p>
   );
 }
 

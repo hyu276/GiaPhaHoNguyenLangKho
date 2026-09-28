@@ -120,9 +120,7 @@ test("synthetic duplicate quality and bulk release journey", async ({
 }) => {
   await openSyntheticAdmin(page);
 
-  await page
-    .getByRole("button", { name: "Kiểm tra hồ sơ trùng" })
-    .click();
+  await page.getByRole("button", { name: "Kiểm tra hồ sơ trùng" }).click();
   await expect(page.locator("#duplicateCandidateList")).toContainText(
     "Nguyễn Văn Cường",
   );

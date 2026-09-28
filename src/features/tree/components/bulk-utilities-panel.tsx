@@ -131,8 +131,8 @@ function BulkPersonList({
               {person.displayName}
             </strong>
             <span className="text-xs text-muted-foreground">
-              {person.visibility === "public" ? "Công khai" : "Riêng tư"} · phiên bản{" "}
-              {person.revision}
+              {person.visibility === "public" ? "Công khai" : "Riêng tư"} ·
+              phiên bản {person.revision}
             </span>
           </span>
           {person.deathYear === null ? (
@@ -290,7 +290,12 @@ export function BulkUtilitiesPanel() {
 
   return (
     <>
-      <Button className="w-full justify-start" onClick={() => void openPanel()} type="button" variant="outline">
+      <Button
+        className="w-full justify-start"
+        onClick={() => void openPanel()}
+        type="button"
+        variant="outline"
+      >
         Dữ liệu & sao lưu
       </Button>
 

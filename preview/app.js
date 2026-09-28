@@ -53,7 +53,8 @@ const initialState = {
     {
       id: "P005",
       name: "Nguyễn Văn Cường",
-      description: "Hồ sơ mẫu phục vụ việc duyệt thao tác thêm và sửa thành viên.",
+      description:
+        "Hồ sơ mẫu phục vụ việc duyệt thao tác thêm và sửa thành viên.",
       birth: 1958,
       death: null,
       sex: "male",
@@ -1580,7 +1581,9 @@ function saveCitationFromDialog() {
 }
 
 function removeCitation(citationId) {
-  if (!window.confirm("Xóa dẫn chứng này? Nguồn tư liệu gốc vẫn được giữ lại.")) {
+  if (
+    !window.confirm("Xóa dẫn chứng này? Nguồn tư liệu gốc vẫn được giữ lại.")
+  ) {
     return;
   }
 
@@ -1834,7 +1837,9 @@ function buildDuplicateMergePreview(targetPersonId, sourcePersonId) {
   const blockers = [...relationshipResult.blockers];
 
   if (hasDuplicateParentChildCycle(effective)) {
-    blockers.push("Việc gộp sẽ tạo vòng lặp tổ tiên trong quan hệ cha/mẹ – con.");
+    blockers.push(
+      "Việc gộp sẽ tạo vòng lặp tổ tiên trong quan hệ cha/mẹ – con.",
+    );
   }
 
   return {
@@ -2007,8 +2012,7 @@ function applyDuplicateRelationshipChange(change) {
 function executeDuplicateMerge() {
   if (!duplicatePair || !duplicatePreview) return;
   if (duplicatePreview.blockers.length) return;
-  if (document.querySelector("#duplicateConfirmation").value !== "GOP")
-    return;
+  if (document.querySelector("#duplicateConfirmation").value !== "GOP") return;
   if (!window.confirm("Gộp hai hồ sơ này trong bản demo?")) return;
 
   checkpoint();
@@ -2207,7 +2211,8 @@ function isolatedQualityIssues(people, relationships) {
         relationshipId: null,
         relatedPersonId: null,
         title: "Hồ sơ đang cô lập",
-        detail: "Hồ sơ đang sử dụng nhưng chưa có quan hệ gia đình với người khác.",
+        detail:
+          "Hồ sơ đang sử dụng nhưng chưa có quan hệ gia đình với người khác.",
       },
     ];
   });
@@ -2250,7 +2255,8 @@ function provenanceQualityIssues(relationships) {
         relationshipId: relation.id,
         relatedPersonId: relation.target,
         title: "Quan hệ chưa có dẫn chứng",
-        detail: "Quan hệ này chưa có nguồn tư liệu hoặc dẫn chứng gắn trực tiếp.",
+        detail:
+          "Quan hệ này chưa có nguồn tư liệu hoặc dẫn chứng gắn trực tiếp.",
       },
     ];
   });
@@ -2480,7 +2486,10 @@ function validateBulkImportReferences(backup) {
 
 function parseBulkImportPreview(raw) {
   if (!raw) {
-    return { ok: false, message: "Hãy dán nội dung tệp sao lưu JSON để kiểm tra." };
+    return {
+      ok: false,
+      message: "Hãy dán nội dung tệp sao lưu JSON để kiểm tra.",
+    };
   }
 
   let backup;
@@ -2494,7 +2503,10 @@ function parseBulkImportPreview(raw) {
   }
 
   if (backup?.version !== 1) {
-    return { ok: false, message: "Phiên bản tệp sao lưu này chưa được hỗ trợ." };
+    return {
+      ok: false,
+      message: "Phiên bản tệp sao lưu này chưa được hỗ trợ.",
+    };
   }
 
   const referenceError = validateBulkImportReferences(backup);

@@ -15,20 +15,34 @@
       <div class="brand-block">
         <p class="eyebrow">Gia phả họ Nguyễn Làng Khô</p>
         <h1>Sơ đồ gia phả</h1>
-        <p class="topbar-meta">7 thành viên · 8 quan hệ · bản xem trước giao diện</p>
+        <p class="topbar-meta">
+          7 thành viên · 8 quan hệ · bản xem trước giao diện
+        </p>
       </div>
       <div class="topbar-actions">
         <details class="admin-menu">
           <summary class="button secondary">Công cụ quản trị</summary>
           <div class="admin-menu-panel">
             <p class="muted">Kiểm tra và bảo trì dữ liệu khi cần.</p>
-            <button class="button secondary" id="reviewDuplicates" type="button">
+            <button
+              class="button secondary"
+              id="reviewDuplicates"
+              type="button"
+            >
               Kiểm tra hồ sơ trùng
             </button>
-            <button class="button secondary" id="reviewDataQuality" type="button">
+            <button
+              class="button secondary"
+              id="reviewDataQuality"
+              type="button"
+            >
               Kiểm tra dữ liệu
             </button>
-            <button class="button secondary" id="reviewBulkUtilities" type="button">
+            <button
+              class="button secondary"
+              id="reviewBulkUtilities"
+              type="button"
+            >
               Dữ liệu &amp; sao lưu
             </button>
           </div>
@@ -56,7 +70,11 @@
         <div class="canvas-toolbar product-toolbar">
           <label class="search-field">
             <span class="sr-only">Tìm thành viên</span>
-            <input id="searchInput" type="search" placeholder="Tìm thành viên theo tên…" />
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Tìm thành viên theo tên…"
+            />
           </label>
 
           <details class="filter-menu">
@@ -103,9 +121,25 @@
           </div>
 
           <div class="canvas-utility">
-            <button class="icon-button" id="undoButton" type="button" aria-label="Hoàn tác">↶</button>
-            <button class="icon-button" id="redoButton" type="button" aria-label="Làm lại">↷</button>
-            <button class="button secondary" id="fitButton" type="button">Hiện toàn cây</button>
+            <button
+              class="icon-button"
+              id="undoButton"
+              type="button"
+              aria-label="Hoàn tác"
+            >
+              ↶
+            </button>
+            <button
+              class="icon-button"
+              id="redoButton"
+              type="button"
+              aria-label="Làm lại"
+            >
+              ↷
+            </button>
+            <button class="button secondary" id="fitButton" type="button">
+              Hiện toàn cây
+            </button>
           </div>
 
           <span class="status canvas-status" id="saveStatus">
@@ -146,21 +180,42 @@
                 id="focusSelected"
                 type="button"
                 aria-label="Đưa thành viên vào giữa"
-              >◎</button>
+              >
+                ◎
+              </button>
             </div>
 
             <div class="button-grid member-actions">
-              <button class="button primary" id="editPerson" type="button">Sửa hồ sơ</button>
-              <button class="button" id="addParent" type="button">Thêm cha / mẹ</button>
-              <button class="button" id="addChild" type="button">Thêm con</button>
-              <button class="button" id="addPartner" type="button">Thêm hôn phối</button>
-              <button class="button danger" id="archivePerson" type="button">Lưu trữ</button>
+              <button class="button primary" id="editPerson" type="button">
+                Sửa hồ sơ
+              </button>
+              <button class="button" id="addParent" type="button">
+                Thêm cha / mẹ
+              </button>
+              <button class="button" id="addChild" type="button">
+                Thêm con
+              </button>
+              <button class="button" id="addPartner" type="button">
+                Thêm hôn phối
+              </button>
+              <button class="button danger" id="archivePerson" type="button">
+                Lưu trữ
+              </button>
             </div>
 
             <dl class="facts">
-              <div><dt>Mã hồ sơ</dt><dd id="personId"></dd></div>
-              <div><dt>Trạng thái</dt><dd id="personState"></dd></div>
-              <div><dt>Vị trí</dt><dd id="personPosition"></dd></div>
+              <div>
+                <dt>Mã hồ sơ</dt>
+                <dd id="personId"></dd>
+              </div>
+              <div>
+                <dt>Trạng thái</dt>
+                <dd id="personState"></dd>
+              </div>
+              <div>
+                <dt>Vị trí</dt>
+                <dd id="personPosition"></dd>
+              </div>
             </dl>
 
             <p class="archive-impact" id="archiveImpact" hidden></p>
@@ -168,23 +223,52 @@
             <div class="divider"></div>
             <p class="eyebrow">Người thân &amp; nhánh</p>
             <div class="branch-actions">
-              <button class="button secondary" id="toggleBranch" type="button">Thu nhánh con</button>
-              <button class="button secondary" id="clearFocus" type="button">Bỏ chế độ tập trung</button>
+              <button class="button secondary" id="toggleBranch" type="button">
+                Thu nhánh con
+              </button>
+              <button class="button secondary" id="clearFocus" type="button">
+                Bỏ chế độ tập trung
+              </button>
             </div>
 
             <div class="divider"></div>
             <details class="drawer-section">
               <summary>Sắp xếp sơ đồ</summary>
               <p class="muted">
-                Các thao tác này chỉ đổi cách trình bày, không thay đổi quan hệ gia đình.
+                Các thao tác này chỉ đổi cách trình bày, không thay đổi quan hệ
+                gia đình.
               </p>
               <div class="branch-actions">
-                <button class="button secondary" id="layoutLock" type="button">Khóa vị trí</button>
-                <button class="button secondary" id="resetPersonLayout" type="button">Đặt lại vị trí</button>
-                <button class="button secondary" id="resetBranchLayout" type="button">Đặt lại nhánh</button>
-                <button class="button secondary" id="autoLayoutBranch" type="button">Tự sắp xếp nhánh</button>
-                <button class="button secondary" id="layoutUndo" type="button">Hoàn tác vị trí</button>
-                <button class="button secondary" id="layoutRedo" type="button">Làm lại vị trí</button>
+                <button class="button secondary" id="layoutLock" type="button">
+                  Khóa vị trí
+                </button>
+                <button
+                  class="button secondary"
+                  id="resetPersonLayout"
+                  type="button"
+                >
+                  Đặt lại vị trí
+                </button>
+                <button
+                  class="button secondary"
+                  id="resetBranchLayout"
+                  type="button"
+                >
+                  Đặt lại nhánh
+                </button>
+                <button
+                  class="button secondary"
+                  id="autoLayoutBranch"
+                  type="button"
+                >
+                  Tự sắp xếp nhánh
+                </button>
+                <button class="button secondary" id="layoutUndo" type="button">
+                  Hoàn tác vị trí
+                </button>
+                <button class="button secondary" id="layoutRedo" type="button">
+                  Làm lại vị trí
+                </button>
               </div>
             </details>
 
@@ -196,15 +280,19 @@
             <section id="provenanceSection">
               <p class="eyebrow">Nguồn tư liệu</p>
               <p class="muted">
-                Lưu riêng nguồn và dẫn chứng để phân biệt dữ liệu đã xác nhận với
-                thông tin còn cần kiểm tra.
+                Lưu riêng nguồn và dẫn chứng để phân biệt dữ liệu đã xác nhận
+                với thông tin còn cần kiểm tra.
               </p>
               <p class="provenance-target">
                 Đang xem: <strong id="provenanceTarget"></strong>
               </p>
               <div class="branch-actions">
-                <button class="button secondary" id="addSource" type="button">Thêm nguồn</button>
-                <button class="button secondary" id="addCitation" type="button">Thêm dẫn chứng</button>
+                <button class="button secondary" id="addSource" type="button">
+                  Thêm nguồn
+                </button>
+                <button class="button secondary" id="addCitation" type="button">
+                  Thêm dẫn chứng
+                </button>
               </div>
 
               <h3>Nguồn đã dùng</h3>
@@ -369,8 +457,8 @@
           </button>
         </div>
         <p class="muted">
-          Đang gắn cho: <strong id="citationTarget"></strong>. Dẫn chứng này không tự thay
-          đổi năm sinh, năm mất hay quan hệ hồ sơ chính.
+          Đang gắn cho: <strong id="citationTarget"></strong>. Dẫn chứng này
+          không tự thay đổi năm sinh, năm mất hay quan hệ hồ sơ chính.
         </p>
         <label class="field">
           <span>Nguồn tư liệu</span>
@@ -527,8 +615,8 @@
           </form>
         </div>
         <p class="muted">
-          Các mục dưới đây chỉ là tín hiệu cần kiểm tra. Preview không có
-          tự sửa và không tự sửa dữ liệu gia phả.
+          Các mục dưới đây chỉ là tín hiệu cần kiểm tra. Preview không có tự sửa
+          và không tự sửa dữ liệu gia phả.
         </p>
 
         <div class="quality-summary">
@@ -586,8 +674,8 @@
           </form>
         </div>
         <p class="muted">
-          Bản demo chỉ kiểm tra tệp trước khi nhập. Thay đổi hàng loạt cần xem trước
-          ảnh hưởng và xác nhận thủ công.
+          Bản demo chỉ kiểm tra tệp trước khi nhập. Thay đổi hàng loạt cần xem
+          trước ảnh hưởng và xác nhận thủ công.
         </p>
 
         <div class="bulk-preview-grid">
@@ -627,7 +715,8 @@
             <div>
               <h3>Đổi quyền hiển thị hàng loạt</h3>
               <p class="muted">
-                Chọn các hồ sơ đang sử dụng, xem trước ảnh hưởng rồi xác nhận thay đổi.
+                Chọn các hồ sơ đang sử dụng, xem trước ảnh hưởng rồi xác nhận
+                thay đổi.
               </p>
             </div>
             <button class="button secondary" id="bulkSelectAll" type="button">

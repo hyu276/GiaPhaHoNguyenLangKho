@@ -994,12 +994,15 @@ dialog::backdrop {
   }
 }
 
-
 /* Step 12A productization overrides */
 body {
   min-width: 0;
   background:
-    radial-gradient(circle at 12% 0%, rgba(13, 148, 136, 0.08), transparent 28rem),
+    radial-gradient(
+      circle at 12% 0%,
+      rgba(13, 148, 136, 0.08),
+      transparent 28rem
+    ),
     var(--bg);
 }
 

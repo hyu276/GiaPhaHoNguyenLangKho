@@ -60,6 +60,18 @@ Historical genealogy contains uncertainty. The model must distinguish known data
 - Conflicting historical claims should be resolvable through provenance/notes rather than destructive overwriting when the product supports sources.
 - UI labels such as “không rõ” are presentation concerns; storage should use explicit nullable/structured semantics.
 
+## Provenance and citations
+
+When provenance is implemented:
+
+- A reusable source record describes the underlying tư liệu; a citation links one source to exactly one person or one canonical relationship.
+- Citations may record the claim type, verbatim/normalized claim text, locator, research note, certainty, and an optional date expression.
+- Approximate, ranged, before/after, or unknown date claims must remain explicit provenance data unless an administrator separately promotes a sufficiently supported exact value into the canonical person fields.
+- Adding a lower-certainty or conflicting citation must never silently overwrite canonical person/relationship data.
+- Multiple conflicting citations may coexist. Resolution is an explicit review decision, not a uniqueness constraint.
+- Certainty is recorded evidence context, not an automatically computed truth score.
+- Removing a citation removes only that citation. It must not delete the target person, relationship, or shared source.
+
 ## Deletion and merging
 
 Person deletion is high-impact because relationships may depend on the record.

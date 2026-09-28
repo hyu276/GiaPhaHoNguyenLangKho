@@ -996,8 +996,8 @@ export function ProvenancePanel({
         Nguồn tư liệu & ghi chú
       </p>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Nguồn tư liệu và các dẫn chứng chưa chắc chắn được lưu tách khỏi hồ
-        sơ chính. Các thông tin mâu thuẫn có thể cùng tồn tại để người quản trị
+        Nguồn tư liệu và các dẫn chứng chưa chắc chắn được lưu tách khỏi hồ sơ
+        chính. Các thông tin mâu thuẫn có thể cùng tồn tại để người quản trị
         kiểm tra.
       </p>
 

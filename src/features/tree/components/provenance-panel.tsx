@@ -127,7 +127,7 @@ function getSourceFormDefaults(
       sourceUrl: source.sourceUrl ?? "",
       heading: "Sửa nguồn tư liệu",
       helpText:
-        "Nguồn có thể được dùng bởi nhiều citation; sửa metadata nguồn sẽ hiển thị ở tất cả citation tham chiếu đến nguồn này.",
+        "Nguồn có thể được dùng cho nhiều dẫn chứng; chỉnh sửa thông tin nguồn sẽ áp dụng cho tất cả dẫn chứng đang dùng nguồn này.",
     };
   }
 
@@ -165,7 +165,7 @@ function getCitationFormDefaults(
       dateQualifier: textOrEmpty(citation.dateQualifier),
       dateText: textOrEmpty(citation.dateText),
       note: textOrEmpty(citation.note),
-      heading: "Sửa citation",
+      heading: "Sửa dẫn chứng",
     };
   }
 
@@ -179,7 +179,7 @@ function getCitationFormDefaults(
     dateQualifier: "",
     dateText: "",
     note: "",
-    heading: "Thêm citation",
+    heading: "Thêm dẫn chứng",
   };
 }
 
@@ -302,7 +302,7 @@ function CitationActions({
         type="button"
         variant="outline"
       >
-        Sửa citation
+        Sửa dẫn chứng
       </Button>
       <Button
         onClick={() => onRemove(citation.id)}
@@ -310,7 +310,7 @@ function CitationActions({
         type="button"
         variant="ghost"
       >
-        Xóa citation
+        Xóa dẫn chứng
       </Button>
     </div>
   );
@@ -496,8 +496,8 @@ function CitationForm({
         {defaults.heading}
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        Claim chưa chắc chắn hoặc mâu thuẫn được lưu riêng tại đây; form này
-        không tự sửa năm sinh, năm mất hay quan hệ canonical.
+        Thông tin chưa chắc chắn hoặc mâu thuẫn được lưu riêng tại đây; biểu
+        mẫu này không tự sửa năm sinh, năm mất hay quan hệ chính.
       </p>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
@@ -517,7 +517,7 @@ function CitationForm({
       </label>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
-        Loại claim
+        Loại thông tin
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.claimKind}
@@ -532,7 +532,7 @@ function CitationForm({
       </label>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
-        Nội dung claim
+        Nội dung dẫn chứng
         <textarea
           className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.claimText}
@@ -616,7 +616,7 @@ function CitationForm({
           size="sm"
           type="submit"
         >
-          {saving ? "Đang lưu…" : "Lưu citation"}
+          {saving ? "Đang lưu…" : "Lưu dẫn chứng"}
         </Button>
         <Button
           disabled={saving}
@@ -956,7 +956,7 @@ export function ProvenancePanel({
 
     setEditor(null);
     setStatusMessage(
-      editor.citation ? "Đã cập nhật citation." : "Đã thêm citation.",
+      editor.citation ? "Đã cập nhật dẫn chứng." : "Đã thêm dẫn chứng.",
     );
     await refreshProvenance();
   }
@@ -986,18 +986,19 @@ export function ProvenancePanel({
     }
 
     setEditor(null);
-    setStatusMessage("Đã xóa citation.");
+    setStatusMessage("Đã xóa dẫn chứng.");
     await refreshProvenance();
   }
 
   return (
     <section className="mt-5 border-t border-border pt-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Notes & provenance
+        Nguồn tư liệu & ghi chú
       </p>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Nguồn, citation và claim chưa chắc chắn được lưu tách khỏi dữ liệu
-        canonical. Claim mâu thuẫn có thể cùng tồn tại để review.
+        Nguồn tư liệu và các dẫn chứng chưa chắc chắn được lưu tách khỏi hồ
+        sơ chính. Các thông tin mâu thuẫn có thể cùng tồn tại để người quản trị
+        kiểm tra.
       </p>
 
       <ProvenanceToolbar

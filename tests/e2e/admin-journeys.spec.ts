@@ -119,6 +119,7 @@ test("synthetic duplicate quality and bulk release journey", async ({
   page,
 }) => {
   await openSyntheticAdmin(page);
+  await page.locator("details.admin-menu > summary").click();
 
   await page.getByRole("button", { name: "Kiểm tra hồ sơ trùng" }).click();
   await expect(page.locator("#duplicateCandidateList")).toContainText(

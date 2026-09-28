@@ -17,12 +17,12 @@ import { Button } from "@/components/ui/button";
 import type {
   DataQualityIssue,
   DataQualityIssueKind,
-  DataQualitySeverity,
+  DataQualityMức độ,
 } from "@/features/tree/data-quality";
 
 type QualityData = Extract<DataQualityLoadResult, { ok: true }>;
 
-const SEVERITY_LABELS: Record<DataQualitySeverity, string> = {
+const SEVERITY_LABELS: Record<DataQualityMức độ, string> = {
   error: "Lỗi",
   warning: "Cảnh báo",
   info: "Thông tin",
@@ -88,7 +88,7 @@ function IssueContext({
   );
 }
 
-function SeverityBadge({ severity }: { severity: DataQualitySeverity }) {
+function Mức độBadge({ severity }: { severity: DataQualityMức độ }) {
   const className =
     severity === "error"
       ? "bg-destructive/10 text-destructive"
@@ -125,7 +125,7 @@ function QualityIssueCard({
             {issue.title}
           </h4>
         </div>
-        <SeverityBadge severity={issue.severity} />
+        <Mức độBadge severity={issue.severity} />
       </div>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
         {issue.detail}
@@ -157,22 +157,22 @@ function DashboardSummary({ data }: { data: QualityData }) {
 function FilterControls({
   kind,
   onKindChange,
-  onSeverityChange,
+  onMức độChange,
   severity,
 }: {
   kind: "all" | DataQualityIssueKind;
   onKindChange: (value: "all" | DataQualityIssueKind) => void;
-  onSeverityChange: (value: "all" | DataQualitySeverity) => void;
-  severity: "all" | DataQualitySeverity;
+  onMức độChange: (value: "all" | DataQualityMức độ) => void;
+  severity: "all" | DataQualityMức độ;
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       <label className="text-xs font-medium text-muted-foreground">
-        Severity
+        Mức độ
         <select
           className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
           onChange={(event) =>
-            onSeverityChange(event.target.value as "all" | DataQualitySeverity)
+            onMức độChange(event.target.value as "all" | DataQualityMức độ)
           }
           value={severity}
         >
@@ -238,7 +238,7 @@ function DashboardBody({
   kind,
   loading,
   onKindChange,
-  onSeverityChange,
+  onMức độChange,
   severity,
 }: {
   data: QualityData | null;
@@ -246,8 +246,8 @@ function DashboardBody({
   kind: "all" | DataQualityIssueKind;
   loading: boolean;
   onKindChange: (value: "all" | DataQualityIssueKind) => void;
-  onSeverityChange: (value: "all" | DataQualitySeverity) => void;
-  severity: "all" | DataQualitySeverity;
+  onMức độChange: (value: "all" | DataQualityMức độ) => void;
+  severity: "all" | DataQualityMức độ;
 }) {
   const issues = useMemo(() => {
     if (!data) return [];
@@ -276,7 +276,7 @@ function DashboardBody({
       <FilterControls
         kind={kind}
         onKindChange={onKindChange}
-        onSeverityChange={onSeverityChange}
+        onMức độChange={onMức độChange}
         severity={severity}
       />
       <p className="text-xs leading-5 text-muted-foreground">
@@ -293,7 +293,7 @@ export function DataQualityPanel() {
   const [data, setData] = useState<QualityData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [severity, setSeverity] = useState<"all" | DataQualitySeverity>("all");
+  const [severity, setMức độ] = useState<"all" | DataQualityMức độ>("all");
   const [kind, setKind] = useState<"all" | DataQualityIssueKind>("all");
 
   async function refresh() {
@@ -377,7 +377,7 @@ export function DataQualityPanel() {
                 kind={kind}
                 loading={loading}
                 onKindChange={setKind}
-                onSeverityChange={setSeverity}
+                onMức độChange={setMức độ}
                 severity={severity}
               />
             </div>

@@ -20,6 +20,15 @@ type AuditHistoryPanelProps = {
   undoMutation: (input: { auditId: string }) => Promise<UndoAuditResult>;
 };
 
+const ENTITY_LABELS: Record<string, string> = {
+  people: "Thành viên",
+  relationships: "Quan hệ",
+  person_layouts: "Bố cục",
+  genealogy_sources: "Nguồn tư liệu",
+  genealogy_citations: "Dẫn chứng",
+  person_merge_audits: "Gộp hồ sơ",
+};
+
 const COMMAND_LABELS: Record<string, string> = {
   create_person: "Thêm người",
   update_person: "Sửa hồ sơ",
@@ -150,15 +159,15 @@ export function AuditHistoryPanel({
                         {commandLabel(audit.command)}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {audit.entityTable} · {shortId(audit.entityId)} ·{" "}
+                        {ENTITY_LABELS[audit.entityTable] ?? "Dữ liệu"} ·{" "}
                         {formatTimestamp(audit.createdAt)}
                       </p>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        revision {audit.beforeRevision ?? "∅"} →{" "}
+                        Phiên bản {audit.beforeRevision ?? "∅"} →{" "}
                         {audit.afterRevision ?? "∅"}
                         {audit.actorUserId
-                          ? " · actor " + shortId(audit.actorUserId)
-                          : " · actor system"}
+                          ? " · người thực hiện " + shortId(audit.actorUserId)
+                          : " · hệ thống"}
                       </p>
                     </div>
 

@@ -150,7 +150,5 @@ test("synthetic duplicate quality and bulk release journey", async ({
   const backupText = await fs.readFile(downloadPath!, "utf8");
   await page.locator("#bulkImportText").fill(backupText);
   await page.getByRole("button", { name: "Kiểm tra tệp" }).click();
-  await expect(page.locator("#bulkImportResult")).toContainText(
-    "Tệp hợp lệ",
-  );
+  await expect(page.locator("#bulkImportResult")).toContainText("Tệp hợp lệ");
 });

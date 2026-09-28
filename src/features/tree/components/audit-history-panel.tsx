@@ -72,6 +72,54 @@ function canUndo(audit: MutationAuditRecord) {
   return audit.undoable && audit.undoneByAuditId === null;
 }
 
+function auditEntityLabel(entityTable: string) {
+  return ENTITY_LABELS[entityTable] ?? "Dữ liệu";
+}
+
+function auditRevisionLabel(value: number | null) {
+  return value ?? "∅";
+}
+
+function auditActorLabel(actorUserId: string | null) {
+  if (!actorUserId) return " · hệ thống";
+  return " · người thực hiện " + shortId(actorUserId);
+}
+
+function auditStatusLabel(audit: MutationAuditRecord) {
+  if (audit.undoneByAuditId) return "Đã hoàn tác";
+  return "Không thể hoàn tác tự động";
+}
+
+function AuditUndoControl({
+  audit,
+  onUndo,
+  pendingAuditId,
+}: {
+  audit: MutationAuditRecord;
+  onUndo: (audit: MutationAuditRecord) => void;
+  pendingAuditId: string | null;
+}) {
+  if (!canUndo(audit)) {
+    return (
+      <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+        {auditStatusLabel(audit)}
+      </span>
+    );
+  }
+
+  return (
+    <Button
+      disabled={pendingAuditId !== null}
+      onClick={() => onUndo(audit)}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      {pendingAuditId === audit.id ? "Đang hoàn tác…" : "Hoàn tác"}
+    </Button>
+  );
+}
+
 function AuditEntry({
   audit,
   onUndo,
@@ -81,14 +129,6 @@ function AuditEntry({
   onUndo: (audit: MutationAuditRecord) => void;
   pendingAuditId: string | null;
 }) {
-  const undoAvailable = canUndo(audit);
-  const statusLabel = audit.undoneByAuditId
-    ? "Đã hoàn tác"
-    : "Không thể hoàn tác tự động";
-  const actorLabel = audit.actorUserId
-    ? " · người thực hiện " + shortId(audit.actorUserId)
-    : " · hệ thống";
-
   return (
     <article className="rounded-xl border border-border bg-background p-3">
       <div className="flex items-start justify-between gap-3">
@@ -97,31 +137,21 @@ function AuditEntry({
             {commandLabel(audit.command)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {ENTITY_LABELS[audit.entityTable] ?? "Dữ liệu"} ·{" "}
+            {auditEntityLabel(audit.entityTable)} ·{" "}
             {formatTimestamp(audit.createdAt)}
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Phiên bản {audit.beforeRevision ?? "∅"} →{" "}
-            {audit.afterRevision ?? "∅"}
-            {actorLabel}
+            Phiên bản {auditRevisionLabel(audit.beforeRevision)} →{" "}
+            {auditRevisionLabel(audit.afterRevision)}
+            {auditActorLabel(audit.actorUserId)}
           </p>
         </div>
 
-        {undoAvailable ? (
-          <Button
-            disabled={pendingAuditId !== null}
-            onClick={() => onUndo(audit)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {pendingAuditId === audit.id ? "Đang hoàn tác…" : "Hoàn tác"}
-          </Button>
-        ) : (
-          <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
-            {statusLabel}
-          </span>
-        )}
+        <AuditUndoControl
+          audit={audit}
+          onUndo={onUndo}
+          pendingAuditId={pendingAuditId}
+        />
       </div>
     </article>
   );

@@ -704,7 +704,7 @@ export function DuplicateReviewPanel() {
 
   if (!open) {
     return (
-      <Button onClick={() => void openPanel()} type="button" variant="outline">
+      <Button className="w-full justify-start" onClick={() => void openPanel()} type="button" variant="outline">
         Kiểm tra hồ sơ trùng
       </Button>
     );

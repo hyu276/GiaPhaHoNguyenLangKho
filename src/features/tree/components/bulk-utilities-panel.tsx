@@ -290,7 +290,7 @@ export function BulkUtilitiesPanel() {
 
   return (
     <>
-      <Button onClick={() => void openPanel()} type="button" variant="outline">
+      <Button className="w-full justify-start" onClick={() => void openPanel()} type="button" variant="outline">
         Dữ liệu & sao lưu
       </Button>
 

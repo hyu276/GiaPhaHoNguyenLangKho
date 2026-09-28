@@ -8,7 +8,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Background,
   Controls,
@@ -934,31 +941,58 @@ function SelectedPersonDetails(props: SidebarProps) {
   );
 }
 
-function DefaultEditorSidebar(props: SidebarProps) {
+function EditorDrawer({
+  children,
+  onClose,
+  title,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  title: string;
+}) {
   return (
-    <aside className="rounded-3xl border border-border bg-card p-5">
-      {props.readOnly ? null : (
-        <Button className="w-full" onClick={props.onStartCreate}>
-          Thêm người
+    <aside className="absolute inset-y-3 right-3 z-30 w-[min(26rem,calc(100%-1.5rem))] overflow-y-auto rounded-3xl border border-border bg-card/98 shadow-2xl backdrop-blur sm:inset-y-4 sm:right-4">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card/95 px-5 py-4 backdrop-blur">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
+            Gia phả
+          </p>
+          <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
+        </div>
+        <Button
+          aria-label="Đóng bảng thông tin"
+          onClick={onClose}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          Đóng
         </Button>
-      )}
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Đang chọn
-      </p>
+      </div>
+      <div className="p-5">{children}</div>
+    </aside>
+  );
+}
+
+function DefaultEditorSidebar(props: SidebarProps) {
+  if (!props.selectedPerson) return null;
+
+  return (
+    <EditorDrawer onClose={props.onClose} title="Thông tin thành viên">
       <SelectedPersonSummary
         onStartEdit={props.onStartEdit}
         readOnly={props.readOnly}
         selectedPerson={props.selectedPerson}
       />
       <SelectedPersonDetails {...props} />
-    </aside>
+    </EditorDrawer>
   );
 }
 
 function EditorSidebar(props: SidebarProps) {
   if (props.selectedRelationship) {
     return (
-      <aside className="rounded-3xl border border-border bg-card p-5">
+      <EditorDrawer onClose={props.onClose} title="Quan hệ gia đình">
         <RelationshipInspector
           onChanged={props.onRelationshipChanged}
           people={props.people}
@@ -978,32 +1012,32 @@ function EditorSidebar(props: SidebarProps) {
           readOnly={props.readOnly}
           relationshipId={props.selectedRelationship.id}
         />
-      </aside>
+      </EditorDrawer>
     );
   }
 
   if (props.formMode === "create") {
     return (
-      <aside className="rounded-3xl border border-border bg-card p-5">
+      <EditorDrawer onClose={props.onClose} title="Thêm thành viên">
         <CreatePersonPanel
           createPerson={props.createPerson}
           onCancelForm={props.onCancelForm}
           onSaved={props.onSaved}
         />
-      </aside>
+      </EditorDrawer>
     );
   }
 
   if (props.formMode === "edit") {
     return (
-      <aside className="rounded-3xl border border-border bg-card p-5">
+      <EditorDrawer onClose={props.onClose} title="Chỉnh sửa thành viên">
         <EditPersonPanel
           onCancelForm={props.onCancelForm}
           onSaved={props.onSaved}
           selectedPerson={props.selectedPerson}
           updatePerson={props.updatePerson}
         />
-      </aside>
+      </EditorDrawer>
     );
   }
 

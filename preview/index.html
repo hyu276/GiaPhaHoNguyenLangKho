@@ -369,7 +369,7 @@
           </button>
         </div>
         <p class="muted">
-          Đang gắn cho: <strong id="citationTarget"></strong>. Claim này không tự thay
+          Đang gắn cho: <strong id="citationTarget"></strong>. Dẫn chứng này không tự thay
           đổi năm sinh, năm mất hay quan hệ hồ sơ chính.
         </p>
         <label class="field">
@@ -438,7 +438,7 @@
         </label>
         <div class="dialog-actions">
           <button class="button secondary" value="cancel">Hủy</button>
-          <button class="button primary" value="default">Lưu citation</button>
+          <button class="button primary" value="default">Lưu dẫn chứng</button>
         </div>
       </form>
     </dialog>
@@ -447,7 +447,7 @@
       <div class="duplicate-dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Duplicate Detection & Merge Review</p>
+            <p class="eyebrow">Kiểm tra hồ sơ trùng</p>
             <h2>Kiểm tra kỹ trước khi gộp</h2>
           </div>
           <form method="dialog">
@@ -544,7 +544,7 @@
         <div class="quality-filters">
           <label class="field compact-field">
             <span>Mức độ</span>
-            <select id="qualityMức độFilter">
+            <select id="qualitySeverityFilter">
               <option value="all">Tất cả</option>
               <option value="error">Lỗi</option>
               <option value="warning">Cảnh báo</option>
@@ -579,7 +579,7 @@
         <div class="dialog-heading">
           <div>
             <p class="eyebrow">Quản lý dữ liệu</p>
-            <h2>Import preview, backup & batch visibility</h2>
+            <h2>Dữ liệu &amp; sao lưu</h2>
           </div>
           <form method="dialog">
             <button class="icon-button" aria-label="Đóng">×</button>
@@ -594,17 +594,17 @@
           <section class="bulk-card">
             <h3>Tạo bản sao lưu</h3>
             <p class="muted">
-              Xuất snapshot people, relationships, layout và provenance.
+              Xuất hồ sơ, quan hệ, bố cục, nguồn tư liệu và lịch sử thay đổi.
             </p>
             <button class="button secondary" id="bulkExport" type="button">
-              Tải backup JSON
+              Tải bản sao lưu JSON
             </button>
           </section>
 
           <section class="bulk-card">
             <h3>Kiểm tra tệp sao lưu</h3>
             <label class="field">
-              <span>Dán backup JSON</span>
+              <span>Dán nội dung tệp JSON</span>
               <textarea
                 id="bulkImportText"
                 rows="7"
@@ -627,7 +627,7 @@
             <div>
               <h3>Đổi quyền hiển thị hàng loạt</h3>
               <p class="muted">
-                Chọn các hồ sơ đang sử dụng rồi review impact trước khi APPLY.
+                Chọn các hồ sơ đang sử dụng, xem trước ảnh hưởng rồi xác nhận thay đổi.
               </p>
             </div>
             <button class="button secondary" id="bulkSelectAll" type="button">
@@ -690,7 +690,7 @@
             Đi tới
           </button>
           <button class="link-button relation-provenance" type="button">
-            Provenance
+            Nguồn tư liệu
           </button>
           <button class="link-danger relation-remove" type="button">
             Xóa quan hệ

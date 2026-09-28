@@ -233,7 +233,7 @@ function formatYears(person: EditorPerson) {
 }
 
 function getStatusMessage(readOnly: boolean, saveState: SaveState) {
-  if (readOnly) return "Chế độ spectator: chỉ xem";
+  if (readOnly) return "Chế độ chỉ xem";
 
   switch (saveState.status) {
     case "saving":
@@ -550,7 +550,7 @@ function BranchNavigationControls({
   return (
     <section className="mt-5 border-t border-border pt-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Điều hướng nhánh
+        Người thân & nhánh
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button
@@ -558,7 +558,7 @@ function BranchNavigationControls({
           type="button"
           variant="outline"
         >
-          Focus người
+          Đưa vào giữa
         </Button>
         <Button
           onClick={() => onToggleBranch(person.id)}
@@ -622,7 +622,7 @@ function LayoutAdministrationControls({
   return (
     <section className="mt-5 border-t border-border pt-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Quản trị bố cục
+        Sắp xếp sơ đồ
       </p>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
         Các thao tác trong mục này chỉ thay đổi cách trình bày sơ đồ, không

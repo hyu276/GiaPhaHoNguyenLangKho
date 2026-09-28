@@ -318,7 +318,7 @@ export function DataQualityPanel() {
 
   return (
     <>
-      <Button onClick={openDashboard} type="button" variant="outline">
+      <Button className="w-full justify-start" onClick={openDashboard} type="button" variant="outline">
         Kiểm tra dữ liệu
       </Button>
 

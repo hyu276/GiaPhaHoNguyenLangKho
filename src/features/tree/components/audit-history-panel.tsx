@@ -208,8 +208,8 @@ export function AuditHistoryPanel({
                 Thay đổi gần đây
               </h2>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Chỉ những thay đổi có thể khôi phục an toàn mới có nút hoàn
-                tác. Việc gộp hồ sơ không thể tự động hoàn tác.
+                Chỉ những thay đổi có thể khôi phục an toàn mới có nút hoàn tác.
+                Việc gộp hồ sơ không thể tự động hoàn tác.
               </p>
             </div>
             <Button

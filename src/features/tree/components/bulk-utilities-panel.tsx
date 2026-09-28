@@ -427,9 +427,9 @@ export function BulkUtilitiesPanel() {
 
                 {impact.livingPublicAfterCount > 0 ? (
                   <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
-                    Thao tác này sẽ để {impact.livingPublicAfterCount} hồ sơ có thể
-                    là người còn sống ở trạng thái công khai. Hãy kiểm tra kỹ
-                    trước khi xác nhận.
+                    Thao tác này sẽ để {impact.livingPublicAfterCount} hồ sơ có
+                    thể là người còn sống ở trạng thái công khai. Hãy kiểm tra
+                    kỹ trước khi xác nhận.
                   </p>
                 ) : null}
 

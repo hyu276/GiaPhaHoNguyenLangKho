@@ -338,8 +338,8 @@ function MergeConfirmation({
         Xác nhận gộp hồ sơ
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        Nhập chính xác <strong>MERGE</strong>. Không có auto-merge, không có
-        merge khi preview còn blocker.
+        Nhập chính xác <strong>GOP</strong> để xác nhận. Hệ thống không tự gộp
+        và sẽ chặn thao tác nếu còn xung đột.
       </p>
       <input
         className="mt-3 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"

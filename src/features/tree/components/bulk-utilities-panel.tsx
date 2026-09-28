@@ -102,7 +102,7 @@ function BulkPersonList({
   if (people.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Không có hồ sơ active chưa merge.
+        Không có hồ sơ đang sử dụng nào có thể chọn.
       </p>
     );
   }
@@ -124,13 +124,13 @@ function BulkPersonList({
               {person.displayName}
             </strong>
             <span className="text-xs text-muted-foreground">
-              {person.visibility === "public" ? "Công khai" : "Riêng tư"} · rev{" "}
+              {person.visibility === "public" ? "Công khai" : "Riêng tư"} · phiên bản{" "}
               {person.revision}
             </span>
           </span>
           {person.deathYear === null ? (
             <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground">
-              living heuristic
+              Có thể còn sống
             </span>
           ) : null}
         </label>
@@ -160,7 +160,7 @@ function VisibilityImpactSummary({
       </div>
       <div className="rounded-xl border border-border bg-background p-3">
         <strong className="text-lg">{impact.livingPublicAfterCount}</strong>
-        <p className="text-xs text-muted-foreground">living-public sau batch</p>
+        <p className="text-xs text-muted-foreground">có thể còn sống và công khai</p>
       </div>
     </div>
   );
@@ -310,7 +310,7 @@ export function BulkUtilitiesPanel() {
                 </p>
               </div>
               <Button
-                aria-label="Đóng Bulk utilities & backup"
+                aria-label="Đóng công cụ dữ liệu và sao lưu"
                 autoFocus
                 onClick={() => setOpen(false)}
                 type="button"

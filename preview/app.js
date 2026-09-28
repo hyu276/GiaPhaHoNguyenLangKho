@@ -1937,7 +1937,7 @@ function updateDuplicateExecuteState() {
   const confirmation = document.querySelector("#duplicateConfirmation").value;
   const blocked = duplicatePreview && duplicatePreview.blockers.length > 0;
   document.querySelector("#executeDuplicateMerge").disabled =
-    !duplicatePreview || blocked || confirmation !== "GOP";
+    !duplicatePreview || blocked || confirmation !== "GỘP";
 }
 
 function renderDuplicatePair() {
@@ -2012,7 +2012,7 @@ function applyDuplicateRelationshipChange(change) {
 function executeDuplicateMerge() {
   if (!duplicatePair || !duplicatePreview) return;
   if (duplicatePreview.blockers.length) return;
-  if (document.querySelector("#duplicateConfirmation").value !== "GOP") return;
+  if (document.querySelector("#duplicateConfirmation").value !== "GỘP") return;
   if (!window.confirm("Gộp hai hồ sơ này trong bản demo?")) return;
 
   checkpoint();
@@ -2525,7 +2525,7 @@ function bulkImportSummary(backup) {
   const relationships = importArray(backup, "relationships") || [];
   const citations = importArray(backup, "genealogy_citations") || [];
   return (
-    "Preview hợp lệ: " +
+    "Tệp hợp lệ: " +
     people.length +
     " người · " +
     relationships.length +
@@ -2618,7 +2618,7 @@ function renderBulkImpact() {
 
   const confirmation = document.querySelector("#bulkConfirmation").value;
   document.querySelector("#bulkExecuteVisibility").disabled =
-    confirmation !== "XACNHAN" || impact.changingCount === 0;
+    confirmation !== "XÁC NHẬN" || impact.changingCount === 0;
 }
 
 function selectAllBulkPeople() {
@@ -2642,7 +2642,7 @@ function openBulkDialog() {
 
 function executeBulkVisibility() {
   const impact = calculateBulkImpact();
-  if (document.querySelector("#bulkConfirmation").value !== "XACNHAN") return;
+  if (document.querySelector("#bulkConfirmation").value !== "XÁC NHẬN") return;
   if (!impact.changingCount) return;
 
   checkpoint();

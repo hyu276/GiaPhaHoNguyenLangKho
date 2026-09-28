@@ -104,7 +104,7 @@ export function AuditHistoryPanel({
 
   return (
     <div className="relative">
-      <Button onClick={() => setOpen((current) => !current)} variant="outline">
+      <Button className="w-full justify-start" onClick={() => setOpen((current) => !current)} variant="outline">
         Lịch sử thay đổi
       </Button>
 

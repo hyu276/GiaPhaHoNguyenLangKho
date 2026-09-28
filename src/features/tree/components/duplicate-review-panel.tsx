@@ -378,17 +378,17 @@ function ReviewWorkspace({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button onClick={onCloseReview} size="sm" type="button" variant="ghost">
-          ← Candidate list
+          ← Danh sách nghi trùng
         </Button>
         <Button onClick={onSwap} size="sm" type="button" variant="outline">
-          Đổi Target ↔ Source
+          Đổi hồ sơ giữ lại ↔ hồ sơ sẽ gộp
         </Button>
       </div>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <ProfileCard label="TARGET · giữ lại" person={target} tone="target" />
+        <ProfileCard label="HỒ SƠ GIỮ LẠI" person={target} tone="target" />
         <ProfileCard
-          label="SOURCE · sẽ lưu trữ"
+          label="HỒ SƠ SẼ GỘP"
           person={source}
           tone="source"
         />
@@ -447,7 +447,7 @@ function LoadingStatus({
   if (loading) {
     return (
       <p className="mt-5 text-sm text-muted-foreground">
-        Đang quét duplicate candidates…
+        Đang tìm hồ sơ có dấu hiệu trùng…
       </p>
     );
   }
@@ -455,7 +455,7 @@ function LoadingStatus({
   if (previewLoading) {
     return (
       <p className="mt-5 text-sm text-muted-foreground">
-        Đang tính migration preview…
+        Đang tính ảnh hưởng trước khi gộp…
       </p>
     );
   }
@@ -695,7 +695,7 @@ export function DuplicateReviewPanel() {
   if (!open) {
     return (
       <Button onClick={() => void openPanel()} type="button" variant="outline">
-        Review duplicates
+        Kiểm tra hồ sơ trùng
       </Button>
     );
   }

@@ -541,9 +541,9 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
               Kiểm tra kỹ trước khi gộp
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Detector chỉ gợi ý khi tên chuẩn hóa trùng và có tín hiệu ngày
-              mạnh. Không có auto-merge. Target canonical không bị source ghi
-              đè.
+              Hệ thống chỉ gợi ý khi tên và thông tin thời gian có dấu hiệu trùng.
+              Không có thao tác gộp tự động. Hồ sơ giữ lại không bị hồ sơ còn lại
+              ghi đè.
             </p>
           </div>
           <div className="flex gap-2">

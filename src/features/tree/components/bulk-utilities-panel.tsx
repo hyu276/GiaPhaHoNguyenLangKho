@@ -47,8 +47,7 @@ function ImportPreviewSummary({
   if (!preview) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        Chọn JSON backup để kiểm tra cấu trúc và tham chiếu. Step 10 chỉ
-        preview; không có thao tác import ghi dữ liệu.
+        Chọn tệp sao lưu JSON để kiểm tra cấu trúc và liên kết. Thao tác này chỉ xem trước và không ghi dữ liệu.
       </p>
     );
   }
@@ -61,8 +60,8 @@ function ImportPreviewSummary({
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           {preview.counts.people} người · {preview.counts.relationships} quan hệ
-          · {preview.counts.layouts} layout · {preview.counts.sources} nguồn ·{" "}
-          {preview.counts.citations} citation
+          · {preview.counts.layouts} bố cục · {preview.counts.sources} nguồn ·{" "}
+          {preview.counts.dẫn chứngs} dẫn chứng
         </p>
       </div>
 
@@ -349,7 +348,7 @@ export function BulkUtilitiesPanel() {
                     type="button"
                     variant="outline"
                   >
-                    Tải backup JSON
+                    Tải bản sao lưu JSON
                   </Button>
                 </div>
               </section>
@@ -365,7 +364,7 @@ export function BulkUtilitiesPanel() {
                   </p>
                 </div>
                 <label className="text-xs font-medium text-muted-foreground">
-                  Backup JSON
+                  Tệp sao lưu JSON
                   <input
                     accept=".json,application/json"
                     className="mt-2 block w-full text-sm"

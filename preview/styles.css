@@ -1677,3 +1677,75 @@ dialog::backdrop {
     display: none;
   }
 }
+
+
+/* Step 12A usability corrections: controls and details never cover the tree on desktop. */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.canvas-panel {
+  position: relative;
+  inset: auto;
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.canvas-toolbar.product-toolbar {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  width: 100%;
+  flex: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.canvas {
+  min-height: 0;
+  flex: 1;
+}
+
+.inspector {
+  position: relative;
+  inset: auto;
+  width: 360px;
+  height: 100%;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.inspector-panel {
+  height: 100%;
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .workspace {
+    display: block;
+  }
+
+  .canvas-panel {
+    height: 100%;
+  }
+
+  .inspector {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    width: 100%;
+    height: 100%;
+  }
+
+  .inspector-panel {
+    border: 0;
+  }
+}

@@ -72,101 +72,82 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
         : null;
 
   return (
-    <main className="min-h-svh bg-background">
-      <div className="mx-auto grid min-h-svh max-w-5xl lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="hidden border-r border-border px-10 py-12 lg:flex lg:flex-col lg:justify-between">
-          <div>
-            <p className="text-sm font-medium text-primary">
-              Gia phả họ Nguyễn Làng Khô
-            </p>
-            <h1 className="font-display mt-6 max-w-md text-5xl leading-tight tracking-tight text-card-foreground">
-              Kho lưu giữ thông tin và ký ức của gia đình.
-            </h1>
-            <p className="mt-5 max-w-md text-sm leading-7 text-muted-foreground">
-              Hồ sơ thành viên, quan hệ gia đình và nguồn tư liệu được quản lý
-              trong một không gian riêng tư, có phân quyền rõ ràng.
-            </p>
-          </div>
+    <main className="min-h-svh bg-background px-5 py-10 sm:px-8">
+      <div className="mx-auto flex min-h-[calc(100svh-5rem)] max-w-md flex-col justify-center">
+        <header className="mb-10 border-b border-border pb-5">
+          <p className="text-sm font-medium text-primary">
+            Gia phả họ Nguyễn Làng Khô
+          </p>
+          <h1 className="font-display mt-2 text-3xl tracking-tight text-card-foreground sm:text-4xl">
+            Khu vực gia đình
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Chỉ dành cho thành viên đã được cấp quyền truy cập.
+          </p>
+        </header>
 
-          <div className="border-t border-border pt-5 text-xs leading-6 text-muted-foreground">
-            <p>Quản trị viên có thể cập nhật dữ liệu.</p>
-            <p>Người xem chỉ có quyền đọc.</p>
-          </div>
-        </section>
+        <section aria-labelledby="login-heading">
+          <h2
+            className="text-lg font-semibold text-card-foreground"
+            id="login-heading"
+          >
+            Đăng nhập
+          </h2>
 
-        <section className="flex items-center justify-center px-5 py-12 sm:px-10 lg:px-14">
-          <div className="w-full max-w-sm">
-            <p className="text-sm font-medium text-primary lg:hidden">
-              Gia phả họ Nguyễn Làng Khô
+          {message ? (
+            <p
+              role="alert"
+              className="mt-4 border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            >
+              {message}
             </p>
-            <h2 className="font-display mt-2 text-4xl tracking-tight text-card-foreground">
-              Đăng nhập
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Dùng tài khoản đã được cấp quyền truy cập.
-            </p>
+          ) : null}
 
-            {message ? (
-              <p
-                role="alert"
-                className="mt-5 border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          <form action={signIn} className="mt-6 space-y-4">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-foreground"
               >
-                {message}
-              </p>
-            ) : null}
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+              />
+            </div>
 
-            <form action={signIn} className="mt-7 space-y-4">
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="email"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="tenban@example.com"
-                  className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="password"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Mật khẩu
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
-                />
-              </div>
-
-              <Button
-                className="h-11 w-full rounded-md"
-                size="lg"
-                type="submit"
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-foreground"
               >
-                Vào gia phả
-              </Button>
-            </form>
+                Mật khẩu
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+              />
+            </div>
 
-            <p className="mt-5 text-xs leading-5 text-muted-foreground">
-              Đây là khu vực nội bộ. Không chia sẻ tài khoản cho người chưa được
-              cấp quyền.
-            </p>
-          </div>
+            <Button className="h-11 w-full rounded-md" size="lg" type="submit">
+              Vào gia phả
+            </Button>
+          </form>
+
+          <p className="mt-5 text-xs leading-5 text-muted-foreground">
+            Nếu không đăng nhập được, hãy liên hệ người quản trị gia phả thay vì
+            tạo tài khoản mới.
+          </p>
         </section>
       </div>
     </main>
-  );
-}
+  );}

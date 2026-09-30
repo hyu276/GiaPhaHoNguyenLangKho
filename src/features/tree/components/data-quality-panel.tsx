@@ -356,8 +356,8 @@ export function DataQualityPanel() {
                   Kiểm tra chất lượng dữ liệu
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Những mục dưới đây chỉ là tín hiệu cần xem lại. Hệ thống
-                  không tự sửa hoặc suy diễn dữ liệu gia phả.
+                  Những mục dưới đây chỉ là tín hiệu cần xem lại. Hệ thống không
+                  tự sửa hoặc suy diễn dữ liệu gia phả.
                 </p>
               </div>
 

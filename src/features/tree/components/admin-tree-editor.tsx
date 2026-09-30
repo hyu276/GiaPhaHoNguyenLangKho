@@ -1519,83 +1519,84 @@ export function AdminTreeEditor({
           aria-label="Sơ đồ gia phả tương tác"
           className="relative min-h-[70svh] overflow-hidden bg-card"
         >
-        <ReactFlow<PersonNode, RelationshipEdge>
-          nodes={nodes}
-          onInit={(instance) => {
-            flowInstance.current = instance;
-          }}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          onEdgeClick={(_, edge) => handleEdgeSelect(edge.id)}
-          onNodeClick={(_, node) => handleNodeSelect(node.id)}
-          onPaneClick={() => {
-            if (formMode) return;
-            setSelectedPersonId(null);
-            setSelectedRelationshipId(null);
-          }}
-          onNodeDragStop={(_, node) => {
-            handleNodeSelect(node.id);
-            persistNodePosition(node);
-          }}
-          nodesDraggable={!readOnly}
-          nodesConnectable={false}
-          nodesFocusable
-          edgesFocusable
-          deleteKeyCode={null}
-          fitView
-          fitViewOptions={{ padding: 0.25 }}
-          minZoom={0.2}
-          maxZoom={2}
-        >
-          <Background gap={32} size={1} />
-          <Controls showInteractive={false} />
-          <MiniMap pannable zoomable />
-        </ReactFlow>
-
+          <ReactFlow<PersonNode, RelationshipEdge>
+            nodes={nodes}
+            onInit={(instance) => {
+              flowInstance.current = instance;
+            }}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgeClick={(_, edge) => handleEdgeSelect(edge.id)}
+            onNodeClick={(_, node) => handleNodeSelect(node.id)}
+            onPaneClick={() => {
+              if (formMode) return;
+              setSelectedPersonId(null);
+              setSelectedRelationshipId(null);
+            }}
+            onNodeDragStop={(_, node) => {
+              handleNodeSelect(node.id);
+              persistNodePosition(node);
+            }}
+            nodesDraggable={!readOnly}
+            nodesConnectable={false}
+            nodesFocusable
+            edgesFocusable
+            deleteKeyCode={null}
+            fitView
+            fitViewOptions={{ padding: 0.25 }}
+            minZoom={0.2}
+            maxZoom={2}
+          >
+            <Background gap={32} size={1} />
+            <Controls showInteractive={false} />
+            <MiniMap pannable zoomable />
+          </ReactFlow>
         </section>
 
         <EditorSidebar
-        archivePerson={archivePerson}
-        archivedCount={archivedCount}
-        collapsedBranchIds={collapsedBranchIds}
-        createParentChildRelationship={createParentChildRelationship}
-        createPartnership={createPartnership}
-        createPerson={createPerson}
-        formMode={formMode}
-        layoutCanRedo={layoutFuture.length > 0 && saveState.status !== "saving"}
-        layoutCanUndo={
-          layoutHistory.length > 0 && saveState.status !== "saving"
-        }
-        lockedPersonIds={lockedPersonIds}
-        onAutoLayoutBranch={autoLayoutBranch}
-        onCancelForm={() => setFormMode(null)}
-        onClose={() => {
-          setSelectedPersonId(null);
-          setSelectedRelationshipId(null);
-          setFormMode(null);
-        }}
-        onFocusPerson={focusPerson}
-        onJumpToPerson={revealAndFocusPerson}
-        onPersonStateChanged={handlePersonStateChanged}
-        onRedoLayout={() => void redoLayout()}
-        onRelationshipChanged={handleRelationshipChanged}
-        onResetBranchLayout={resetBranchLayout}
-        onResetPersonPosition={resetPersonPosition}
-        onSaved={handleSaved}
-        onStartCreate={() => setFormMode("create")}
-        onStartEdit={() => setFormMode("edit")}
-        onToggleBranch={toggleBranch}
-        onToggleLayoutLock={toggleLayoutLock}
-        onUndoLayout={() => void undoLayout()}
-        people={people}
-        readOnly={readOnly}
-        relationships={relationships}
-        removeRelationship={removeRelationship}
-        restorePerson={restorePerson}
-        selectedPerson={selectedPerson}
-        selectedRelationship={selectedRelationship}
-        selectedRelationshipCount={selectedRelationshipCount}
+          archivePerson={archivePerson}
+          archivedCount={archivedCount}
+          collapsedBranchIds={collapsedBranchIds}
+          createParentChildRelationship={createParentChildRelationship}
+          createPartnership={createPartnership}
+          createPerson={createPerson}
+          formMode={formMode}
+          layoutCanRedo={
+            layoutFuture.length > 0 && saveState.status !== "saving"
+          }
+          layoutCanUndo={
+            layoutHistory.length > 0 && saveState.status !== "saving"
+          }
+          lockedPersonIds={lockedPersonIds}
+          onAutoLayoutBranch={autoLayoutBranch}
+          onCancelForm={() => setFormMode(null)}
+          onClose={() => {
+            setSelectedPersonId(null);
+            setSelectedRelationshipId(null);
+            setFormMode(null);
+          }}
+          onFocusPerson={focusPerson}
+          onJumpToPerson={revealAndFocusPerson}
+          onPersonStateChanged={handlePersonStateChanged}
+          onRedoLayout={() => void redoLayout()}
+          onRelationshipChanged={handleRelationshipChanged}
+          onResetBranchLayout={resetBranchLayout}
+          onResetPersonPosition={resetPersonPosition}
+          onSaved={handleSaved}
+          onStartCreate={() => setFormMode("create")}
+          onStartEdit={() => setFormMode("edit")}
+          onToggleBranch={toggleBranch}
+          onToggleLayoutLock={toggleLayoutLock}
+          onUndoLayout={() => void undoLayout()}
+          people={people}
+          readOnly={readOnly}
+          relationships={relationships}
+          removeRelationship={removeRelationship}
+          restorePerson={restorePerson}
+          selectedPerson={selectedPerson}
+          selectedRelationship={selectedRelationship}
+          selectedRelationshipCount={selectedRelationshipCount}
           updatePerson={updatePerson}
         />
       </div>

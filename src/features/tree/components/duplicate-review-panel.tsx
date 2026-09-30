@@ -532,11 +532,11 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
       <div className="mx-auto max-w-6xl rounded-md border border-border bg-card p-5 shadow-lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <p className="text-xs font-medium text-muted-foreground">
               Kiểm tra hồ sơ trùng
             </p>
             <h2
-              className="font-display mt-1 text-3xl text-card-foreground"
+              className="font-display mt-1 text-2xl text-card-foreground"
               id="duplicate-review-title"
             >
               Kiểm tra kỹ trước khi gộp

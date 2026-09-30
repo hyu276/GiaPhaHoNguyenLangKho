@@ -233,7 +233,7 @@ function SourceSummary({
   const secondary = getSourceSecondaryText(source);
 
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-3">
+    <div className="rounded-md border border-border bg-muted/30 p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-card-foreground">
@@ -332,7 +332,7 @@ function CitationCard({
   const sourceTitle = source ? source.title : "Nguồn không khả dụng";
 
   return (
-    <article className="rounded-2xl border border-border bg-background p-3">
+    <article className="rounded-lg border border-border bg-background p-3">
       <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
         <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
           {CLAIM_KIND_LABELS[citation.claimKind]}
@@ -348,7 +348,7 @@ function CitationCard({
 
       <CitationDate citation={citation} />
 
-      <div className="mt-3 rounded-xl bg-muted/35 p-3 text-xs text-muted-foreground">
+      <div className="mt-3 rounded-md bg-muted/35 p-3 text-xs text-muted-foreground">
         <p className="font-semibold text-card-foreground">{sourceTitle}</p>
         <CitationLocator citationLocator={citation.citationLocator} />
         <CitationNote note={citation.note} />
@@ -386,7 +386,7 @@ function SourceForm({
 
   return (
     <form
-      className="mt-3 rounded-2xl border border-border bg-muted/20 p-3"
+      className="mt-3 rounded-lg border border-border bg-muted/20 p-3"
       key={source ? source.id : "new-source"}
       onSubmit={onSubmit}
     >
@@ -398,7 +398,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Tên nguồn
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.title}
           maxLength={200}
           name="title"
@@ -409,7 +409,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Loại nguồn
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.sourceType}
           name="sourceType"
         >
@@ -424,7 +424,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Nơi lưu trữ / cơ quan
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.repositoryName}
           maxLength={200}
           name="repositoryName"
@@ -434,7 +434,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Mã hồ sơ / ký hiệu
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.referenceCode}
           maxLength={200}
           name="referenceCode"
@@ -444,7 +444,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         URL nguồn
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.sourceUrl}
           maxLength={2048}
           name="sourceUrl"
@@ -488,7 +488,7 @@ function CitationForm({
 
   return (
     <form
-      className="mt-3 rounded-2xl border border-border bg-muted/20 p-3"
+      className="mt-3 rounded-lg border border-border bg-muted/20 p-3"
       key={citation ? citation.id : "new-citation"}
       onSubmit={onSubmit}
     >
@@ -503,7 +503,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Nguồn tư liệu
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.sourceId}
           name="sourceId"
           required
@@ -519,7 +519,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Loại thông tin
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.claimKind}
           name="claimKind"
         >
@@ -534,7 +534,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Nội dung dẫn chứng
         <textarea
-          className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.claimText}
           maxLength={2000}
           name="claimText"
@@ -545,7 +545,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Vị trí trích dẫn
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.citationLocator}
           maxLength={240}
           name="citationLocator"
@@ -556,7 +556,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Mức độ chắc chắn
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.certainty}
           name="certainty"
         >
@@ -572,7 +572,7 @@ function CitationForm({
         <label className="text-xs font-medium text-muted-foreground">
           Dạng ngày
           <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
             defaultValue={defaults.dateQualifier}
             name="dateQualifier"
           >
@@ -587,7 +587,7 @@ function CitationForm({
         <label className="text-xs font-medium text-muted-foreground">
           Biểu thức ngày
           <input
-            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
             defaultValue={defaults.dateText}
             maxLength={80}
             name="dateText"
@@ -603,7 +603,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Ghi chú nghiên cứu
         <textarea
-          className="mt-1 min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.note}
           maxLength={2000}
           name="note"

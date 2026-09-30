@@ -1678,7 +1678,6 @@ dialog::backdrop {
   }
 }
 
-
 /* Step 12A usability corrections: controls and details never cover the tree on desktop. */
 .workspace {
   display: grid;
@@ -1749,7 +1748,6 @@ dialog::backdrop {
     border: 0;
   }
 }
-
 
 /* Preview chrome is intentionally minimal; demo context lives in the header. */
 .workspace {

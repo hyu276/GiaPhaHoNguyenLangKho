@@ -323,7 +323,7 @@ function AdminToolsMenu({
   if (readOnly) return null;
 
   return (
-    <details className="group relative">
+    <details className="group relative" data-admin-tools>
       <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25">
         Quản lý dữ liệu
       </summary>

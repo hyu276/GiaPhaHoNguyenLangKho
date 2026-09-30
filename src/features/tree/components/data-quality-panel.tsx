@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   loadDataQualityReport,
@@ -289,6 +289,17 @@ export function DataQualityPanel() {
   const [severity, setSeverity] = useState<"all" | DataQualitySeverity>("all");
   const [kind, setKind] = useState<"all" | DataQualityIssueKind>("all");
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   async function refresh() {
     setLoading(true);
     setError(null);
@@ -317,23 +328,25 @@ export function DataQualityPanel() {
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
-          role="dialog"
-          aria-modal="true"
           aria-label="Kiểm tra chất lượng dữ liệu"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+          role="dialog"
         >
           <section className="w-full max-w-4xl rounded-md border border-border bg-card p-5 shadow-lg sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  Rà soát trước khi công bố
+                  Kiểm tra dữ liệu
                 </p>
                 <h2 className="font-display mt-1 text-3xl text-card-foreground">
                   Kiểm tra chất lượng dữ liệu
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Tập trung các tín hiệu cần kiểm tra trước khi xuất bản, không
-                  tự sửa hoặc suy diễn dữ liệu gia phả.
+                  Những mục dưới đây chỉ là tín hiệu cần xem lại. Hệ thống không tự sửa hoặc suy diễn dữ liệu gia phả.
                 </p>
               </div>
 
@@ -349,7 +362,12 @@ export function DataQualityPanel() {
                 <Button
                   aria-label="Đóng kiểm tra dữ liệu"
                   autoFocus
-                  onClick={() => setOpen(false)}
+                  onClick={(event) => {
+                    setOpen(false);
+                    event.currentTarget
+                      .closest("details")
+                      ?.removeAttribute("open");
+                  }}
                   type="button"
                   variant="ghost"
                 >

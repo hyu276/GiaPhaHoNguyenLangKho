@@ -376,6 +376,7 @@ type TreeFilterPanelProps = {
   onVisibilityFilterChange: (value: VisibilityFilter) => void;
   query: string;
   readOnly: boolean;
+  statusMessage: string;
   visibilityFilter: VisibilityFilter;
 };
 
@@ -391,6 +392,7 @@ function TreeFilterPanel({
   onVisibilityFilterChange,
   query,
   readOnly,
+  statusMessage,
   visibilityFilter,
 }: TreeFilterPanelProps) {
   const hasFilters =
@@ -471,12 +473,18 @@ function TreeFilterPanel({
         </div>
       </details>
 
-      <span
-        aria-live="polite"
-        className="hidden text-xs text-muted-foreground sm:inline"
-      >
+      <span className="hidden text-xs text-muted-foreground sm:inline">
         {matchCount} thành viên
       </span>
+
+      {statusMessage ? (
+        <span
+          aria-live="polite"
+          className="hidden text-xs text-muted-foreground md:inline"
+        >
+          {statusMessage}
+        </span>
+      ) : null}
 
       {readOnly ? null : (
         <Button className="ml-auto" onClick={onStartCreate} type="button">
@@ -1491,17 +1499,9 @@ export function AdminTreeEditor({
           onVisibilityFilterChange={setVisibilityFilter}
           query={query}
           readOnly={readOnly}
+          statusMessage={statusMessage}
           visibilityFilter={visibilityFilter}
         />
-
-        {statusMessage ? (
-          <div
-            aria-live="polite"
-            className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[min(28rem,calc(100%-1.5rem))] border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground shadow-sm"
-          >
-            {statusMessage}
-          </div>
-        ) : null}
       </section>
 
       <EditorSidebar

@@ -242,7 +242,7 @@ export function BulkUtilitiesPanel() {
     }
 
     downloadBackup(result.backup);
-    setMessage("Backup JSON đã được tạo từ snapshot hiện tại.");
+    setMessage("Đã tạo tệp sao lưu JSON từ dữ liệu hiện tại.");
   }
 
   async function previewImportFile(file: File | null) {
@@ -280,19 +280,19 @@ export function BulkUtilitiesPanel() {
     setMessage(
       "Đã cập nhật " +
         result.revisions.length +
-        " hồ sơ. Mỗi update được audit riêng.",
+        " hồ sơ. Mỗi thay đổi đều được ghi vào lịch sử.",
     );
   }
 
   return (
     <>
       <Button onClick={() => void openPanel()} type="button" variant="outline">
-        Bulk & backup
+        Dữ liệu & sao lưu
       </Button>
 
       {open ? (
         <div
-          aria-label="Bulk utilities and backup"
+          aria-label="Dữ liệu và sao lưu"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
           role="dialog"

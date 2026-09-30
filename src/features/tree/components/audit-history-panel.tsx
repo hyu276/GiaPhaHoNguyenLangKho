@@ -8,7 +8,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { type UndoAuditResult } from "@/app/admin/tree/audit-actions";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,12 @@ type AuditHistoryPanelProps = {
   loadError: string | null;
   undoMutation: (input: { auditId: string }) => Promise<UndoAuditResult>;
 };
+
+function closeAdminToolsDisclosure() {
+  document
+    .querySelector<HTMLDetailsElement>("[data-admin-tools]")
+    ?.removeAttribute("open");
+}
 
 const ENTITY_LABELS: Record<string, string> = {
   people: "Thành viên",
@@ -167,6 +173,19 @@ export function AuditHistoryPanel({
   const [pendingAuditId, setPendingAuditId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      closeAdminToolsDisclosure();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   async function handleUndo(audit: MutationAuditRecord) {
     const confirmed = window.confirm(
       "Hoàn tác thay đổi này? Hệ thống sẽ kiểm tra phiên bản dữ liệu và các ràng buộc an toàn trước khi ghi.",
@@ -188,67 +207,80 @@ export function AuditHistoryPanel({
   }
 
   return (
-    <div className="relative">
+    <>
       <Button
         className="w-full justify-start"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => setOpen(true)}
         variant="outline"
       >
         Lịch sử thay đổi
       </Button>
 
       {open ? (
-        <section className="absolute right-0 top-12 z-50 w-[min(92vw,42rem)] rounded-lg border border-border bg-card p-4 shadow-lg">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                Lịch sử hệ thống
-              </p>
-              <h2 className="font-display mt-1 text-2xl text-card-foreground">
-                Thay đổi gần đây
-              </h2>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Chỉ những thay đổi có thể khôi phục an toàn mới có nút hoàn tác.
-                Việc gộp hồ sơ không thể tự động hoàn tác.
-              </p>
+        <div
+          aria-label="Lịch sử thay đổi"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
+          onMouseDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setOpen(false);
+            closeAdminToolsDisclosure();
+          }}
+          role="dialog"
+        >
+          <section className="w-full max-w-3xl rounded-md border border-border bg-card p-5 shadow-lg">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl text-card-foreground">
+                  Thay đổi gần đây
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Chỉ những thay đổi có thể khôi phục an toàn mới có nút hoàn
+                  tác. Việc gộp hồ sơ không thể tự động hoàn tác.
+                </p>
+              </div>
+              <Button
+                autoFocus
+                onClick={() => {
+                  setOpen(false);
+                  closeAdminToolsDisclosure();
+                }}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Đóng
+              </Button>
             </div>
-            <Button
-              onClick={() => setOpen(false)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              Đóng
-            </Button>
-          </div>
 
-          {loadError ? (
-            <p className="mt-3 text-sm text-destructive">{loadError}</p>
-          ) : null}
-          {message ? (
-            <p aria-live="polite" className="mt-3 text-sm text-primary">
-              {message}
-            </p>
-          ) : null}
-
-          <div className="mt-4 max-h-[65vh] space-y-2 overflow-y-auto pr-1">
-            {audits.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Chưa có thay đổi nào được ghi nhận.
+            {loadError ? (
+              <p className="mt-3 text-sm text-destructive">{loadError}</p>
+            ) : null}
+            {message ? (
+              <p aria-live="polite" className="mt-3 text-sm text-primary">
+                {message}
               </p>
-            ) : (
-              audits.map((audit) => (
-                <AuditEntry
-                  audit={audit}
-                  key={audit.id}
-                  onUndo={(entry) => void handleUndo(entry)}
-                  pendingAuditId={pendingAuditId}
-                />
-              ))
-            )}
-          </div>
-        </section>
+            ) : null}
+
+            <div className="mt-4 max-h-[65vh] space-y-2 overflow-y-auto pr-1">
+              {audits.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Chưa có thay đổi nào được ghi nhận.
+                </p>
+              ) : (
+                audits.map((audit) => (
+                  <AuditEntry
+                    audit={audit}
+                    key={audit.id}
+                    onUndo={(entry) => void handleUndo(entry)}
+                    pendingAuditId={pendingAuditId}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+        </div>
       ) : null}
-    </div>
+    </>
   );
 }

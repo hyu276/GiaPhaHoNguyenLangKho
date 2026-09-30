@@ -560,15 +560,11 @@ function getNodeClassName(person) {
 }
 
 function createVisibilityBadge(person) {
+  if (person.visibility !== "private") return null;
+
   const badge = document.createElement("span");
-  badge.className = [
-    "node-badge",
-    person.visibility === "private" ? "private" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  badge.textContent =
-    person.visibility === "private" ? "Riêng tư" : "Công khai";
+  badge.className = "node-badge private";
+  badge.textContent = "Riêng tư";
   return badge;
 }
 
@@ -606,7 +602,8 @@ function createPersonNode(person) {
 
   const badges = document.createElement("span");
   badges.className = "node-badges";
-  badges.appendChild(createVisibilityBadge(person));
+  const visibilityBadge = createVisibilityBadge(person);
+  if (visibilityBadge) badges.appendChild(visibilityBadge);
   appendArchivedBadge(badges, person);
   appendLockedBadge(badges, person);
 
@@ -642,8 +639,9 @@ function renderInspector() {
   if (!person) return;
 
   const pill = document.querySelector("#privacyPill");
-  pill.textContent = person.visibility === "private" ? "Riêng tư" : "Công khai";
-  pill.classList.toggle("private", person.visibility === "private");
+  pill.hidden = person.visibility !== "private";
+  pill.textContent = "Riêng tư";
+  pill.classList.add("private");
   document.querySelector("#personName").textContent = person.name;
   document.querySelector("#personYears").textContent = formatYears(person);
   document.querySelector("#personDescription").textContent =

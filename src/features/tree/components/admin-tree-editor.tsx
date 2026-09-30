@@ -949,16 +949,9 @@ function EditorDrawer({
   title: string;
 }) {
   return (
-    <aside className="absolute inset-y-3 right-3 z-30 w-[min(26rem,calc(100%-1.5rem))] overflow-y-auto rounded-3xl border border-border bg-card/98 shadow-2xl backdrop-blur sm:inset-y-4 sm:right-4">
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card/95 px-5 py-4 backdrop-blur">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
-            Gia phả
-          </p>
-          <h2 className="text-sm font-semibold text-card-foreground">
-            {title}
-          </h2>
-        </div>
+    <aside className="absolute inset-y-0 right-0 z-30 w-[min(25rem,100%)] overflow-y-auto border-l border-border bg-card shadow-lg">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+        <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
         <Button
           aria-label="Đóng bảng thông tin"
           onClick={onClose}
@@ -969,7 +962,7 @@ function EditorDrawer({
           Đóng
         </Button>
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-4">{children}</div>
     </aside>
   );
 }
@@ -1157,6 +1150,18 @@ export function AdminTreeEditor({
       people.map((person) => [person.id, person.layoutRevision]),
     );
   }, [people]);
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setSelectedPersonId(null);
+      setSelectedRelationshipId(null);
+      setFormMode(null);
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
 
   useEffect(() => {
     setNodes(
@@ -1432,10 +1437,10 @@ export function AdminTreeEditor({
   }
 
   return (
-    <div className="relative min-h-[72svh] flex-1">
+    <div className="relative min-h-[70svh] flex-1">
       <section
         aria-label="Sơ đồ gia phả tương tác"
-        className="absolute inset-0 overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
+        className="absolute inset-0 overflow-hidden rounded-xl border border-border bg-card"
       >
         <ReactFlow<PersonNode, RelationshipEdge>
           nodes={nodes}
@@ -1447,6 +1452,11 @@ export function AdminTreeEditor({
           onNodesChange={onNodesChange}
           onEdgeClick={(_, edge) => handleEdgeSelect(edge.id)}
           onNodeClick={(_, node) => handleNodeSelect(node.id)}
+          onPaneClick={() => {
+            if (formMode) return;
+            setSelectedPersonId(null);
+            setSelectedRelationshipId(null);
+          }}
           onNodeDragStop={(_, node) => {
             handleNodeSelect(node.id);
             persistNodePosition(node);
@@ -1461,7 +1471,7 @@ export function AdminTreeEditor({
           minZoom={0.2}
           maxZoom={2}
         >
-          <Background gap={28} size={1} />
+          <Background gap={32} size={1} />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable />
         </ReactFlow>
@@ -1487,7 +1497,7 @@ export function AdminTreeEditor({
 
         <div
           aria-live="polite"
-          className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-[min(28rem,calc(100%-2rem))] rounded-full border border-border bg-background/90 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur"
+          className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[min(28rem,calc(100%-1.5rem))] border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground shadow-sm"
         >
           {statusMessage}
         </div>

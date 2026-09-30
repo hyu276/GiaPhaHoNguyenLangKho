@@ -380,6 +380,19 @@ type TreeFilterPanelProps = {
   visibilityFilter: VisibilityFilter;
 };
 
+function ToolbarStatus({ message }: { message: string }) {
+  if (!message) return null;
+
+  return (
+    <span
+      aria-live="polite"
+      className="hidden text-xs text-muted-foreground md:inline"
+    >
+      {message}
+    </span>
+  );
+}
+
 function TreeFilterPanel({
   archiveFilter,
   lifeFilter,
@@ -477,14 +490,7 @@ function TreeFilterPanel({
         {matchCount} thành viên
       </span>
 
-      {statusMessage ? (
-        <span
-          aria-live="polite"
-          className="hidden text-xs text-muted-foreground md:inline"
-        >
-          {statusMessage}
-        </span>
-      ) : null}
+      <ToolbarStatus message={statusMessage} />
 
       {readOnly ? null : (
         <Button className="ml-auto" onClick={onStartCreate} type="button">

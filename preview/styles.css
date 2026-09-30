@@ -1432,7 +1432,9 @@ body {
 
 .eyebrow {
   font-size: 10px;
-  letter-spacing: 0.08em;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: none;
 }
 
 .notice {
@@ -1571,6 +1573,10 @@ body {
   backdrop-filter: none;
 }
 
+.drawer-section {
+  border-radius: 6px;
+}
+
 #inspectorEmpty,
 #inspectorContent {
   padding: 15px;
@@ -1601,6 +1607,8 @@ body {
 }
 
 dialog,
+.duplicate-dialog,
+.quality-dialog,
 .duplicate-dialog-card,
 .quality-dialog-card {
   border-radius: 8px;

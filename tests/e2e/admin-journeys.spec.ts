@@ -152,3 +152,27 @@ test("synthetic duplicate quality and bulk release journey", async ({
   await page.getByRole("button", { name: "Kiểm tra tệp" }).click();
   await expect(page.locator("#bulkImportResult")).toContainText("Tệp hợp lệ");
 });
+
+
+test("product shell stays usable on mobile and dismisses transient UI", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openSyntheticAdmin(page);
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth + 1,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
+
+  await page.locator('[data-person-id="P003"]').click();
+  await expect(page.locator(".inspector")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".inspector")).toBeHidden();
+
+  await page.locator("details.admin-menu > summary").click();
+  await page.getByRole("button", { name: "Kiểm tra dữ liệu" }).click();
+  await expect(page.locator("details.admin-menu")).not.toHaveAttribute("open");
+  await expect(page.locator("#qualityDialog")).toBeVisible();
+  await page.locator("#qualityDialog button[aria-label='Đóng']").click();
+});

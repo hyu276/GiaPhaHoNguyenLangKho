@@ -1394,3 +1394,268 @@ dialog .eyebrow {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Step 12A refinement: restrained archival interface */
+:root {
+  --bg: #f4f1e9;
+  --surface: #fffdf8;
+  --surface-2: #efebe2;
+  --text: #26241f;
+  --muted: #6c6a63;
+  --border: #d7d0c3;
+  --primary: #315f46;
+  --primary-soft: #e5ebe5;
+  --shadow: 0 8px 24px rgba(38, 36, 31, 0.08);
+}
+
+body {
+  background: var(--bg);
+}
+
+.topbar {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.brand-block h1 {
+  font-size: clamp(24px, 2.5vw, 34px);
+  letter-spacing: -0.035em;
+}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.notice {
+  margin: 0;
+  padding: 7px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: #efede6;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.workspace {
+  height: calc(100vh - 105px);
+  min-height: 560px;
+  padding: 8px;
+}
+
+.canvas-panel {
+  inset: 8px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.canvas-toolbar.product-toolbar {
+  left: 10px;
+  top: 10px;
+  width: min(700px, calc(100% - 20px));
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 3px 12px rgba(38, 36, 31, 0.08);
+  backdrop-filter: none;
+}
+
+.search-field input,
+.field input,
+.field select,
+.field textarea {
+  border-radius: 6px;
+}
+
+.button,
+.icon-button {
+  border-radius: 6px;
+  font-weight: 650;
+}
+
+.button:hover,
+.icon-button:hover {
+  transform: none;
+  background: #f3f0e8;
+}
+
+.button.primary:hover {
+  background: #284f3a;
+}
+
+.admin-menu-panel,
+.account-menu-panel,
+.filter-popover {
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(38, 36, 31, 0.12);
+}
+
+.canvas {
+  background-color: #fbfaf6;
+  background-image:
+    linear-gradient(rgba(215, 208, 195, 0.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(215, 208, 195, 0.45) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.person-node {
+  width: 174px;
+  min-height: 74px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.person-node.selected,
+.person-node.focused {
+  transform: none;
+  box-shadow: 0 0 0 2px rgba(49, 95, 70, 0.18);
+}
+
+.node-badge,
+.privacy-pill,
+.status,
+.quality-badge,
+.provenance-badge {
+  border-radius: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.canvas-utility {
+  left: 10px;
+  bottom: 10px;
+  padding: 5px;
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 3px 12px rgba(38, 36, 31, 0.08);
+  backdrop-filter: none;
+}
+
+.canvas-status {
+  right: 10px;
+  bottom: 12px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  backdrop-filter: none;
+}
+
+.inspector {
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: min(380px, 100%);
+}
+
+.inspector-panel {
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  box-shadow: -10px 0 28px rgba(38, 36, 31, 0.1);
+}
+
+.drawer-heading {
+  padding: 13px 15px;
+  background: var(--surface);
+  backdrop-filter: none;
+}
+
+#inspectorEmpty,
+#inspectorContent {
+  padding: 15px;
+}
+
+.member-actions,
+.branch-actions,
+.button-grid {
+  gap: 6px;
+}
+
+.facts div {
+  padding: 7px 0;
+}
+
+.relation-item,
+.archive-impact,
+.provenance-target,
+.provenance-card,
+.duplicate-candidate,
+.duplicate-profile,
+.duplicate-blockers,
+.quality-summary div,
+.quality-issue,
+.bulk-card,
+.bulk-person-row {
+  border-radius: 6px;
+}
+
+dialog,
+.duplicate-dialog-card,
+.quality-dialog-card {
+  border-radius: 8px;
+}
+
+dialog {
+  box-shadow: 0 20px 56px rgba(38, 36, 31, 0.22);
+}
+
+dialog::backdrop {
+  background: rgba(38, 36, 31, 0.38);
+  backdrop-filter: none;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .topbar-meta {
+    display: none;
+  }
+
+  .workspace {
+    height: calc(100svh - 98px);
+    min-height: 520px;
+    padding: 0;
+  }
+
+  .canvas-panel {
+    inset: 0;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .canvas-toolbar.product-toolbar {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+    width: auto;
+  }
+
+  .search-field {
+    flex-basis: 100%;
+  }
+
+  .filter-status {
+    display: none;
+  }
+
+  .inspector {
+    inset: 0;
+    width: 100%;
+  }
+
+  .inspector-panel {
+    border: 0;
+  }
+
+  .canvas-status {
+    display: none;
+  }
+}

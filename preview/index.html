@@ -229,6 +229,36 @@
             </div>
 
             <div class="divider"></div>
+            <h3>Quan hệ gia đình</h3>
+            <div id="relationList" class="relation-list"></div>
+
+            <div class="divider"></div>
+            <section id="provenanceSection">
+              <p class="eyebrow">Nguồn tư liệu</p>
+              <p class="muted">
+                Lưu riêng nguồn và dẫn chứng để phân biệt dữ liệu đã xác nhận
+                với thông tin còn cần kiểm tra.
+              </p>
+              <p class="provenance-target">
+                Đang xem: <strong id="provenanceTarget"></strong>
+              </p>
+              <div class="branch-actions">
+                <button class="button secondary" id="addSource" type="button">
+                  Thêm nguồn
+                </button>
+                <button class="button secondary" id="addCitation" type="button">
+                  Thêm dẫn chứng
+                </button>
+              </div>
+
+              <h3>Nguồn đã dùng</h3>
+              <div class="provenance-list" id="provenanceSources"></div>
+
+              <h3>Dẫn chứng</h3>
+              <div class="provenance-list" id="provenanceCitations"></div>
+            </section>
+
+            <div class="divider"></div>
             <details class="drawer-section">
               <summary>Sắp xếp sơ đồ</summary>
               <p class="muted">
@@ -268,36 +298,6 @@
                 </button>
               </div>
             </details>
-
-            <div class="divider"></div>
-            <h3>Quan hệ gia đình</h3>
-            <div id="relationList" class="relation-list"></div>
-
-            <div class="divider"></div>
-            <section id="provenanceSection">
-              <p class="eyebrow">Nguồn tư liệu</p>
-              <p class="muted">
-                Lưu riêng nguồn và dẫn chứng để phân biệt dữ liệu đã xác nhận
-                với thông tin còn cần kiểm tra.
-              </p>
-              <p class="provenance-target">
-                Đang xem: <strong id="provenanceTarget"></strong>
-              </p>
-              <div class="branch-actions">
-                <button class="button secondary" id="addSource" type="button">
-                  Thêm nguồn
-                </button>
-                <button class="button secondary" id="addCitation" type="button">
-                  Thêm dẫn chứng
-                </button>
-              </div>
-
-              <h3>Nguồn đã dùng</h3>
-              <div class="provenance-list" id="provenanceSources"></div>
-
-              <h3>Dẫn chứng</h3>
-              <div class="provenance-list" id="provenanceCitations"></div>
-            </section>
           </div>
         </section>
       </aside>

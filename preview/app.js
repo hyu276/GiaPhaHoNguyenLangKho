@@ -270,7 +270,7 @@ function persistState(message = "Đã lưu demo trong trình duyệt") {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   saveStatus.textContent = message;
   window.setTimeout(() => {
-    saveStatus.textContent = "Bản demo · dữ liệu chỉ lưu trong trình duyệt";
+    saveStatus.textContent = "";
   }, 1500);
 }
 

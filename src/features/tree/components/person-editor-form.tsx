@@ -130,7 +130,7 @@ export function PersonEditorForm({
       <label className="block text-sm font-medium text-card-foreground">
         Họ tên
         <input
-          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           maxLength={120}
           onChange={(event) =>
             setDraft((current) => ({
@@ -146,7 +146,7 @@ export function PersonEditorForm({
       <label className="block text-sm font-medium text-card-foreground">
         Mô tả
         <textarea
-          className="mt-1.5 min-h-28 w-full resize-y rounded-xl border border-input bg-background px-3 py-2 text-sm leading-6 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="mt-1.5 min-h-28 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm leading-6 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           maxLength={2000}
           onChange={(event) =>
             setDraft((current) => ({
@@ -166,7 +166,7 @@ export function PersonEditorForm({
         <label className="block text-sm font-medium text-card-foreground">
           Năm sinh
           <input
-            className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             inputMode="numeric"
             max={2200}
             min={1}
@@ -184,7 +184,7 @@ export function PersonEditorForm({
         <label className="block text-sm font-medium text-card-foreground">
           Năm mất
           <input
-            className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             inputMode="numeric"
             max={2200}
             min={1}
@@ -203,7 +203,7 @@ export function PersonEditorForm({
       <label className="block text-sm font-medium text-card-foreground">
         Giới tính dùng cho quan hệ
         <select
-          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           onChange={(event) =>
             setDraft((current) => ({
               ...current,
@@ -221,7 +221,7 @@ export function PersonEditorForm({
       <label className="block text-sm font-medium text-card-foreground">
         Visibility
         <select
-          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           onChange={(event) =>
             setDraft((current) => ({
               ...current,
@@ -236,7 +236,7 @@ export function PersonEditorForm({
       </label>
 
       {errorMessage ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
           <p aria-live="polite" className="text-sm text-destructive">
             {errorMessage}
           </p>

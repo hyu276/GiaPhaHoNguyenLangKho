@@ -201,6 +201,23 @@ function countConnectedRelationships(
   ).length;
 }
 
+
+function selectedRelationshipCount(
+  selectedPerson: EditorPerson | null,
+  relationships: EditorRelationship[],
+) {
+  if (!selectedPerson) return 0;
+  return countConnectedRelationships(relationships, selectedPerson.id);
+}
+
+function editorWorkspaceClass(drawerOpen: boolean) {
+  const base =
+    "relative grid min-h-[70svh] flex-1 overflow-hidden";
+  return drawerOpen
+    ? `${base} md:grid-cols-[minmax(0,1fr)_24rem]`
+    : base;
+}
+
 function getVisibleRelationships(
   relationships: EditorRelationship[],
   visiblePeople: EditorPerson[],
@@ -1158,9 +1175,10 @@ export function AdminTreeEditor({
       (relationship) => relationship.id === selectedRelationshipId,
     ) ?? null;
   const archivedCount = countArchivedPeople(people);
-  const selectedRelationshipCount = selectedPerson
-    ? countConnectedRelationships(relationships, selectedPerson.id)
-    : 0;
+  const selectedRelationshipCountValue = selectedRelationshipCount(
+    selectedPerson,
+    relationships,
+  );
   const statusMessage = getStatusMessage(readOnly, saveState);
   const drawerOpen = Boolean(
     selectedPerson || selectedRelationship || formMode !== null,
@@ -1511,9 +1529,7 @@ export function AdminTreeEditor({
       />
 
       <div
-        className={`relative grid min-h-[70svh] flex-1 overflow-hidden ${
-          drawerOpen ? "md:grid-cols-[minmax(0,1fr)_24rem]" : ""
-        }`}
+        className={editorWorkspaceClass(drawerOpen)}
       >
         <section
           aria-label="Sơ đồ gia phả tương tác"
@@ -1596,7 +1612,7 @@ export function AdminTreeEditor({
           restorePerson={restorePerson}
           selectedPerson={selectedPerson}
           selectedRelationship={selectedRelationship}
-          selectedRelationshipCount={selectedRelationshipCount}
+          selectedRelationshipCount={selectedRelationshipCountValue}
           updatePerson={updatePerson}
         />
       </div>

@@ -2770,11 +2770,29 @@ document
 document
   .querySelector("#focusSelected")
   .addEventListener("click", () => focusPerson(getPerson(selectedId)));
-document.querySelector("#closeInspector").addEventListener("click", () => {
+function clearSelection() {
   selectedId = null;
   selectedProvenanceTarget = null;
   focusedId = null;
   render();
+}
+
+document.querySelector("#closeInspector").addEventListener("click", clearSelection);
+
+canvas.addEventListener("click", (event) => {
+  if (event.target.closest?.("button, input, select, textarea, .person-node")) {
+    return;
+  }
+  clearSelection();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (document.querySelector("dialog[open]")) return;
+  document
+    .querySelectorAll("details[open]")
+    .forEach((details) => details.removeAttribute("open"));
+  if (selectedId) clearSelection();
 });
 document
   .querySelector("#toggleBranch")
@@ -2799,15 +2817,20 @@ document
 document
   .querySelector("#addCitation")
   .addEventListener("click", () => openCitationDialog());
-document
-  .querySelector("#reviewDuplicates")
-  .addEventListener("click", openDuplicateDialog);
-document
-  .querySelector("#reviewDataQuality")
-  .addEventListener("click", openQualityDialog);
+document.querySelector("#reviewDuplicates").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openDuplicateDialog();
+});
+document.querySelector("#reviewDataQuality").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openQualityDialog();
+});
 document
   .querySelector("#reviewBulkUtilities")
-  .addEventListener("click", openBulkDialog);
+  .addEventListener("click", () => {
+    document.querySelector(".admin-menu")?.removeAttribute("open");
+    openBulkDialog();
+  });
 document
   .querySelector("#bulkExport")
   .addEventListener("click", downloadBulkBackup);

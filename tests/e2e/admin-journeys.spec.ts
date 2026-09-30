@@ -175,3 +175,25 @@ test("product shell stays usable on mobile and dismisses transient UI", async ({
   await expect(page.locator("#qualityDialog")).toBeVisible();
   await page.locator("#qualityDialog button[aria-label='Đóng']").click();
 });
+
+
+test("desktop genealogy controls do not cover the tree", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openSyntheticAdmin(page);
+
+  const toolbarBox = await page.locator(".product-toolbar").boundingBox();
+  const canvasBox = await page.locator("#canvas").boundingBox();
+  expect(toolbarBox).not.toBeNull();
+  expect(canvasBox).not.toBeNull();
+  expect(toolbarBox!.y + toolbarBox!.height).toBeLessThanOrEqual(
+    canvasBox!.y + 1,
+  );
+
+  await page.locator('[data-person-id="P003"]').click();
+
+  const treeBox = await page.locator(".canvas-panel").boundingBox();
+  const inspectorBox = await page.locator(".inspector").boundingBox();
+  expect(treeBox).not.toBeNull();
+  expect(inspectorBox).not.toBeNull();
+  expect(treeBox!.x + treeBox!.width).toBeLessThanOrEqual(inspectorBox!.x + 1);
+});

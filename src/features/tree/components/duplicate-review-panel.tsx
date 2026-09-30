@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   executeDuplicatePersonMerge,
@@ -24,6 +24,12 @@ type ReviewPair = {
 
 type DuplicateData = Extract<DuplicateSuggestionLoadResult, { ok: true }>;
 type MergePreviewData = Extract<PersonMergePreviewResult, { ok: true }>;
+
+function closeAdminToolsDisclosure() {
+  document
+    .querySelector<HTMLDetailsElement>("[data-admin-tools]")
+    ?.removeAttribute("open");
+}
 
 function personById(people: DuplicatePerson[], personId: string) {
   return people.find((person) => person.id === personId) ?? null;
@@ -518,6 +524,9 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
       aria-labelledby="duplicate-review-title"
       aria-modal="true"
       className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 sm:p-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) props.onClose();
+      }}
       role="dialog"
     >
       <div className="mx-auto max-w-6xl rounded-md border border-border bg-card p-5 shadow-lg">
@@ -605,6 +614,23 @@ export function DuplicateReviewPanel() {
     [data?.suggestions.length],
   );
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      setPair(null);
+      setPreview(null);
+      setConfirmation("");
+      setMessage(null);
+      closeAdminToolsDisclosure();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   async function refreshSuggestions() {
     setLoading(true);
     setMessage(null);
@@ -688,6 +714,12 @@ export function DuplicateReviewPanel() {
     setMessage(null);
   }
 
+  function closePanel() {
+    setOpen(false);
+    closeReview();
+    closeAdminToolsDisclosure();
+  }
+
   if (!open) {
     return (
       <Button onClick={() => void openPanel()} type="button" variant="outline">
@@ -704,7 +736,7 @@ export function DuplicateReviewPanel() {
       executing={executing}
       loading={loading}
       message={message}
-      onClose={() => setOpen(false)}
+      onClose={closePanel}
       onCloseReview={closeReview}
       onConfirmationChange={setConfirmation}
       onExecute={() => void executeMerge()}

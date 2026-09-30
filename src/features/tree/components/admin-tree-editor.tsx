@@ -264,10 +264,14 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
       <p className="text-sm font-semibold text-card-foreground">
         {data.displayName}
       </p>
-      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <span>{data.years}</span>
-        <span aria-hidden="true">·</span>
-        <span>{data.visibility === "private" ? "Riêng tư" : "Công khai"}</span>
+        {data.visibility === "private" ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>Riêng tư</span>
+          </>
+        ) : null}
         {data.archived ? (
           <>
             <span aria-hidden="true">·</span>
@@ -335,6 +339,7 @@ function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
           ? "Quan hệ hôn phối"
           : "Quan hệ cha mẹ con",
       deletable: false,
+      interactionWidth: 24,
     };
 
     if (relationship.kind === "partnership") {
@@ -414,7 +419,7 @@ function TreeFilterPanel({
     (!readOnly && archiveFilter !== "active");
 
   return (
-    <div className="absolute left-3 right-3 top-3 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-1.5 shadow-sm md:left-4 md:right-auto md:w-[min(44rem,calc(100%-2rem))]">
+    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-2 py-2 sm:px-3">
       <label className="min-w-[13rem] flex-1">
         <span className="sr-only">Tìm thành viên</span>
         <input
@@ -963,7 +968,7 @@ function EditorDrawer({
   title: string;
 }) {
   return (
-    <aside className="absolute inset-y-0 right-0 z-30 w-[min(25rem,100%)] overflow-y-auto border-l border-border bg-card shadow-lg">
+    <aside className="absolute inset-0 z-30 overflow-y-auto bg-card shadow-lg md:relative md:inset-auto md:z-auto md:w-auto md:border-l md:border-border md:shadow-none">
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
         <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
         <Button
@@ -1155,6 +1160,9 @@ export function AdminTreeEditor({
     ? countConnectedRelationships(relationships, selectedPerson.id)
     : 0;
   const statusMessage = getStatusMessage(readOnly, saveState);
+  const drawerOpen = Boolean(
+    selectedPerson || selectedRelationship || formMode !== null,
+  );
 
   useEffect(() => {
     persistedPositions.current = new Map(
@@ -1181,6 +1189,20 @@ export function AdminTreeEditor({
       createNodes(visiblePeople, lockedPersonIds, persistedPositions.current),
     );
   }, [lockedPersonIds, setNodes, visiblePeople]);
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (document.querySelector('dialog[open], [role="dialog"]')) return;
+
+      setSelectedPersonId(null);
+      setSelectedRelationshipId(null);
+      setFormMode(null);
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
 
   useEffect(() => {
     if (!pendingFocusPersonId) return;
@@ -1450,11 +1472,36 @@ export function AdminTreeEditor({
   }
 
   return (
-    <div className="relative min-h-[70svh] flex-1">
-      <section
-        aria-label="Sơ đồ gia phả tương tác"
-        className="absolute inset-0 overflow-hidden rounded-xl border border-border bg-card"
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card">
+      <TreeFilterPanel
+        archiveFilter={archiveFilter}
+        lifeFilter={lifeFilter}
+        matchCount={visiblePeople.length}
+        onArchiveFilterChange={setArchiveFilter}
+        onClear={clearFilters}
+        onLifeFilterChange={setLifeFilter}
+        onQueryChange={setQuery}
+        onStartCreate={() => {
+          setSelectedPersonId(null);
+          setSelectedRelationshipId(null);
+          setFormMode("create");
+        }}
+        onVisibilityFilterChange={setVisibilityFilter}
+        query={query}
+        readOnly={readOnly}
+        statusMessage={statusMessage}
+        visibilityFilter={visibilityFilter}
+      />
+
+      <div
+        className={`relative grid min-h-[70svh] flex-1 overflow-hidden ${
+          drawerOpen ? "md:grid-cols-[minmax(0,1fr)_24rem]" : ""
+        }`}
       >
+        <section
+          aria-label="Sơ đồ gia phả tương tác"
+          className="relative min-h-[70svh] overflow-hidden bg-card"
+        >
         <ReactFlow<PersonNode, RelationshipEdge>
           nodes={nodes}
           onInit={(instance) => {
@@ -1489,28 +1536,9 @@ export function AdminTreeEditor({
           <MiniMap pannable zoomable />
         </ReactFlow>
 
-        <TreeFilterPanel
-          archiveFilter={archiveFilter}
-          lifeFilter={lifeFilter}
-          matchCount={visiblePeople.length}
-          onArchiveFilterChange={setArchiveFilter}
-          onClear={clearFilters}
-          onLifeFilterChange={setLifeFilter}
-          onQueryChange={setQuery}
-          onStartCreate={() => {
-            setSelectedPersonId(null);
-            setSelectedRelationshipId(null);
-            setFormMode("create");
-          }}
-          onVisibilityFilterChange={setVisibilityFilter}
-          query={query}
-          readOnly={readOnly}
-          statusMessage={statusMessage}
-          visibilityFilter={visibilityFilter}
-        />
-      </section>
+        </section>
 
-      <EditorSidebar
+        <EditorSidebar
         archivePerson={archivePerson}
         archivedCount={archivedCount}
         collapsedBranchIds={collapsedBranchIds}
@@ -1551,8 +1579,9 @@ export function AdminTreeEditor({
         selectedPerson={selectedPerson}
         selectedRelationship={selectedRelationship}
         selectedRelationshipCount={selectedRelationshipCount}
-        updatePerson={updatePerson}
-      />
+          updatePerson={updatePerson}
+        />
+      </div>
     </div>
   );
 }

@@ -325,7 +325,7 @@ function AdminToolsMenu({
   return (
     <details className="group relative">
       <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25">
-        Công cụ quản trị
+        Quản lý dữ liệu
       </summary>
       <div className="absolute right-0 top-11 z-50 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-lg border border-border bg-card p-2 shadow-lg">
         <p className="px-2 py-1 text-xs leading-5 text-muted-foreground">
@@ -348,24 +348,21 @@ function AccountMenu({
   role: TreeViewerRole;
 }) {
   return (
-    <details className="group relative">
-      <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25">
-        Tài khoản
-      </summary>
-      <div className="absolute right-0 top-11 z-50 w-[min(19rem,calc(100vw-1.5rem))] rounded-lg border border-border bg-card p-3 shadow-lg">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-          {getViewerLabel(role)}
-        </p>
-        <p className="mt-2 truncate text-sm text-foreground">
+    <div className="flex items-center gap-3">
+      <div className="hidden max-w-52 text-right sm:block">
+        <p className="truncate text-xs font-medium text-foreground">
           {email ?? "Tài khoản gia phả"}
         </p>
-        <form action={signOut} className="mt-4">
-          <Button className="w-full" type="submit" variant="outline">
-            Đăng xuất
-          </Button>
-        </form>
+        <p className="text-[11px] text-muted-foreground">
+          {getViewerLabel(role)}
+        </p>
       </div>
-    </details>
+      <form action={signOut}>
+        <Button size="sm" type="submit" variant="outline">
+          Đăng xuất
+        </Button>
+      </form>
+    </div>
   );
 }
 

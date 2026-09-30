@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   batchSetPeopleVisibility,
@@ -14,6 +14,12 @@ import {
   type ImportPreview,
   previewStructuredImport,
 } from "@/features/tree/bulk-utils";
+
+function closeAdminToolsDisclosure() {
+  document
+    .querySelector<HTMLDetailsElement>("[data-admin-tools]")
+    ?.removeAttribute("open");
+}
 
 function downloadBackup(backup: Record<string, unknown>) {
   const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -191,6 +197,24 @@ export function BulkUtilitiesPanel() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      setSelectedIds(new Set());
+      setConfirmation("");
+      setImportPreview(null);
+      setImportFileName(null);
+      setMessage(null);
+      closeAdminToolsDisclosure();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   const impact = useMemo(
     () => buildVisibilityImpact(people, selectedIds, visibility),
     [people, selectedIds, visibility],
@@ -295,6 +319,11 @@ export function BulkUtilitiesPanel() {
           aria-label="Dữ liệu và sao lưu"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
+          onMouseDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setOpen(false);
+            closeAdminToolsDisclosure();
+          }}
           role="dialog"
         >
           <section className="w-full max-w-5xl rounded-md border border-border bg-card p-5 shadow-lg sm:p-6">
@@ -315,7 +344,15 @@ export function BulkUtilitiesPanel() {
               <Button
                 aria-label="Đóng công cụ dữ liệu và sao lưu"
                 autoFocus
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  setSelectedIds(new Set());
+                  setConfirmation("");
+                  setImportPreview(null);
+                  setImportFileName(null);
+                  setMessage(null);
+                  closeAdminToolsDisclosure();
+                }}
                 type="button"
                 variant="ghost"
               >

@@ -1153,15 +1153,14 @@ export function AdminTreeEditor({
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || formMode) return;
       setSelectedPersonId(null);
       setSelectedRelationshipId(null);
-      setFormMode(null);
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, []);
+  }, [formMode]);
 
   useEffect(() => {
     setNodes(

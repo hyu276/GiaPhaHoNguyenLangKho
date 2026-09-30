@@ -1552,6 +1552,10 @@ body {
   backdrop-filter: none;
 }
 
+.canvas-status:empty {
+  display: none;
+}
+
 .inspector {
   top: 8px;
   right: 8px;

@@ -1749,3 +1749,15 @@ dialog::backdrop {
     border: 0;
   }
 }
+
+
+/* Preview chrome is intentionally minimal; demo context lives in the header. */
+.workspace {
+  height: calc(100vh - 72px);
+}
+
+@media (max-width: 760px) {
+  .workspace {
+    height: calc(100svh - 70px);
+  }
+}

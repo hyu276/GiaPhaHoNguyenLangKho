@@ -130,7 +130,7 @@ function AuditEntry({
   pendingAuditId: string | null;
 }) {
   return (
-    <article className="rounded-xl border border-border bg-background p-3">
+    <article className="rounded-md border border-border bg-background p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-card-foreground">
@@ -198,7 +198,7 @@ export function AuditHistoryPanel({
       </Button>
 
       {open ? (
-        <section className="absolute right-0 top-12 z-50 w-[min(92vw,42rem)] rounded-2xl border border-border bg-card p-4 shadow-xl">
+        <section className="absolute right-0 top-12 z-50 w-[min(92vw,42rem)] rounded-lg border border-border bg-card p-4 shadow-lg">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">

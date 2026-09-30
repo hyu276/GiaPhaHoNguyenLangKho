@@ -1196,6 +1196,32 @@ export function AdminTreeEditor({
   }, []);
 
   useEffect(() => {
+    if (!drawerOpen) return;
+
+    const nodeIds = selectedPerson
+      ? [selectedPerson.id]
+      : selectedRelationship
+        ? [
+            selectedRelationship.sourcePersonId,
+            selectedRelationship.targetPersonId,
+          ]
+        : [];
+
+    if (nodeIds.length === 0) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      flowInstance.current?.fitView({
+        nodes: nodeIds.map((id) => ({ id })),
+        duration: 180,
+        maxZoom: 1.15,
+        padding: 1.25,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [drawerOpen, selectedPerson, selectedRelationship]);
+
+  useEffect(() => {
     if (!pendingFocusPersonId) return;
     if (!visiblePeople.some((person) => person.id === pendingFocusPersonId)) {
       return;

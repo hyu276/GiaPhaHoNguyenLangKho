@@ -2777,7 +2777,9 @@ function clearSelection() {
   render();
 }
 
-document.querySelector("#closeInspector").addEventListener("click", clearSelection);
+document
+  .querySelector("#closeInspector")
+  .addEventListener("click", clearSelection);
 
 canvas.addEventListener("click", (event) => {
   if (event.target.closest?.("button, input, select, textarea, .person-node")) {

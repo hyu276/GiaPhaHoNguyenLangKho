@@ -256,7 +256,7 @@ function getEmptyDescription(readOnly: boolean) {
 function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
   return (
     <div
-      className={`min-w-48 rounded-2xl border bg-card px-4 py-3 shadow-sm transition-[transform,opacity] ${
+      className={`min-w-48 rounded-lg border bg-card px-4 py-3 transition-[transform,opacity] ${
         selected ? "border-primary ring-2 ring-primary/20" : "border-border"
       } ${data.archived ? "border-dashed opacity-65" : ""}`}
     >
@@ -399,11 +399,11 @@ function TreeFilterPanel({
     (!readOnly && archiveFilter !== "active");
 
   return (
-    <div className="absolute left-3 right-3 top-3 z-20 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-background/95 p-2 shadow-sm backdrop-blur md:left-4 md:right-auto md:w-[min(46rem,calc(100%-2rem))]">
+    <div className="absolute left-3 right-3 top-3 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-1.5 shadow-sm md:left-4 md:right-auto md:w-[min(44rem,calc(100%-2rem))]">
       <label className="min-w-[13rem] flex-1">
         <span className="sr-only">Tìm thành viên</span>
         <input
-          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Tìm thành viên theo tên…"
           type="search"
@@ -412,14 +412,14 @@ function TreeFilterPanel({
       </label>
 
       <details className="group relative">
-        <summary className="flex h-10 cursor-pointer list-none items-center rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted">
+        <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted">
           Bộ lọc{hasFilters ? " · đang dùng" : ""}
         </summary>
-        <div className="absolute left-0 top-12 z-30 grid w-64 gap-3 rounded-2xl border border-border bg-card p-3 shadow-xl">
+        <div className="absolute left-0 top-10 z-30 grid w-64 gap-3 rounded-lg border border-border bg-card p-3 shadow-lg">
           <label className="text-xs font-medium text-muted-foreground">
             Tình trạng
             <select
-              className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
               onChange={(event) =>
                 onLifeFilterChange(event.target.value as LifeFilter)
               }
@@ -434,7 +434,7 @@ function TreeFilterPanel({
           <label className="text-xs font-medium text-muted-foreground">
             Quyền hiển thị
             <select
-              className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
               onChange={(event) =>
                 onVisibilityFilterChange(event.target.value as VisibilityFilter)
               }
@@ -450,7 +450,7 @@ function TreeFilterPanel({
             <label className="text-xs font-medium text-muted-foreground">
               Hồ sơ
               <select
-                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
                 onChange={(event) =>
                   onArchiveFilterChange(
                     event.target.value as ArchiveFilterValue,

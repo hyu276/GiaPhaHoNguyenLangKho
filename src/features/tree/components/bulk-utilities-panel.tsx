@@ -47,7 +47,7 @@ function ImportPreviewSummary({
   }
 
   return (
-    <div className="grid gap-3 rounded-2xl border border-border bg-background p-4">
+    <div className="grid gap-3 rounded-lg border border-border bg-background p-4">
       <div>
         <p className="text-sm font-semibold text-card-foreground">
           {fileName ?? "Xem trước tệp dữ liệu"}
@@ -108,10 +108,10 @@ function BulkPersonList({
   }
 
   return (
-    <div className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-border bg-background p-3">
+    <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-border bg-background p-3">
       {people.map((person) => (
         <label
-          className="flex cursor-pointer items-center gap-3 rounded-xl p-2 hover:bg-muted/40"
+          className="flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-muted/40"
           key={person.id}
         >
           <input
@@ -147,19 +147,19 @@ function VisibilityImpactSummary({
 }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.selectedCount}</strong>
         <p className="text-xs text-muted-foreground">đã chọn</p>
       </div>
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.changingCount}</strong>
         <p className="text-xs text-muted-foreground">sẽ đổi</p>
       </div>
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.unchangedCount}</strong>
         <p className="text-xs text-muted-foreground">không đổi</p>
       </div>
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.livingPublicAfterCount}</strong>
         <p className="text-xs text-muted-foreground">
           có thể còn sống và công khai
@@ -294,10 +294,10 @@ export function BulkUtilitiesPanel() {
         <div
           aria-label="Bulk utilities and backup"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
           role="dialog"
         >
-          <section className="w-full max-w-5xl rounded-3xl border border-border bg-card p-5 shadow-xl sm:p-6">
+          <section className="w-full max-w-5xl rounded-md border border-border bg-card p-5 shadow-lg sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -324,7 +324,7 @@ export function BulkUtilitiesPanel() {
             </div>
 
             <div className="mt-6 grid gap-6">
-              <section className="grid gap-3 rounded-2xl border border-border p-4">
+              <section className="grid gap-3 rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-card-foreground">
@@ -346,7 +346,7 @@ export function BulkUtilitiesPanel() {
                 </div>
               </section>
 
-              <section className="grid gap-3 rounded-2xl border border-border p-4">
+              <section className="grid gap-3 rounded-lg border border-border p-4">
                 <div>
                   <h3 className="font-semibold text-card-foreground">
                     Kiểm tra tệp sao lưu
@@ -373,7 +373,7 @@ export function BulkUtilitiesPanel() {
                 />
               </section>
 
-              <section className="grid gap-4 rounded-2xl border border-border p-4">
+              <section className="grid gap-4 rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-card-foreground">
@@ -414,7 +414,7 @@ export function BulkUtilitiesPanel() {
                 <label className="text-xs font-medium text-muted-foreground">
                   Quyền hiển thị sau khi đổi
                   <select
-                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
                     onChange={(event) => {
                       setVisibility(event.target.value as "public" | "private");
                       setConfirmation("");
@@ -429,7 +429,7 @@ export function BulkUtilitiesPanel() {
                 <VisibilityImpactSummary impact={impact} />
 
                 {impact.livingPublicAfterCount > 0 ? (
-                  <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
+                  <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
                     Thao tác này sẽ để {impact.livingPublicAfterCount} hồ sơ có
                     thể là người còn sống ở trạng thái công khai. Hãy kiểm tra
                     kỹ trước khi xác nhận.
@@ -439,7 +439,7 @@ export function BulkUtilitiesPanel() {
                 <label className="text-xs font-medium text-muted-foreground">
                   Nhập chính xác XÁC NHẬN để thực hiện
                   <input
-                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
                     onChange={(event) => setConfirmation(event.target.value)}
                     placeholder="XÁC NHẬN"
                     value={confirmation}

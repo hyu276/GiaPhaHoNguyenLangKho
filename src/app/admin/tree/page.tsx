@@ -402,17 +402,19 @@ export default async function AdminTreePage() {
 
       <div className="flex min-h-0 flex-1 p-2 sm:p-3">
         <AdminTreeEditor
-        archivePerson={mutations.archivePerson}
-        createParentChildRelationship={mutations.createParentChildRelationship}
-        createPartnership={mutations.createPartnership}
-        createPerson={mutations.createPerson}
-        people={people}
-        readOnly={readOnly}
-        relationships={relationships}
-        removeRelationship={mutations.removeRelationship}
-        restorePerson={mutations.restorePerson}
-        saveLayouts={mutations.saveLayouts}
-        updatePerson={mutations.updatePerson}
+          archivePerson={mutations.archivePerson}
+          createParentChildRelationship={
+            mutations.createParentChildRelationship
+          }
+          createPartnership={mutations.createPartnership}
+          createPerson={mutations.createPerson}
+          people={people}
+          readOnly={readOnly}
+          relationships={relationships}
+          removeRelationship={mutations.removeRelationship}
+          restorePerson={mutations.restorePerson}
+          saveLayouts={mutations.saveLayouts}
+          updatePerson={mutations.updatePerson}
         />
       </div>
     </main>

@@ -233,7 +233,7 @@ function formatYears(person: EditorPerson) {
 }
 
 function getStatusMessage(readOnly: boolean, saveState: SaveState) {
-  if (readOnly) return "Chế độ chỉ xem";
+  if (readOnly) return "";
 
   switch (saveState.status) {
     case "saving":
@@ -243,7 +243,7 @@ function getStatusMessage(readOnly: boolean, saveState: SaveState) {
     case "error":
       return saveState.message;
     default:
-      return "Chọn một người để xem hồ sơ hoặc kéo để đổi vị trí";
+      return "";
   }
 }
 
@@ -1495,12 +1495,14 @@ export function AdminTreeEditor({
           visibilityFilter={visibilityFilter}
         />
 
-        <div
-          aria-live="polite"
-          className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[min(28rem,calc(100%-1.5rem))] border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground shadow-sm"
-        >
-          {statusMessage}
-        </div>
+        {statusMessage ? (
+          <div
+            aria-live="polite"
+            className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[min(28rem,calc(100%-1.5rem))] border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground shadow-sm"
+          >
+            {statusMessage}
+          </div>
+        ) : null}
       </section>
 
       <EditorSidebar

@@ -151,7 +151,11 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
                 />
               </div>
 
-              <Button type="submit" size="lg" className="h-11 w-full rounded-md">
+              <Button
+                className="h-11 w-full rounded-md"
+                size="lg"
+                type="submit"
+              >
                 Vào gia phả
               </Button>
             </form>

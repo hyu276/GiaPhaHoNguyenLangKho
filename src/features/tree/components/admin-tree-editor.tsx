@@ -211,9 +211,7 @@ function selectedRelationshipCount(
 
 function editorWorkspaceClass(drawerOpen: boolean) {
   const base = "relative grid min-h-[70svh] flex-1 overflow-hidden";
-  return drawerOpen
-    ? `${base} md:grid-cols-[minmax(0,1fr)_24rem]`
-    : base;
+  return drawerOpen ? `${base} md:grid-cols-[minmax(0,1fr)_24rem]` : base;
 }
 
 function getVisibleRelationships(
@@ -1574,9 +1572,7 @@ export function AdminTreeEditor({
           createPartnership={createPartnership}
           createPerson={createPerson}
           formMode={formMode}
-          layoutCanRedo={
-            layoutFuture.length > 0 && saveState.status !== "saving"
-          }
+          layoutCanRedo={layoutFuture.length > 0 && saveState.status !== "saving"}
           layoutCanUndo={
             layoutHistory.length > 0 && saveState.status !== "saving"
           }

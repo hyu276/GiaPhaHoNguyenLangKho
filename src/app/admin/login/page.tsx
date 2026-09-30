@@ -150,4 +150,5 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
         </section>
       </div>
     </main>
-  );}
+   );
+}

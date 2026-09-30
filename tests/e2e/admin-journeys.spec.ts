@@ -128,10 +128,12 @@ test("synthetic duplicate quality and bulk release journey", async ({
   );
   await page.locator("#duplicateDialog button[aria-label='Đóng']").click();
 
+  await page.locator("details.admin-menu > summary").click();
   await page.getByRole("button", { name: "Kiểm tra dữ liệu" }).click();
   await expect(page.locator("#qualityWarningCount")).not.toHaveText("0");
   await page.locator("#qualityDialog button[aria-label='Đóng']").click();
 
+  await page.locator("details.admin-menu > summary").click();
   await page.getByRole("button", { name: "Dữ liệu & sao lưu" }).click();
   await page.getByRole("button", { name: "Chọn tất cả" }).click();
   await page.locator("#bulkVisibility").selectOption("public");

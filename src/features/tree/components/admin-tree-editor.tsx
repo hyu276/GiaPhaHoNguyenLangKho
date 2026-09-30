@@ -721,9 +721,11 @@ function SelectedPersonSummary({
             {formatYears(selectedPerson)}
           </p>
         </div>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {getVisibilityLabel(selectedPerson.visibility)}
-        </span>
+        {selectedPerson.visibility === "private" ? (
+          <span className="text-xs font-medium text-muted-foreground">
+            Riêng tư
+          </span>
+        ) : null}
       </div>
 
       <p className="mt-6 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
@@ -819,7 +821,7 @@ function PersonArchiveControls({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-border bg-muted/35 p-3">
+    <div className="mt-5 border-t border-border pt-4">
       <p className="text-xs font-semibold text-card-foreground">
         {getArchiveTitle(archived)}
       </p>
@@ -917,6 +919,21 @@ function SelectedPersonDetails(props: SidebarProps) {
         person={props.selectedPerson}
         relationships={props.relationships}
       />
+      <PersonRelationshipSection
+        createParentChildRelationship={props.createParentChildRelationship}
+        createPartnership={props.createPartnership}
+        focalPerson={props.selectedPerson}
+        onChanged={props.onRelationshipChanged}
+        people={props.people}
+        readOnly={relationshipReadOnly}
+        relationships={props.relationships}
+      />
+      <ProvenancePanel
+        key={`person-${props.selectedPerson.id}`}
+        personId={props.selectedPerson.id}
+        readOnly={props.readOnly}
+        relationshipId={null}
+      />
       <LayoutAdministrationControls
         canRedo={props.layoutCanRedo}
         canUndo={props.layoutCanUndo}
@@ -930,12 +947,6 @@ function SelectedPersonDetails(props: SidebarProps) {
         person={props.selectedPerson}
         readOnly={props.readOnly}
       />
-      <ProvenancePanel
-        key={`person-${props.selectedPerson.id}`}
-        personId={props.selectedPerson.id}
-        readOnly={props.readOnly}
-        relationshipId={null}
-      />
       {props.readOnly ? null : (
         <PersonArchiveControls
           archivePerson={props.archivePerson}
@@ -945,15 +956,6 @@ function SelectedPersonDetails(props: SidebarProps) {
           restorePerson={props.restorePerson}
         />
       )}
-      <PersonRelationshipSection
-        createParentChildRelationship={props.createParentChildRelationship}
-        createPartnership={props.createPartnership}
-        focalPerson={props.selectedPerson}
-        onChanged={props.onRelationshipChanged}
-        people={props.people}
-        readOnly={relationshipReadOnly}
-        relationships={props.relationships}
-      />
     </>
   );
 }
@@ -1172,17 +1174,6 @@ export function AdminTreeEditor({
       people.map((person) => [person.id, person.layoutRevision]),
     );
   }, [people]);
-
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape" || formMode) return;
-      setSelectedPersonId(null);
-      setSelectedRelationshipId(null);
-    }
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [formMode]);
 
   useEffect(() => {
     setNodes(

@@ -1572,7 +1572,9 @@ export function AdminTreeEditor({
           createPartnership={createPartnership}
           createPerson={createPerson}
           formMode={formMode}
-          layoutCanRedo={layoutFuture.length > 0 && saveState.status !== "saving"}
+          layoutCanRedo={
+            layoutFuture.length > 0 && saveState.status !== "saving"
+          }
           layoutCanUndo={
             layoutHistory.length > 0 && saveState.status !== "saving"
           }

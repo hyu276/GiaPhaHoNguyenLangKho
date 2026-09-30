@@ -201,7 +201,6 @@ function countConnectedRelationships(
   ).length;
 }
 
-
 function selectedRelationshipCount(
   selectedPerson: EditorPerson | null,
   relationships: EditorRelationship[],
@@ -211,8 +210,7 @@ function selectedRelationshipCount(
 }
 
 function editorWorkspaceClass(drawerOpen: boolean) {
-  const base =
-    "relative grid min-h-[70svh] flex-1 overflow-hidden";
+  const base = "relative grid min-h-[70svh] flex-1 overflow-hidden";
   return drawerOpen
     ? `${base} md:grid-cols-[minmax(0,1fr)_24rem]`
     : base;
@@ -1528,9 +1526,7 @@ export function AdminTreeEditor({
         visibilityFilter={visibilityFilter}
       />
 
-      <div
-        className={editorWorkspaceClass(drawerOpen)}
-      >
+      <div className={editorWorkspaceClass(drawerOpen)}>
         <section
           aria-label="Sơ đồ gia phả tương tác"
           className="relative min-h-[70svh] overflow-hidden bg-card"

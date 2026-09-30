@@ -266,7 +266,7 @@ function loadState() {
   }
 }
 
-function persistState(message = "Đã lưu demo trong trình duyệt") {
+function persistState(message = "Đã lưu thay đổi trong bản xem trước") {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   saveStatus.textContent = message;
   window.setTimeout(() => {

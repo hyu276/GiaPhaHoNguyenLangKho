@@ -72,76 +72,51 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
         : null;
 
   return (
-    <main className="min-h-svh bg-background p-3 sm:p-5 lg:p-7">
-      <div className="mx-auto grid min-h-[calc(100svh-1.5rem)] max-w-6xl overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm sm:min-h-[calc(100svh-2.5rem)] lg:grid-cols-[1.08fr_0.92fr]">
-        <section className="relative hidden overflow-hidden bg-foreground px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between">
-          <div
-            aria-hidden="true"
-            className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary/35 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-secondary/20 blur-3xl"
-          />
-
-          <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
+    <main className="min-h-svh bg-background">
+      <div className="mx-auto grid min-h-svh max-w-5xl lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="hidden border-r border-border px-10 py-12 lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <p className="text-sm font-medium text-primary">
               Gia phả họ Nguyễn Làng Khô
             </p>
-            <h1 className="font-display mt-5 max-w-lg text-6xl leading-[0.95] tracking-tight">
-              Gìn giữ ký ức gia đình trong một không gian riêng tư.
+            <h1 className="font-display mt-6 max-w-md text-5xl leading-tight tracking-tight text-card-foreground">
+              Kho lưu giữ thông tin và ký ức của gia đình.
             </h1>
-            <p className="mt-6 max-w-md text-sm leading-7 text-zinc-300">
-              Sơ đồ gia phả, hồ sơ thành viên và nguồn tư liệu được quản lý tập
-              trung, có lịch sử thay đổi và kiểm soát quyền truy cập.
+            <p className="mt-5 max-w-md text-sm leading-7 text-muted-foreground">
+              Hồ sơ thành viên, quan hệ gia đình và nguồn tư liệu được quản lý
+              trong một không gian riêng tư, có phân quyền rõ ràng.
             </p>
           </div>
 
-          <div className="relative grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-              <p className="text-sm font-semibold">Quản trị viên</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">
-                Cập nhật hồ sơ, quan hệ, bố cục và nguồn tư liệu.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-              <p className="text-sm font-semibold">Người xem</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">
-                Xem gia phả mà không thể thay đổi dữ liệu.
-              </p>
-            </div>
+          <div className="border-t border-border pt-5 text-xs leading-6 text-muted-foreground">
+            <p>Quản trị viên có thể cập nhật dữ liệu.</p>
+            <p>Người xem chỉ có quyền đọc.</p>
           </div>
         </section>
 
-        <section className="flex items-center justify-center px-5 py-10 sm:px-10 lg:px-12">
-          <div className="w-full max-w-md">
-            <div className="lg:hidden">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                Gia phả họ Nguyễn Làng Khô
-              </p>
-            </div>
-
-            <p className="mt-2 text-sm font-semibold text-primary lg:mt-0">
-              Khu vực gia đình
+        <section className="flex items-center justify-center px-5 py-12 sm:px-10 lg:px-14">
+          <div className="w-full max-w-sm">
+            <p className="text-sm font-medium text-primary lg:hidden">
+              Gia phả họ Nguyễn Làng Khô
             </p>
-            <h2 className="font-display mt-2 text-4xl tracking-tight text-card-foreground sm:text-5xl">
+            <h2 className="font-display mt-2 text-4xl tracking-tight text-card-foreground">
               Đăng nhập
             </h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Sử dụng tài khoản đã được người quản trị gia phả cấp quyền.
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Dùng tài khoản đã được cấp quyền truy cập.
             </p>
 
             {message ? (
               <p
                 role="alert"
-                className="mt-6 rounded-2xl border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive"
+                className="mt-5 border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive"
               >
                 {message}
               </p>
             ) : null}
 
-            <form action={signIn} className="mt-8 space-y-5">
-              <div className="space-y-2">
+            <form action={signIn} className="mt-7 space-y-4">
+              <div className="space-y-1.5">
                 <label
                   htmlFor="email"
                   className="text-sm font-medium text-foreground"
@@ -155,11 +130,11 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
                   autoComplete="email"
                   required
                   placeholder="tenban@example.com"
-                  className="h-12 w-full rounded-2xl border border-input bg-background px-4 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
+                  className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label
                   htmlFor="password"
                   className="text-sm font-medium text-foreground"
@@ -172,22 +147,18 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="h-12 w-full rounded-2xl border border-input bg-background px-4 text-sm text-foreground outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25"
+                  className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
                 />
               </div>
 
-              <Button
-                type="submit"
-                size="lg"
-                className="h-12 w-full rounded-2xl"
-              >
+              <Button type="submit" size="lg" className="h-11 w-full rounded-md">
                 Vào gia phả
               </Button>
             </form>
 
-            <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
-              Dữ liệu gia phả là thông tin nội bộ. Không chia sẻ tài khoản cho
-              người không được cấp quyền.
+            <p className="mt-5 text-xs leading-5 text-muted-foreground">
+              Đây là khu vực nội bộ. Không chia sẻ tài khoản cho người chưa được
+              cấp quyền.
             </p>
           </div>
         </section>

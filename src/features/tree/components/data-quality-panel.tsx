@@ -15,6 +15,12 @@ import type {
 
 type QualityData = Extract<DataQualityLoadResult, { ok: true }>;
 
+function closeAdminToolsDisclosure() {
+  document
+    .querySelector<HTMLDetailsElement>("[data-admin-tools]")
+    ?.removeAttribute("open");
+}
+
 const SEVERITY_LABELS: Record<DataQualitySeverity, string> = {
   error: "Lỗi",
   warning: "Cảnh báo",
@@ -293,7 +299,9 @@ export function DataQualityPanel() {
     if (!open) return;
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      closeAdminToolsDisclosure();
     }
 
     window.addEventListener("keydown", handleEscape);
@@ -332,7 +340,9 @@ export function DataQualityPanel() {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setOpen(false);
+            if (event.target !== event.currentTarget) return;
+            setOpen(false);
+            closeAdminToolsDisclosure();
           }}
           role="dialog"
         >
@@ -362,11 +372,9 @@ export function DataQualityPanel() {
                 <Button
                   aria-label="Đóng kiểm tra dữ liệu"
                   autoFocus
-                  onClick={(event) => {
+                  onClick={() => {
                     setOpen(false);
-                    event.currentTarget
-                      .closest("details")
-                      ?.removeAttribute("open");
+                    closeAdminToolsDisclosure();
                   }}
                   type="button"
                   variant="ghost"

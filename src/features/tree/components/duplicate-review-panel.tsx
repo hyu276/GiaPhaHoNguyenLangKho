@@ -56,7 +56,7 @@ function ProfileCard({
       : "Hồ sơ này sẽ được lưu trữ sau khi gộp thành công.";
 
   return (
-    <article className="rounded-2xl border border-border bg-background p-4">
+    <article className="rounded-lg border border-border bg-background p-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
         {label}
       </p>
@@ -80,7 +80,7 @@ function ProfileCard({
       <p className="mt-3 text-xs leading-5 text-muted-foreground">
         {person.description || "Chưa có mô tả."}
       </p>
-      <p className="mt-3 rounded-xl bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
+      <p className="mt-3 rounded-md bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
         {targetDescription}
       </p>
     </article>
@@ -129,7 +129,7 @@ function RelationshipChangeRow({
   const toTarget = personDisplayName(people, change.toTargetPersonId);
 
   return (
-    <li className="rounded-xl border border-border bg-background p-3 text-xs">
+    <li className="rounded-md border border-border bg-background p-3 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold text-card-foreground">
           {relationshipKindLabel(change.relationshipKind)}
@@ -154,14 +154,14 @@ function RelationshipChangeRow({
 function BlockerList({ blockers }: { blockers: string[] }) {
   if (blockers.length === 0) {
     return (
-      <p className="rounded-xl bg-primary/10 p-3 text-xs font-medium text-primary">
+      <p className="rounded-md bg-primary/10 p-3 text-xs font-medium text-primary">
         Không phát hiện trở ngại. Vẫn cần xác nhận thủ công trước khi gộp hồ sơ.
       </p>
     );
   }
 
   return (
-    <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
       <p className="text-xs font-semibold text-destructive">
         Chưa thể gộp hồ sơ
       </p>
@@ -188,7 +188,7 @@ function SuggestionRow({
   if (!first || !second) return null;
 
   return (
-    <article className="rounded-2xl border border-border bg-background p-3">
+    <article className="rounded-lg border border-border bg-background p-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-card-foreground">
@@ -230,7 +230,7 @@ function SuggestionList({
 }) {
   if (data.suggestions.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+      <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
         Không có hồ sơ nghi trùng nào đủ rõ để đề xuất. Hệ thống không tự gộp và
         không kết luận chỉ vì tên giống nhau.
       </p>
@@ -259,18 +259,18 @@ function MergeImpact({
   people: DuplicatePerson[];
 }) {
   return (
-    <section className="mt-4 rounded-2xl border border-border bg-muted/20 p-4">
+    <section className="mt-4 rounded-lg border border-border bg-muted/20 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         Xem trước ảnh hưởng
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-background p-3">
+        <div className="rounded-md bg-background p-3">
           <p className="text-2xl font-semibold text-card-foreground">
             {data.preview.relationshipChanges.length}
           </p>
           <p className="text-xs text-muted-foreground">quan hệ bị tác động</p>
         </div>
-        <div className="rounded-xl bg-background p-3">
+        <div className="rounded-md bg-background p-3">
           <p className="text-2xl font-semibold text-card-foreground">
             {data.sourcePersonCitationCount}
           </p>
@@ -278,7 +278,7 @@ function MergeImpact({
             dẫn chứng của hồ sơ sẽ gộp
           </p>
         </div>
-        <div className="rounded-xl bg-background p-3">
+        <div className="rounded-md bg-background p-3">
           <p className="text-2xl font-semibold text-card-foreground">
             {data.sourceRelationshipCitationCount}
           </p>
@@ -323,7 +323,7 @@ function MergeConfirmation({
   onExecute: () => void;
 }) {
   return (
-    <section className="mt-4 rounded-2xl border border-border bg-background p-4">
+    <section className="mt-4 rounded-lg border border-border bg-background p-4">
       <p className="text-sm font-semibold text-card-foreground">
         Xác nhận gộp hồ sơ
       </p>
@@ -332,7 +332,7 @@ function MergeConfirmation({
         cho thực hiện khi còn trở ngại.
       </p>
       <input
-        className="mt-3 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        className="mt-3 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         onChange={(event) => onConfirmationChange(event.target.value)}
         placeholder="GỘP"
         value={confirmation}
@@ -427,7 +427,7 @@ function PanelMessage({ message }: { message: string | null }) {
   if (!message) return null;
 
   return (
-    <p className="mt-3 rounded-xl bg-muted p-3 text-sm text-card-foreground">
+    <p className="mt-3 rounded-md bg-muted p-3 text-sm text-card-foreground">
       {message}
     </p>
   );
@@ -517,10 +517,10 @@ function DuplicateReviewModal(props: DuplicateReviewModalProps) {
     <div
       aria-labelledby="duplicate-review-title"
       aria-modal="true"
-      className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 overflow-y-auto bg-background/90 p-4 sm:p-6"
       role="dialog"
     >
-      <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-5 shadow-xl">
+      <div className="mx-auto max-w-6xl rounded-md border border-border bg-card p-5 shadow-lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">

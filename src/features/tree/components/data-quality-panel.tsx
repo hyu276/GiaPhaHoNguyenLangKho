@@ -108,7 +108,7 @@ function QualityIssueCard({
   issue: DataQualityIssue;
 }) {
   return (
-    <article className="rounded-2xl border border-border bg-background p-4">
+    <article className="rounded-lg border border-border bg-background p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -130,7 +130,7 @@ function QualityIssueCard({
 
 function CountCard({ count, label }: { count: number; label: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-background p-3">
+    <div className="rounded-lg border border-border bg-background p-3">
       <p className="text-2xl font-semibold text-card-foreground">{count}</p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
     </div>
@@ -163,7 +163,7 @@ function FilterControls({
       <label className="text-xs font-medium text-muted-foreground">
         Mức độ
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           onChange={(event) =>
             onSeverityChange(event.target.value as "all" | DataQualitySeverity)
           }
@@ -181,7 +181,7 @@ function FilterControls({
       <label className="text-xs font-medium text-muted-foreground">
         Loại kiểm tra
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           onChange={(event) =>
             onKindChange(event.target.value as "all" | DataQualityIssueKind)
           }
@@ -201,7 +201,7 @@ function FilterControls({
 
 function EmptyIssues() {
   return (
-    <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">
+    <p className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
       Không có mục nào phù hợp với bộ lọc hiện tại.
     </p>
   );
@@ -317,12 +317,12 @@ export function DataQualityPanel() {
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
           role="dialog"
           aria-modal="true"
           aria-label="Kiểm tra chất lượng dữ liệu"
         >
-          <section className="w-full max-w-4xl rounded-3xl border border-border bg-card p-5 shadow-xl sm:p-6">
+          <section className="w-full max-w-4xl rounded-md border border-border bg-card p-5 shadow-lg sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">

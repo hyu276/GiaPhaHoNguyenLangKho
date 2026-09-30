@@ -176,7 +176,6 @@ test("product shell stays usable on mobile and dismisses transient UI", async ({
   await page.locator("#qualityDialog button[aria-label='Đóng']").click();
 });
 
-
 test("desktop genealogy controls do not cover the tree", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openSyntheticAdmin(page);

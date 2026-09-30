@@ -175,7 +175,7 @@ function DirectRelationshipList({
         );
         return (
           <div
-            className="rounded-xl border border-border bg-background px-3 py-2"
+            className="rounded-md border border-border bg-background px-3 py-2"
             key={relationship.id}
           >
             <p className="text-sm font-medium text-card-foreground">
@@ -272,14 +272,14 @@ function RelationshipCreationForm({
   targetPersonId: string;
 }) {
   return (
-    <div className="mt-4 rounded-2xl border border-border bg-background p-3">
+    <div className="mt-4 rounded-lg border border-border bg-background p-3">
       <p className="text-sm font-semibold text-card-foreground">
         {getIntentLabel(intent)}
       </p>
       <label className="mt-3 block text-sm font-medium text-card-foreground">
         Chọn người
         <select
-          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           onChange={(event) => onTargetChange(event.target.value)}
           value={targetPersonId}
         >
@@ -582,12 +582,12 @@ export function RelationshipInspector({
       </h2>
       <RelationshipEndpoints people={people} relationship={relationship} />
 
-      <p className="mt-5 rounded-xl bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+      <p className="mt-5 rounded-md bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
         ID: {relationship.id}
       </p>
 
       {errorMessage ? (
-        <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+        <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
           <p aria-live="polite" className="text-sm text-destructive">
             {errorMessage}
           </p>

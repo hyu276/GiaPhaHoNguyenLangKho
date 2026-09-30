@@ -324,13 +324,12 @@ function AdminToolsMenu({
 
   return (
     <details className="group relative">
-      <summary className="flex h-10 cursor-pointer list-none items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+      <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25">
         Công cụ quản trị
       </summary>
-      <div className="absolute right-0 top-12 z-50 grid w-[min(21rem,calc(100vw-2rem))] gap-2 rounded-2xl border border-border bg-card p-3 shadow-xl">
-        <p className="px-2 pb-1 text-xs leading-5 text-muted-foreground">
-          Các chức năng kiểm tra và bảo trì dữ liệu được gom riêng để không làm
-          rối thao tác gia phả hằng ngày.
+      <div className="absolute right-0 top-11 z-50 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-lg border border-border bg-card p-2 shadow-lg">
+        <p className="px-2 py-1 text-xs leading-5 text-muted-foreground">
+          Kiểm tra, sao lưu và lịch sử dữ liệu.
         </p>
         <BulkUtilitiesPanel />
         <DataQualityPanel />
@@ -350,10 +349,10 @@ function AccountMenu({
 }) {
   return (
     <details className="group relative">
-      <summary className="flex h-10 cursor-pointer list-none items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
+      <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25">
         Tài khoản
       </summary>
-      <div className="absolute right-0 top-12 z-50 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card p-4 shadow-xl">
+      <div className="absolute right-0 top-11 z-50 w-[min(19rem,calc(100vw-1.5rem))] rounded-lg border border-border bg-card p-3 shadow-lg">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           {getViewerLabel(role)}
         </p>
@@ -379,17 +378,14 @@ export default async function AdminTreePage() {
   const { activePeopleCount, archivedPeopleCount } = getPeopleCounts(people);
 
   return (
-    <main className="flex min-h-svh flex-col bg-background p-3 sm:p-4 lg:p-5">
-      <header className="relative z-40 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-card px-4 py-3 shadow-sm sm:px-5">
+    <main className="flex min-h-svh flex-col bg-background">
+      <header className="relative z-40 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-5 lg:px-6">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-            Gia phả họ Nguyễn Làng Khô
-          </p>
-          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="font-display text-3xl tracking-tight text-card-foreground sm:text-4xl">
-              Sơ đồ gia phả
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="font-display text-2xl tracking-tight text-card-foreground sm:text-3xl">
+              Gia phả họ Nguyễn Làng Khô
             </h1>
-            <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-accent-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {getViewerLabel(role)}
             </span>
           </div>
@@ -407,7 +403,8 @@ export default async function AdminTreePage() {
         </div>
       </header>
 
-      <AdminTreeEditor
+      <div className="flex min-h-0 flex-1 p-2 sm:p-3">
+        <AdminTreeEditor
         archivePerson={mutations.archivePerson}
         createParentChildRelationship={mutations.createParentChildRelationship}
         createPartnership={mutations.createPartnership}
@@ -419,7 +416,8 @@ export default async function AdminTreePage() {
         restorePerson={mutations.restorePerson}
         saveLayouts={mutations.saveLayouts}
         updatePerson={mutations.updatePerson}
-      />
+        />
+      </div>
     </main>
   );
 }

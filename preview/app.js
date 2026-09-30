@@ -2819,24 +2819,18 @@ document
 document
   .querySelector("#addCitation")
   .addEventListener("click", () => openCitationDialog());
-document
-  .querySelector("#reviewDuplicates")
-  .addEventListener("click", () => {
-    document.querySelector(".admin-menu")?.removeAttribute("open");
-    openDuplicateDialog();
-  });
-document
-  .querySelector("#reviewDataQuality")
-  .addEventListener("click", () => {
-    document.querySelector(".admin-menu")?.removeAttribute("open");
-    openQualityDialog();
-  });
-document
-  .querySelector("#reviewBulkUtilities")
-  .addEventListener("click", () => {
-    document.querySelector(".admin-menu")?.removeAttribute("open");
-    openBulkDialog();
-  });
+document.querySelector("#reviewDuplicates").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openDuplicateDialog();
+});
+document.querySelector("#reviewDataQuality").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openQualityDialog();
+});
+document.querySelector("#reviewBulkUtilities").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openBulkDialog();
+});
 document
   .querySelector("#bulkExport")
   .addEventListener("click", downloadBulkBackup);

@@ -5,122 +5,112 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Bản demo tĩnh cho admin editor của Gia phả họ Nguyễn Làng Khô."
+      content="Bản xem trước giao diện quản trị Gia phả họ Nguyễn Làng Khô."
     />
-    <title>Admin Editor Preview · Gia phả họ Nguyễn Làng Khô</title>
+    <title>Bản xem trước · Gia phả họ Nguyễn Làng Khô</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <!-- Step 12A product preview -->
     <header class="topbar">
-      <div>
-        <p class="eyebrow">GitHub Pages · synthetic demo</p>
-        <h1>Admin Genealogy Editor</h1>
+      <div class="brand-block">
+        <p class="eyebrow">Gia phả họ Nguyễn Làng Khô</p>
+        <h1>Sơ đồ gia phả</h1>
+        <p class="topbar-meta">
+          Bản xem trước · dữ liệu mẫu, không ghi vào Supabase
+        </p>
       </div>
       <div class="topbar-actions">
-        <span class="status" id="saveStatus"
-          >Demo local · chưa kết nối Supabase</span
-        >
+        <details class="admin-menu">
+          <summary class="button secondary">Quản lý dữ liệu</summary>
+          <div class="admin-menu-panel">
+            <p class="muted">Kiểm tra, sao lưu và bảo trì dữ liệu.</p>
+            <button
+              class="button secondary"
+              id="reviewDuplicates"
+              type="button"
+            >
+              Kiểm tra hồ sơ trùng
+            </button>
+            <button
+              class="button secondary"
+              id="reviewDataQuality"
+              type="button"
+            >
+              Kiểm tra dữ liệu
+            </button>
+            <button
+              class="button secondary"
+              id="reviewBulkUtilities"
+              type="button"
+            >
+              Dữ liệu &amp; sao lưu
+            </button>
+          </div>
+        </details>
+        <span class="account-summary">Quản trị viên</span>
         <button class="button secondary" id="resetDemo" type="button">
-          Reset demo
+          Đặt lại demo
         </button>
       </div>
     </header>
 
-    <div class="notice">
-      Đây là preview UX bằng dữ liệu giả trong trình duyệt. Layout, nguồn tư
-      liệu, citation và claim chưa chắc chắn chỉ lưu trong browser local; không
-      có kết nối tới database production.
-    </div>
-
     <main class="workspace">
-      <aside class="sidebar">
-        <section class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Công cụ</p>
-              <h2>Quản trị</h2>
+      <section class="canvas-panel">
+        <div class="canvas-toolbar product-toolbar">
+          <label class="search-field">
+            <span class="sr-only">Tìm thành viên</span>
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Tìm thành viên theo tên…"
+            />
+          </label>
+
+          <details class="filter-menu">
+            <summary class="button secondary">Bộ lọc</summary>
+            <div class="filter-popover">
+              <label class="field compact-field">
+                <span>Tình trạng</span>
+                <select id="lifeFilter">
+                  <option value="all">Tất cả</option>
+                  <option value="living">Còn sống</option>
+                  <option value="deceased">Đã mất</option>
+                </select>
+              </label>
+              <label class="field compact-field">
+                <span>Quyền hiển thị</span>
+                <select id="visibilityFilter">
+                  <option value="all">Tất cả</option>
+                  <option value="public">Công khai</option>
+                  <option value="private">Riêng tư</option>
+                </select>
+              </label>
+              <label class="field compact-field">
+                <span>Hồ sơ</span>
+                <select id="archiveFilter">
+                  <option value="active">Đang sử dụng</option>
+                  <option value="all">Tất cả</option>
+                  <option value="archived">Đã lưu trữ</option>
+                </select>
+              </label>
             </div>
+          </details>
+
+          <span class="muted filter-status" id="filterStatus"></span>
+          <button class="button primary" id="addPerson" type="button">
+            Thêm thành viên
+          </button>
+        </div>
+
+        <div class="canvas" id="canvas">
+          <svg class="edges" id="edges" aria-hidden="true"></svg>
+          <div id="nodes"></div>
+          <div class="empty-search" id="emptySearch" hidden>
+            Không có thành viên phù hợp.
           </div>
 
-          <label class="field">
-            <span>Tìm người</span>
-            <input id="searchInput" type="search" placeholder="Nhập tên..." />
-          </label>
-
-          <div class="filter-grid">
-            <label class="field compact-field">
-              <span>Sinh trạng</span>
-              <select id="lifeFilter">
-                <option value="all">Tất cả</option>
-                <option value="living">Còn sống</option>
-                <option value="deceased">Đã mất</option>
-              </select>
-            </label>
-            <label class="field compact-field">
-              <span>Hiển thị</span>
-              <select id="visibilityFilter">
-                <option value="all">Tất cả</option>
-                <option value="public">Công khai</option>
-                <option value="private">Riêng tư</option>
-              </select>
-            </label>
-          </div>
-
-          <label class="field compact-field">
-            <span>Lưu trữ</span>
-            <select id="archiveFilter">
-              <option value="active">Đang hoạt động</option>
-              <option value="all">Tất cả</option>
-              <option value="archived">Đã lưu trữ</option>
-            </select>
-          </label>
-
-          <p class="muted filter-status" id="filterStatus"></p>
-
-          <div class="button-grid">
-            <button class="button primary" id="addPerson" type="button">
-              + Thêm người
-            </button>
-            <button class="button" id="editPerson" type="button">
-              Sửa người
-            </button>
-            <button class="button" id="addParent" type="button">
-              + Cha / mẹ
-            </button>
-            <button class="button" id="addChild" type="button">+ Con</button>
-            <button class="button" id="addPartner" type="button">
-              + Hôn phối
-            </button>
-            <button class="button danger" id="archivePerson" type="button">
-              Lưu trữ
-            </button>
-          </div>
-
-          <button
-            class="button secondary duplicate-review-launch"
-            id="reviewDuplicates"
-            type="button"
-          >
-            Review duplicate candidates
-          </button>
-          <button
-            class="button secondary quality-review-launch"
-            id="reviewDataQuality"
-            type="button"
-          >
-            Data-quality dashboard
-          </button>
-          <button
-            class="button secondary quality-review-launch"
-            id="reviewBulkUtilities"
-            type="button"
-          >
-            Bulk / backup demo
-          </button>
-
-          <div class="divider"></div>
-
-          <div class="button-row">
+          <div class="canvas-utility">
             <button
               class="icon-button"
               id="undoButton"
@@ -137,61 +127,35 @@
             >
               ↷
             </button>
-            <button class="button secondary grow" id="fitButton" type="button">
+            <button class="button secondary" id="fitButton" type="button">
               Hiện toàn cây
             </button>
           </div>
-        </section>
 
-        <section class="panel compact">
-          <p class="eyebrow">Roadmap preview</p>
-          <ol class="roadmap-list">
-            <li class="done">Drag layout</li>
-            <li class="done">Person CRUD</li>
-            <li class="done">Relationship CRUD</li>
-            <li class="done">Archive / restore</li>
-            <li class="done">Search & branch focus</li>
-            <li class="done">Layout administration</li>
-            <li class="done">Sources & provenance</li>
-            <li class="done">Merge duplicates</li>
-            <li class="done">Audit / conflict / undo</li>
-            <li class="done">Data-quality dashboard</li>
-            <li class="done">Bulk & release prep</li>
-          </ol>
-        </section>
-      </aside>
-
-      <section class="canvas-panel">
-        <div class="canvas-toolbar">
-          <div>
-            <p class="eyebrow">Sơ đồ tương tác</p>
-            <p class="muted">
-              Kéo node để thử layout · click node để mở inspector
-            </p>
-          </div>
-          <div class="legend">
-            <span><i class="dot public"></i>Công khai</span>
-            <span><i class="dot private"></i>Riêng tư</span>
-            <span><i class="line parent"></i>Cha/mẹ → con</span>
-            <span><i class="line partner"></i>Hôn phối</span>
-          </div>
-        </div>
-        <div class="canvas" id="canvas">
-          <svg class="edges" id="edges" aria-hidden="true"></svg>
-          <div id="nodes"></div>
-          <div class="empty-search" id="emptySearch" hidden>
-            Không có người phù hợp.
-          </div>
+          <span
+            class="status canvas-status"
+            id="saveStatus"
+            aria-live="polite"
+          ></span>
         </div>
       </section>
 
       <aside class="inspector">
         <section class="panel inspector-panel">
-          <p class="eyebrow">Inspector</p>
+          <div class="drawer-heading">
+            <div>
+              <p class="eyebrow">Gia phả</p>
+              <h2>Thông tin thành viên</h2>
+            </div>
+            <button class="button secondary" id="closeInspector" type="button">
+              Đóng
+            </button>
+          </div>
+
           <div id="inspectorEmpty">
-            <h2>Chưa chọn người</h2>
+            <h2>Chưa chọn thành viên</h2>
             <p class="muted">
-              Chọn một node trên cây để xem hồ sơ và thao tác quản trị.
+              Chọn một người trên sơ đồ để xem hồ sơ và các thao tác liên quan.
             </p>
           </div>
 
@@ -207,15 +171,33 @@
                 class="icon-button"
                 id="focusSelected"
                 type="button"
-                aria-label="Focus người"
+                aria-label="Đưa thành viên vào giữa"
               >
                 ◎
               </button>
             </div>
 
+            <div class="button-grid member-actions">
+              <button class="button primary" id="editPerson" type="button">
+                Sửa hồ sơ
+              </button>
+              <button class="button" id="addParent" type="button">
+                Thêm cha / mẹ
+              </button>
+              <button class="button" id="addChild" type="button">
+                Thêm con
+              </button>
+              <button class="button" id="addPartner" type="button">
+                Thêm hôn phối
+              </button>
+              <button class="button danger" id="archivePerson" type="button">
+                Lưu trữ
+              </button>
+            </div>
+
             <dl class="facts">
               <div>
-                <dt>ID demo</dt>
+                <dt>Mã hồ sơ</dt>
                 <dd id="personId"></dd>
               </div>
               <div>
@@ -230,86 +212,87 @@
 
             <p class="archive-impact" id="archiveImpact" hidden></p>
 
+            <div class="divider"></div>
+            <p class="eyebrow">Người thân &amp; nhánh</p>
             <div class="branch-actions">
               <button class="button secondary" id="toggleBranch" type="button">
                 Thu nhánh con
               </button>
               <button class="button secondary" id="clearFocus" type="button">
-                Bỏ focus
+                Bỏ chế độ tập trung
               </button>
             </div>
 
             <div class="divider"></div>
-
-            <p class="eyebrow">Quản trị bố cục</p>
-            <p class="muted">
-              Lock chỉ tồn tại trong phiên demo. Reset, auto-layout và layout
-              undo/redo chỉ thay đổi tọa độ trình bày.
-            </p>
-            <div class="branch-actions">
-              <button class="button secondary" id="layoutLock" type="button">
-                Khóa vị trí
-              </button>
-              <button
-                class="button secondary"
-                id="resetPersonLayout"
-                type="button"
-              >
-                Đặt lại vị trí
-              </button>
-              <button
-                class="button secondary"
-                id="resetBranchLayout"
-                type="button"
-              >
-                Đặt lại nhánh
-              </button>
-              <button
-                class="button secondary"
-                id="autoLayoutBranch"
-                type="button"
-              >
-                Tự sắp xếp nhánh
-              </button>
-              <button class="button secondary" id="layoutUndo" type="button">
-                Hoàn tác vị trí
-              </button>
-              <button class="button secondary" id="layoutRedo" type="button">
-                Làm lại vị trí
-              </button>
-            </div>
-
-            <div class="divider"></div>
-
-            <h3>Quan hệ trực tiếp</h3>
+            <h3>Quan hệ gia đình</h3>
             <div id="relationList" class="relation-list"></div>
 
             <div class="divider"></div>
-
             <section id="provenanceSection">
-              <p class="eyebrow">Notes & provenance</p>
+              <p class="eyebrow">Nguồn tư liệu</p>
               <p class="muted">
-                Claim chưa chắc chắn hoặc mâu thuẫn được giữ riêng, không tự sửa
-                dữ liệu canonical.
+                Lưu riêng nguồn và dẫn chứng để phân biệt dữ liệu đã xác nhận
+                với thông tin còn cần kiểm tra.
               </p>
               <p class="provenance-target">
                 Đang xem: <strong id="provenanceTarget"></strong>
               </p>
               <div class="branch-actions">
                 <button class="button secondary" id="addSource" type="button">
-                  + Nguồn
+                  Thêm nguồn
                 </button>
                 <button class="button secondary" id="addCitation" type="button">
-                  + Citation
+                  Thêm dẫn chứng
                 </button>
               </div>
 
               <h3>Nguồn đã dùng</h3>
               <div class="provenance-list" id="provenanceSources"></div>
 
-              <h3>Citations</h3>
+              <h3>Dẫn chứng</h3>
               <div class="provenance-list" id="provenanceCitations"></div>
             </section>
+
+            <div class="divider"></div>
+            <details class="drawer-section">
+              <summary>Sắp xếp sơ đồ</summary>
+              <p class="muted">
+                Các thao tác này chỉ đổi cách trình bày, không thay đổi quan hệ
+                gia đình.
+              </p>
+              <div class="branch-actions">
+                <button class="button secondary" id="layoutLock" type="button">
+                  Khóa vị trí
+                </button>
+                <button
+                  class="button secondary"
+                  id="resetPersonLayout"
+                  type="button"
+                >
+                  Đặt lại vị trí
+                </button>
+                <button
+                  class="button secondary"
+                  id="resetBranchLayout"
+                  type="button"
+                >
+                  Đặt lại nhánh
+                </button>
+                <button
+                  class="button secondary"
+                  id="autoLayoutBranch"
+                  type="button"
+                >
+                  Tự sắp xếp nhánh
+                </button>
+                <button class="button secondary" id="layoutUndo" type="button">
+                  Hoàn tác vị trí
+                </button>
+                <button class="button secondary" id="layoutRedo" type="button">
+                  Làm lại vị trí
+                </button>
+              </div>
+            </details>
           </div>
         </section>
       </aside>
@@ -319,7 +302,7 @@
       <form method="dialog" id="personForm" class="dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Person record</p>
+            <p class="eyebrow">Hồ sơ thành viên</p>
             <h2 id="dialogTitle">Thêm người</h2>
           </div>
           <button class="icon-button" value="cancel" aria-label="Đóng">
@@ -381,7 +364,7 @@
       <form method="dialog" id="relationshipForm" class="dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Relationship command</p>
+            <p class="eyebrow">Quan hệ gia đình</p>
             <h2 id="relationshipTitle">Thêm quan hệ</h2>
           </div>
           <button class="icon-button" value="cancel" aria-label="Đóng">
@@ -406,7 +389,7 @@
       <form method="dialog" id="sourceForm" class="dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Reusable source</p>
+            <p class="eyebrow">Nguồn tư liệu</p>
             <h2 id="sourceDialogTitle">Thêm nguồn tư liệu</h2>
           </div>
           <button class="icon-button" value="cancel" aria-label="Đóng">
@@ -458,23 +441,23 @@
       <form method="dialog" id="citationForm" class="dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Evidence citation</p>
-            <h2 id="citationDialogTitle">Thêm citation</h2>
+            <p class="eyebrow">Dẫn chứng nguồn</p>
+            <h2 id="citationDialogTitle">Thêm dẫn chứng</h2>
           </div>
           <button class="icon-button" value="cancel" aria-label="Đóng">
             ×
           </button>
         </div>
         <p class="muted">
-          Target: <strong id="citationTarget"></strong>. Claim này không tự thay
-          đổi năm sinh, năm mất hay quan hệ canonical.
+          Đang gắn cho: <strong id="citationTarget"></strong>. Dẫn chứng này
+          không tự thay đổi năm sinh, năm mất hay quan hệ hồ sơ chính.
         </p>
         <label class="field">
           <span>Nguồn tư liệu</span>
           <select id="citationSource" required></select>
         </label>
         <label class="field">
-          <span>Loại claim</span>
+          <span>Loại thông tin</span>
           <select id="citationKind">
             <option value="identity">Nhân thân</option>
             <option value="birth">Sinh</option>
@@ -487,7 +470,7 @@
           </select>
         </label>
         <label class="field">
-          <span>Nội dung claim</span>
+          <span>Nội dung dẫn chứng</span>
           <textarea id="citationClaim" maxlength="2000" required></textarea>
         </label>
         <label class="field">
@@ -535,7 +518,7 @@
         </label>
         <div class="dialog-actions">
           <button class="button secondary" value="cancel">Hủy</button>
-          <button class="button primary" value="default">Lưu citation</button>
+          <button class="button primary" value="default">Lưu dẫn chứng</button>
         </div>
       </form>
     </dialog>
@@ -544,43 +527,43 @@
       <div class="duplicate-dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Duplicate Detection & Merge Review</p>
-            <h2>Review trước, merge sau</h2>
+            <p class="eyebrow">Kiểm tra hồ sơ trùng</p>
+            <h2>Kiểm tra kỹ trước khi gộp</h2>
           </div>
           <form method="dialog">
             <button class="icon-button" aria-label="Đóng">×</button>
           </form>
         </div>
         <p class="muted">
-          Candidate chỉ là tín hiệu review. Không có auto-merge. Target giữ toàn
-          bộ canonical profile fields.
+          Danh sách này chỉ là gợi ý cần kiểm tra. Hệ thống không tự gộp và hồ
+          sơ được giữ lại sẽ không bị ghi đè.
         </p>
 
         <div class="duplicate-layout">
           <section>
-            <h3>Candidate list</h3>
+            <h3>Hồ sơ nghi trùng</h3>
             <div id="duplicateCandidateList" class="duplicate-candidates"></div>
           </section>
 
           <section id="duplicateReview" hidden>
             <div class="duplicate-review-toolbar">
-              <p class="eyebrow">Side-by-side review</p>
+              <p class="eyebrow">So sánh hai hồ sơ</p>
               <button
                 class="button secondary"
                 id="swapDuplicatePair"
                 type="button"
               >
-                Đổi Target ↔ Source
+                Đổi hồ sơ giữ lại
               </button>
             </div>
 
             <div class="duplicate-profile-grid">
               <article class="duplicate-profile target">
-                <strong>TARGET · giữ lại</strong>
+                <strong>HỒ SƠ GIỮ LẠI</strong>
                 <p id="duplicateTarget"></p>
               </article>
               <article class="duplicate-profile source">
-                <strong>SOURCE · sẽ lưu trữ</strong>
+                <strong>HỒ SƠ SẼ GỘP</strong>
                 <p id="duplicateSource"></p>
               </article>
             </div>
@@ -588,15 +571,15 @@
             <p class="archive-impact" id="duplicateCitationImpact"></p>
             <p class="duplicate-blockers" id="duplicateBlockers"></p>
 
-            <h3>Migration preview</h3>
+            <h3>Xem trước thay đổi</h3>
             <ul class="duplicate-impact-list" id="duplicateImpactList"></ul>
 
             <label class="field">
-              <span>Nhập chính xác MERGE để xác nhận</span>
+              <span>Nhập chính xác GỘP để xác nhận</span>
               <input
                 id="duplicateConfirmation"
                 autocomplete="off"
-                placeholder="MERGE"
+                placeholder="GỘP"
               />
             </label>
             <button
@@ -605,7 +588,7 @@
               id="executeDuplicateMerge"
               type="button"
             >
-              Thực thi merge synthetic
+              Gộp hai hồ sơ
             </button>
           </section>
         </div>
@@ -616,16 +599,16 @@
       <div class="quality-dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Step 9 · Review-only</p>
-            <h2>Data-quality dashboard</h2>
+            <p class="eyebrow">Kiểm tra dữ liệu</p>
+            <h2>Kiểm tra chất lượng dữ liệu</h2>
           </div>
           <form method="dialog">
             <button class="icon-button" aria-label="Đóng">×</button>
           </form>
         </div>
         <p class="muted">
-          Các mục dưới đây chỉ là tín hiệu cần kiểm tra. Preview không có
-          auto-fix và không tự sửa dữ liệu gia phả.
+          Các mục dưới đây chỉ là dấu hiệu cần kiểm tra. Màn hình này không tự
+          sửa hoặc suy diễn dữ liệu gia phả.
         </p>
 
         <div class="quality-summary">
@@ -640,7 +623,7 @@
 
         <div class="quality-filters">
           <label class="field compact-field">
-            <span>Severity</span>
+            <span>Mức độ</span>
             <select id="qualitySeverityFilter">
               <option value="all">Tất cả</option>
               <option value="error">Lỗi</option>
@@ -654,14 +637,14 @@
               <option value="all">Tất cả</option>
               <option value="missing_parents">Thiếu cha/mẹ</option>
               <option value="missing_birth_year">Thiếu năm sinh</option>
-              <option value="chronology">Chronology</option>
-              <option value="duplicate_candidate">Duplicate candidate</option>
+              <option value="chronology">Mốc thời gian</option>
+              <option value="duplicate_candidate">Hồ sơ nghi trùng</option>
               <option value="isolated_person">Hồ sơ cô lập</option>
               <option value="living_public_exposure">
-                Living-public exposure
+                Người còn sống đang công khai
               </option>
               <option value="relationship_missing_provenance">
-                Quan hệ thiếu provenance
+                Quan hệ thiếu nguồn tư liệu
               </option>
             </select>
           </label>
@@ -675,33 +658,33 @@
       <div class="quality-dialog-card">
         <div class="dialog-heading">
           <div>
-            <p class="eyebrow">Step 10 · Controlled bulk utilities</p>
-            <h2>Import preview, backup & batch visibility</h2>
+            <p class="eyebrow">Quản lý dữ liệu</p>
+            <h2>Dữ liệu &amp; sao lưu</h2>
           </div>
           <form method="dialog">
             <button class="icon-button" aria-label="Đóng">×</button>
           </form>
         </div>
         <p class="muted">
-          Import chỉ preview. Batch chỉ tác động dữ liệu synthetic sau impact
-          review và xác nhận APPLY.
+          Bản demo chỉ kiểm tra tệp trước khi nhập. Thay đổi hàng loạt cần xem
+          trước ảnh hưởng và xác nhận thủ công.
         </p>
 
         <div class="bulk-preview-grid">
           <section class="bulk-card">
-            <h3>Backup synthetic</h3>
+            <h3>Tạo bản sao lưu</h3>
             <p class="muted">
-              Xuất snapshot people, relationships, layout và provenance.
+              Xuất hồ sơ, quan hệ, bố cục, nguồn tư liệu và lịch sử thay đổi.
             </p>
             <button class="button secondary" id="bulkExport" type="button">
-              Tải backup JSON
+              Tải bản sao lưu JSON
             </button>
           </section>
 
           <section class="bulk-card">
-            <h3>Structured import preview</h3>
+            <h3>Kiểm tra tệp sao lưu</h3>
             <label class="field">
-              <span>Dán backup JSON</span>
+              <span>Dán nội dung tệp JSON</span>
               <textarea
                 id="bulkImportText"
                 rows="7"
@@ -713,7 +696,7 @@
               id="bulkPreviewImport"
               type="button"
             >
-              Validate preview
+              Kiểm tra tệp
             </button>
             <p class="bulk-result muted" id="bulkImportResult"></p>
           </section>
@@ -722,9 +705,10 @@
         <section class="bulk-card bulk-visibility-card">
           <div class="duplicate-review-toolbar">
             <div>
-              <h3>Batch visibility synthetic</h3>
+              <h3>Đổi quyền hiển thị hàng loạt</h3>
               <p class="muted">
-                Chọn active/unmerged records rồi review impact trước khi APPLY.
+                Chọn các hồ sơ đang sử dụng, xem trước ảnh hưởng rồi xác nhận
+                thay đổi.
               </p>
             </div>
             <button class="button secondary" id="bulkSelectAll" type="button">
@@ -735,7 +719,7 @@
           <div class="bulk-person-list" id="bulkPersonList"></div>
 
           <label class="field">
-            <span>Visibility sau batch</span>
+            <span>Quyền hiển thị sau thay đổi</span>
             <select id="bulkVisibility">
               <option value="private">Riêng tư</option>
               <option value="public">Công khai</option>
@@ -751,17 +735,17 @@
             </div>
             <div>
               <strong id="bulkLivingPublicCount">0</strong>
-              <span>Living-public</span>
+              <span>Có thể còn sống &amp; công khai</span>
             </div>
           </div>
 
           <p class="archive-impact" id="bulkImpactMessage"></p>
           <label class="field">
-            <span>Nhập chính xác APPLY để xác nhận</span>
+            <span>Nhập XÁC NHẬN để xác nhận</span>
             <input
               id="bulkConfirmation"
               autocomplete="off"
-              placeholder="APPLY"
+              placeholder="XÁC NHẬN"
             />
           </label>
           <button
@@ -770,7 +754,7 @@
             id="bulkExecuteVisibility"
             type="button"
           >
-            Áp dụng batch synthetic
+            Áp dụng thay đổi
           </button>
         </section>
       </div>
@@ -787,7 +771,7 @@
             Đi tới
           </button>
           <button class="link-button relation-provenance" type="button">
-            Provenance
+            Nguồn tư liệu
           </button>
           <button class="link-danger relation-remove" type="button">
             Xóa quan hệ

@@ -1,7 +1,14 @@
+/**
+ * AUDIT_HISTORY_PANEL
+ *
+ * Purpose: Presents recent genealogy changes and safe undo actions in family-friendly Vietnamese.
+ * Connections: Audit server actions, optimistic revisions, and the authenticated admin workspace.
+ * Risk: Medium because undo can write inverse mutations when database safeguards allow it.
+ */
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { type UndoAuditResult } from "@/app/admin/tree/audit-actions";
 import { Button } from "@/components/ui/button";
@@ -11,6 +18,21 @@ type AuditHistoryPanelProps = {
   audits: MutationAuditRecord[];
   loadError: string | null;
   undoMutation: (input: { auditId: string }) => Promise<UndoAuditResult>;
+};
+
+function closeAdminToolsDisclosure() {
+  document
+    .querySelector<HTMLDetailsElement>("[data-admin-tools]")
+    ?.removeAttribute("open");
+}
+
+const ENTITY_LABELS: Record<string, string> = {
+  people: "Thành viên",
+  relationships: "Quan hệ",
+  person_layouts: "Bố cục",
+  genealogy_sources: "Nguồn tư liệu",
+  genealogy_citations: "Dẫn chứng",
+  person_merge_audits: "Gộp hồ sơ",
 };
 
 const COMMAND_LABELS: Record<string, string> = {
@@ -24,12 +46,12 @@ const COMMAND_LABELS: Record<string, string> = {
   create_layout: "Tạo vị trí",
   save_layout: "Sửa vị trí",
   remove_layout: "Xóa vị trí",
-  create_provenance_source: "Thêm nguồn",
-  update_provenance_source: "Sửa nguồn",
-  create_provenance_citation: "Thêm citation",
-  update_provenance_citation: "Sửa citation",
-  remove_provenance_citation: "Xóa citation",
-  merge_person_source_archive: "Merge duplicate",
+  create_provenance_source: "Thêm nguồn tư liệu",
+  update_provenance_source: "Sửa nguồn tư liệu",
+  create_provenance_citation: "Thêm dẫn chứng",
+  update_provenance_citation: "Sửa dẫn chứng",
+  remove_provenance_citation: "Xóa dẫn chứng",
+  merge_person_source_archive: "Gộp hồ sơ trùng",
 };
 
 function commandLabel(command: string) {
@@ -56,6 +78,91 @@ function canUndo(audit: MutationAuditRecord) {
   return audit.undoable && audit.undoneByAuditId === null;
 }
 
+function auditEntityLabel(entityTable: string) {
+  return ENTITY_LABELS[entityTable] ?? "Dữ liệu";
+}
+
+function auditRevisionLabel(value: number | null) {
+  return value ?? "∅";
+}
+
+function auditActorLabel(actorUserId: string | null) {
+  if (!actorUserId) return " · hệ thống";
+  return " · người thực hiện " + shortId(actorUserId);
+}
+
+function auditStatusLabel(audit: MutationAuditRecord) {
+  if (audit.undoneByAuditId) return "Đã hoàn tác";
+  return "Không thể hoàn tác tự động";
+}
+
+function AuditUndoControl({
+  audit,
+  onUndo,
+  pendingAuditId,
+}: {
+  audit: MutationAuditRecord;
+  onUndo: (audit: MutationAuditRecord) => void;
+  pendingAuditId: string | null;
+}) {
+  if (!canUndo(audit)) {
+    return (
+      <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+        {auditStatusLabel(audit)}
+      </span>
+    );
+  }
+
+  return (
+    <Button
+      disabled={pendingAuditId !== null}
+      onClick={() => onUndo(audit)}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      {pendingAuditId === audit.id ? "Đang hoàn tác…" : "Hoàn tác"}
+    </Button>
+  );
+}
+
+function AuditEntry({
+  audit,
+  onUndo,
+  pendingAuditId,
+}: {
+  audit: MutationAuditRecord;
+  onUndo: (audit: MutationAuditRecord) => void;
+  pendingAuditId: string | null;
+}) {
+  return (
+    <article className="rounded-md border border-border bg-background p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-card-foreground">
+            {commandLabel(audit.command)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {auditEntityLabel(audit.entityTable)} ·{" "}
+            {formatTimestamp(audit.createdAt)}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Phiên bản {auditRevisionLabel(audit.beforeRevision)} →{" "}
+            {auditRevisionLabel(audit.afterRevision)}
+            {auditActorLabel(audit.actorUserId)}
+          </p>
+        </div>
+
+        <AuditUndoControl
+          audit={audit}
+          onUndo={onUndo}
+          pendingAuditId={pendingAuditId}
+        />
+      </div>
+    </article>
+  );
+}
+
 export function AuditHistoryPanel({
   audits,
   loadError,
@@ -66,9 +173,22 @@ export function AuditHistoryPanel({
   const [pendingAuditId, setPendingAuditId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      closeAdminToolsDisclosure();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   async function handleUndo(audit: MutationAuditRecord) {
     const confirmed = window.confirm(
-      "Hoàn tác mutation này theo snapshot đã audit? Hệ thống vẫn kiểm tra revision và các ràng buộc hiện tại trước khi ghi.",
+      "Hoàn tác thay đổi này? Hệ thống sẽ kiểm tra phiên bản dữ liệu và các ràng buộc an toàn trước khi ghi.",
     );
     if (!confirmed) return;
 
@@ -82,105 +202,85 @@ export function AuditHistoryPanel({
       return;
     }
 
-    setMessage("Đã hoàn tác và ghi một audit entry mới.");
+    setMessage("Đã hoàn tác và ghi lại thao tác trong lịch sử.");
     router.refresh();
   }
 
   return (
-    <div className="relative">
-      <Button onClick={() => setOpen((current) => !current)} variant="outline">
+    <>
+      <Button
+        className="w-full justify-start"
+        onClick={() => setOpen(true)}
+        variant="outline"
+      >
         Lịch sử thay đổi
       </Button>
 
       {open ? (
-        <section className="absolute right-0 top-12 z-50 w-[min(92vw,42rem)] rounded-2xl border border-border bg-card p-4 shadow-xl">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                Audit log
-              </p>
-              <h2 className="font-display mt-1 text-2xl text-card-foreground">
-                Thay đổi gần đây
-              </h2>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Undo chỉ xuất hiện khi database có inverse an toàn. Merge
-                duplicate không tự động undo.
-              </p>
+        <div
+          aria-label="Lịch sử thay đổi"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
+          onMouseDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setOpen(false);
+            closeAdminToolsDisclosure();
+          }}
+          role="dialog"
+        >
+          <section className="w-full max-w-3xl rounded-md border border-border bg-card p-5 shadow-lg">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl text-card-foreground">
+                  Thay đổi gần đây
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Chỉ những thay đổi có thể khôi phục an toàn mới có nút hoàn
+                  tác. Việc gộp hồ sơ không thể tự động hoàn tác.
+                </p>
+              </div>
+              <Button
+                autoFocus
+                onClick={() => {
+                  setOpen(false);
+                  closeAdminToolsDisclosure();
+                }}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Đóng
+              </Button>
             </div>
-            <Button
-              onClick={() => setOpen(false)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              Đóng
-            </Button>
-          </div>
 
-          {loadError ? (
-            <p className="mt-3 text-sm text-destructive">{loadError}</p>
-          ) : null}
-          {message ? (
-            <p aria-live="polite" className="mt-3 text-sm text-primary">
-              {message}
-            </p>
-          ) : null}
-
-          <div className="mt-4 max-h-[65vh] space-y-2 overflow-y-auto pr-1">
-            {audits.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Chưa có mutation audit.
+            {loadError ? (
+              <p className="mt-3 text-sm text-destructive">{loadError}</p>
+            ) : null}
+            {message ? (
+              <p aria-live="polite" className="mt-3 text-sm text-primary">
+                {message}
               </p>
-            ) : (
-              audits.map((audit) => (
-                <article
-                  className="rounded-xl border border-border bg-background p-3"
-                  key={audit.id}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-card-foreground">
-                        {commandLabel(audit.command)}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {audit.entityTable} · {shortId(audit.entityId)} ·{" "}
-                        {formatTimestamp(audit.createdAt)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        revision {audit.beforeRevision ?? "∅"} →{" "}
-                        {audit.afterRevision ?? "∅"}
-                        {audit.actorUserId
-                          ? " · actor " + shortId(audit.actorUserId)
-                          : " · actor system"}
-                      </p>
-                    </div>
+            ) : null}
 
-                    {canUndo(audit) ? (
-                      <Button
-                        disabled={pendingAuditId !== null}
-                        onClick={() => void handleUndo(audit)}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        {pendingAuditId === audit.id
-                          ? "Đang hoàn tác…"
-                          : "Hoàn tác"}
-                      </Button>
-                    ) : (
-                      <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
-                        {audit.undoneByAuditId
-                          ? "Đã hoàn tác"
-                          : "Không auto-undo"}
-                      </span>
-                    )}
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-        </section>
+            <div className="mt-4 max-h-[65vh] space-y-2 overflow-y-auto pr-1">
+              {audits.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Chưa có thay đổi nào được ghi nhận.
+                </p>
+              ) : (
+                audits.map((audit) => (
+                  <AuditEntry
+                    audit={audit}
+                    key={audit.id}
+                    onUndo={(entry) => void handleUndo(entry)}
+                    pendingAuditId={pendingAuditId}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+        </div>
       ) : null}
-    </div>
+    </>
   );
 }

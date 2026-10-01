@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   batchSetPeopleVisibility,
@@ -14,6 +14,12 @@ import {
   type ImportPreview,
   previewStructuredImport,
 } from "@/features/tree/bulk-utils";
+
+function closeAdminToolsDisclosure() {
+  document
+    .querySelector<HTMLDetailsElement>("[data-admin-tools]")
+    ?.removeAttribute("open");
+}
 
 function downloadBackup(backup: Record<string, unknown>) {
   const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -40,22 +46,22 @@ function ImportPreviewSummary({
   if (!preview) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        Chọn JSON backup để kiểm tra cấu trúc và tham chiếu. Step 10 chỉ
-        preview; không có thao tác import ghi dữ liệu.
+        Chọn tệp sao lưu JSON để kiểm tra cấu trúc và liên kết. Thao tác này chỉ
+        xem trước và không ghi dữ liệu.
       </p>
     );
   }
 
   return (
-    <div className="grid gap-3 rounded-2xl border border-border bg-background p-4">
+    <div className="grid gap-3 rounded-lg border border-border bg-background p-4">
       <div>
         <p className="text-sm font-semibold text-card-foreground">
-          {fileName ?? "Import preview"}
+          {fileName ?? "Xem trước tệp dữ liệu"}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           {preview.counts.people} người · {preview.counts.relationships} quan hệ
-          · {preview.counts.layouts} layout · {preview.counts.sources} nguồn ·{" "}
-          {preview.counts.citations} citation
+          · {preview.counts.layouts} bố cục · {preview.counts.sources} nguồn ·{" "}
+          {preview.counts.citations} dẫn chứng
         </p>
       </div>
 
@@ -67,8 +73,8 @@ function ImportPreviewSummary({
         }
       >
         {preview.ok
-          ? "Cấu trúc vượt qua validation preview."
-          : "Import preview đang có blocker."}
+          ? "Cấu trúc tệp hợp lệ để xem trước."
+          : "Tệp còn lỗi cần xử lý trước khi sử dụng."}
       </p>
 
       {preview.errors.length > 0 ? (
@@ -102,16 +108,16 @@ function BulkPersonList({
   if (people.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Không có hồ sơ active chưa merge.
+        Không có hồ sơ đang sử dụng nào có thể chọn.
       </p>
     );
   }
 
   return (
-    <div className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-border bg-background p-3">
+    <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-border bg-background p-3">
       {people.map((person) => (
         <label
-          className="flex cursor-pointer items-center gap-3 rounded-xl p-2 hover:bg-muted/40"
+          className="flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-muted/40"
           key={person.id}
         >
           <input
@@ -124,13 +130,14 @@ function BulkPersonList({
               {person.displayName}
             </strong>
             <span className="text-xs text-muted-foreground">
-              {person.visibility === "public" ? "Công khai" : "Riêng tư"} · rev{" "}
+              {person.visibility === "public" ? "Công khai" : "Riêng tư"}
+              {" · phiên bản "}
               {person.revision}
             </span>
           </span>
           {person.deathYear === null ? (
             <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground">
-              living heuristic
+              Có thể còn sống
             </span>
           ) : null}
         </label>
@@ -146,21 +153,23 @@ function VisibilityImpactSummary({
 }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.selectedCount}</strong>
         <p className="text-xs text-muted-foreground">đã chọn</p>
       </div>
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.changingCount}</strong>
         <p className="text-xs text-muted-foreground">sẽ đổi</p>
       </div>
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.unchangedCount}</strong>
         <p className="text-xs text-muted-foreground">không đổi</p>
       </div>
-      <div className="rounded-xl border border-border bg-background p-3">
+      <div className="rounded-md border border-border bg-background p-3">
         <strong className="text-lg">{impact.livingPublicAfterCount}</strong>
-        <p className="text-xs text-muted-foreground">living-public sau batch</p>
+        <p className="text-xs text-muted-foreground">
+          có thể còn sống và công khai
+        </p>
       </div>
     </div>
   );
@@ -187,6 +196,24 @@ export function BulkUtilitiesPanel() {
   const [importFileName, setImportFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      setSelectedIds(new Set());
+      setConfirmation("");
+      setImportPreview(null);
+      setImportFileName(null);
+      setMessage(null);
+      closeAdminToolsDisclosure();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
 
   const impact = useMemo(
     () => buildVisibilityImpact(people, selectedIds, visibility),
@@ -239,7 +266,7 @@ export function BulkUtilitiesPanel() {
     }
 
     downloadBackup(result.backup);
-    setMessage("Backup JSON đã được tạo từ snapshot hiện tại.");
+    setMessage("Đã tạo tệp sao lưu JSON từ dữ liệu hiện tại.");
   }
 
   async function previewImportFile(file: File | null) {
@@ -277,41 +304,55 @@ export function BulkUtilitiesPanel() {
     setMessage(
       "Đã cập nhật " +
         result.revisions.length +
-        " hồ sơ. Mỗi update được audit riêng.",
+        " hồ sơ. Mỗi thay đổi đều được ghi vào lịch sử.",
     );
   }
 
   return (
     <>
       <Button onClick={() => void openPanel()} type="button" variant="outline">
-        Bulk & backup
+        Dữ liệu & sao lưu
       </Button>
 
       {open ? (
         <div
-          aria-label="Bulk utilities and backup"
+          aria-label="Dữ liệu và sao lưu"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
+          onMouseDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setOpen(false);
+            closeAdminToolsDisclosure();
+          }}
           role="dialog"
         >
-          <section className="w-full max-w-5xl rounded-3xl border border-border bg-card p-5 shadow-xl sm:p-6">
+          <section className="w-full max-w-5xl rounded-md border border-border bg-card p-5 shadow-lg sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  Step 10 · controlled utilities
+                <p className="text-xs font-medium text-muted-foreground">
+                  Công cụ quản trị dữ liệu
                 </p>
-                <h2 className="font-display mt-1 text-3xl text-card-foreground">
-                  Bulk utilities & backup
+                <h2 className="font-display mt-1 text-2xl text-card-foreground">
+                  Dữ liệu & sao lưu
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  Import chỉ preview. Backup chỉ export. Batch visibility cần
-                  impact review, optimistic revision và xác nhận thủ công.
+                  Tệp nhập chỉ được kiểm tra trước, chưa ghi dữ liệu. Bản sao
+                  lưu chỉ tải xuống. Thay đổi hàng loạt luôn cần xem trước ảnh
+                  hưởng và xác nhận thủ công.
                 </p>
               </div>
               <Button
-                aria-label="Đóng Bulk utilities & backup"
+                aria-label="Đóng công cụ dữ liệu và sao lưu"
                 autoFocus
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  setSelectedIds(new Set());
+                  setConfirmation("");
+                  setImportPreview(null);
+                  setImportFileName(null);
+                  setMessage(null);
+                  closeAdminToolsDisclosure();
+                }}
                 type="button"
                 variant="ghost"
               >
@@ -320,15 +361,15 @@ export function BulkUtilitiesPanel() {
             </div>
 
             <div className="mt-6 grid gap-6">
-              <section className="grid gap-3 rounded-2xl border border-border p-4">
+              <section className="grid gap-3 rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-card-foreground">
-                      Export / backup
+                      Tạo bản sao lưu
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Xuất people, relationships, layouts, provenance và audit
-                      history thành một JSON snapshot.
+                      Tải xuống bản sao gồm thành viên, quan hệ, bố cục, nguồn
+                      tư liệu và lịch sử thay đổi dưới dạng tệp JSON.
                     </p>
                   </div>
                   <Button
@@ -337,23 +378,23 @@ export function BulkUtilitiesPanel() {
                     type="button"
                     variant="outline"
                   >
-                    Tải backup JSON
+                    Tải bản sao lưu JSON
                   </Button>
                 </div>
               </section>
 
-              <section className="grid gap-3 rounded-2xl border border-border p-4">
+              <section className="grid gap-3 rounded-lg border border-border p-4">
                 <div>
                   <h3 className="font-semibold text-card-foreground">
-                    Structured import preview
+                    Kiểm tra tệp sao lưu
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Validate cấu trúc, ID và tham chiếu trước khi một import
-                    write workflow được thiết kế ở tương lai.
+                    Kiểm tra cấu trúc và liên kết dữ liệu trước khi sử dụng tệp.
+                    Hiện tại thao tác này không ghi dữ liệu vào gia phả.
                   </p>
                 </div>
                 <label className="text-xs font-medium text-muted-foreground">
-                  Backup JSON
+                  Tệp sao lưu JSON
                   <input
                     accept=".json,application/json"
                     className="mt-2 block w-full text-sm"
@@ -369,14 +410,14 @@ export function BulkUtilitiesPanel() {
                 />
               </section>
 
-              <section className="grid gap-4 rounded-2xl border border-border p-4">
+              <section className="grid gap-4 rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-card-foreground">
-                      Batch visibility
+                      Đổi quyền hiển thị nhiều hồ sơ
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Tối đa 500 active/unmerged hồ sơ mỗi transaction.
+                      Tối đa 500 hồ sơ đang sử dụng trong một lần thao tác.
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -396,7 +437,7 @@ export function BulkUtilitiesPanel() {
                       type="button"
                       variant="outline"
                     >
-                      Refresh
+                      Tải lại
                     </Button>
                   </div>
                 </div>
@@ -408,9 +449,9 @@ export function BulkUtilitiesPanel() {
                 />
 
                 <label className="text-xs font-medium text-muted-foreground">
-                  Visibility sau batch
+                  Quyền hiển thị sau khi đổi
                   <select
-                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
                     onChange={(event) => {
                       setVisibility(event.target.value as "public" | "private");
                       setConfirmation("");
@@ -425,19 +466,19 @@ export function BulkUtilitiesPanel() {
                 <VisibilityImpactSummary impact={impact} />
 
                 {impact.livingPublicAfterCount > 0 ? (
-                  <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
-                    Batch này sẽ để {impact.livingPublicAfterCount} hồ sơ được
-                    heuristic hiện tại xem là còn sống ở trạng thái public. Hãy
-                    review trước khi xác nhận.
+                  <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">
+                    Thao tác này sẽ để {impact.livingPublicAfterCount} hồ sơ có
+                    thể là người còn sống ở trạng thái công khai. Hãy kiểm tra
+                    kỹ trước khi xác nhận.
                   </p>
                 ) : null}
 
                 <label className="text-xs font-medium text-muted-foreground">
-                  Nhập chính xác APPLY để thực thi
+                  Nhập chính xác XÁC NHẬN để thực hiện
                   <input
-                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
                     onChange={(event) => setConfirmation(event.target.value)}
-                    placeholder="APPLY"
+                    placeholder="XÁC NHẬN"
                     value={confirmation}
                   />
                 </label>
@@ -445,13 +486,13 @@ export function BulkUtilitiesPanel() {
                 <Button
                   disabled={
                     busy ||
-                    confirmation !== "APPLY" ||
+                    confirmation !== "XÁC NHẬN" ||
                     impact.changingCount === 0
                   }
                   onClick={() => void applyVisibilityBatch()}
                   type="button"
                 >
-                  Áp dụng batch visibility
+                  Áp dụng thay đổi
                 </Button>
               </section>
 

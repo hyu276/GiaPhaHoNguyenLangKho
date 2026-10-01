@@ -17,7 +17,7 @@ const initialState = {
     {
       id: "P002",
       name: "Nguyễn Thị An",
-      description: "Hồ sơ synthetic dùng để thử chỉnh sửa mô tả và visibility.",
+      description: "Hồ sơ mẫu dùng để duyệt giao diện quản trị.",
       birth: 1908,
       death: 1987,
       sex: "female",
@@ -53,7 +53,8 @@ const initialState = {
     {
       id: "P005",
       name: "Nguyễn Văn Cường",
-      description: "Bản ghi synthetic phục vụ kiểm thử Person CRUD.",
+      description:
+        "Hồ sơ mẫu phục vụ việc duyệt thao tác thêm và sửa thành viên.",
       birth: 1958,
       death: null,
       sex: "male",
@@ -78,7 +79,7 @@ const initialState = {
       id: "P007",
       name: "Nguyễn Văn Cường",
       description:
-        "Hồ sơ duplicate synthetic: cùng tên và năm sinh với P005 để review merge.",
+        "Hồ sơ mẫu có tên và năm sinh trùng để minh họa quy trình kiểm tra.",
       birth: 1958,
       death: null,
       sex: "male",
@@ -104,7 +105,7 @@ const initialState = {
       id: "S001",
       title: "Gia phả chi họ Nguyễn",
       sourceType: "family_book",
-      repositoryName: "Bản synthetic dùng cho preview",
+      repositoryName: "Bản mẫu dùng cho xem trước",
       referenceCode: "GP-DEMO-01",
       sourceUrl: null,
     },
@@ -112,7 +113,7 @@ const initialState = {
       id: "S002",
       title: "Ghi chép khẩu thuật của gia đình",
       sourceType: "oral_history",
-      repositoryName: "Phỏng vấn synthetic",
+      repositoryName: "Phỏng vấn gia đình mẫu",
       referenceCode: "OH-DEMO-02",
       sourceUrl: null,
     },
@@ -139,7 +140,7 @@ const initialState = {
       claimKind: "birth",
       claimText: "Khẩu thuật gia đình nhớ năm sinh có thể là 1904.",
       citationLocator: "đoạn 12:30",
-      note: "Cố ý mâu thuẫn với C001 để minh họa conflicting claims.",
+      note: "Thông tin mẫu có chủ ý khác với dẫn chứng trước để minh họa cách lưu ý kiến chưa thống nhất.",
       certainty: "possible",
       dateText: "1904",
       dateQualifier: "about",
@@ -163,9 +164,9 @@ const initialState = {
       personId: "P007",
       relationshipId: null,
       claimKind: "identity",
-      claimText: "Hồ sơ duplicate synthetic cần review trước khi merge.",
-      citationLocator: "demo duplicate",
-      note: "Citation này sẽ migrate sang target khi merge.",
+      claimText: "Hồ sơ mẫu này cần được kiểm tra trước khi gộp.",
+      citationLocator: "mục minh họa hồ sơ trùng",
+      note: "Dẫn chứng này sẽ được chuyển sang hồ sơ giữ lại khi gộp.",
       certainty: "possible",
       dateText: null,
       dateQualifier: null,
@@ -176,9 +177,9 @@ const initialState = {
       personId: null,
       relationshipId: "R008",
       claimKind: "relationship",
-      claimText: "Citation synthetic trên cạnh duplicate partnership.",
-      citationLocator: "demo edge",
-      note: "Citation sẽ chuyển sang R007 khi deduplicate.",
+      claimText: "Dẫn chứng mẫu cho quan hệ hôn phối bị trùng.",
+      citationLocator: "mục minh họa quan hệ",
+      note: "Dẫn chứng sẽ được chuyển sang quan hệ được giữ lại.",
       certainty: "probable",
       dateText: null,
       dateQualifier: null,
@@ -265,11 +266,11 @@ function loadState() {
   }
 }
 
-function persistState(message = "Đã lưu demo trong trình duyệt") {
+function persistState(message = "Đã lưu thay đổi trong bản xem trước") {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   saveStatus.textContent = message;
   window.setTimeout(() => {
-    saveStatus.textContent = "Demo local · chưa kết nối Supabase";
+    saveStatus.textContent = "";
   }, 1500);
 }
 
@@ -559,15 +560,11 @@ function getNodeClassName(person) {
 }
 
 function createVisibilityBadge(person) {
+  if (person.visibility !== "private") return null;
+
   const badge = document.createElement("span");
-  badge.className = [
-    "node-badge",
-    person.visibility === "private" ? "private" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  badge.textContent =
-    person.visibility === "private" ? "Riêng tư" : "Công khai";
+  badge.className = "node-badge private";
+  badge.textContent = "Riêng tư";
   return badge;
 }
 
@@ -605,7 +602,8 @@ function createPersonNode(person) {
 
   const badges = document.createElement("span");
   badges.className = "node-badges";
-  badges.appendChild(createVisibilityBadge(person));
+  const visibilityBadge = createVisibilityBadge(person);
+  if (visibilityBadge) badges.appendChild(visibilityBadge);
   appendArchivedBadge(badges, person);
   appendLockedBadge(badges, person);
 
@@ -633,14 +631,17 @@ function renderNodes() {
 
 function renderInspector() {
   const person = getPerson(selectedId);
+  const inspector = document.querySelector(".inspector");
+  inspector.hidden = !person;
   document.querySelector("#inspectorEmpty").hidden = Boolean(person);
   document.querySelector("#inspectorContent").hidden = !person;
 
   if (!person) return;
 
   const pill = document.querySelector("#privacyPill");
-  pill.textContent = person.visibility === "private" ? "Riêng tư" : "Công khai";
-  pill.classList.toggle("private", person.visibility === "private");
+  pill.hidden = person.visibility !== "private";
+  pill.textContent = "Riêng tư";
+  pill.classList.add("private");
   document.querySelector("#personName").textContent = person.name;
   document.querySelector("#personYears").textContent = formatYears(person);
   document.querySelector("#personDescription").textContent =
@@ -792,7 +793,7 @@ function renderCitationCards(citations) {
   if (!citations.length) {
     const empty = document.createElement("p");
     empty.className = "muted";
-    empty.textContent = "Chưa có citation cho mục đang chọn.";
+    empty.textContent = "Chưa có dẫn chứng cho mục đang chọn.";
     list.appendChild(empty);
     return;
   }
@@ -841,12 +842,12 @@ function renderCitationCards(citations) {
     const edit = document.createElement("button");
     edit.className = "link-button";
     edit.type = "button";
-    edit.textContent = "Sửa citation";
+    edit.textContent = "Sửa dẫn chứng";
     edit.addEventListener("click", () => openCitationDialog(citation.id));
     const remove = document.createElement("button");
     remove.className = "link-danger";
     remove.type = "button";
-    remove.textContent = "Xóa citation";
+    remove.textContent = "Xóa dẫn chứng";
     remove.addEventListener("click", () => removeCitation(citation.id));
     actions.append(edit, remove);
     card.appendChild(actions);
@@ -887,7 +888,7 @@ function renderArchiveImpact(selectedPerson, selectedArchived) {
   impact.hidden = false;
   impact.textContent = selectedArchived
     ? `Hồ sơ đang lưu trữ. ${connected} quan hệ và vị trí vẫn được giữ nguyên.`
-    : `Impact preview: ${connected} quan hệ trực tiếp và vị trí sẽ được giữ nguyên khi lưu trữ.`;
+    : `Khi lưu trữ, ${connected} quan hệ trực tiếp và vị trí trên sơ đồ vẫn được giữ nguyên.`;
 }
 
 function renderPrimarySelectionControls(
@@ -954,7 +955,7 @@ function render() {
 
   const selectedPerson = getPerson(selectedId);
   const selectedArchived = renderSelectionControls(selectedPerson);
-  filterStatus.textContent = `${visiblePeople().length} người phù hợp`;
+  filterStatus.textContent = `${visiblePeople().length} thành viên`;
 
   renderArchiveImpact(selectedPerson, selectedArchived);
 }
@@ -1263,7 +1264,7 @@ function getRelationshipRemovalBlockReason(relation) {
     (citation) => citation.relationshipId === relation.id,
   );
   if (hasCitations) {
-    return "Quan hệ này đang có citation. Hãy xóa/review citation trước để không làm mất provenance.";
+    return "Quan hệ này đang có dẫn chứng. Hãy kiểm tra hoặc xóa dẫn chứng trước để tránh mất nguồn tư liệu.";
   }
 
   const source = getPerson(relation.source);
@@ -1478,7 +1479,7 @@ function getCitationDialogValues(citation) {
       dateQualifier: citation.dateQualifier || "",
       dateText: citation.dateText || "",
       note: citation.note || "",
-      heading: "Sửa citation",
+      heading: "Sửa dẫn chứng",
     };
   }
 
@@ -1492,7 +1493,7 @@ function getCitationDialogValues(citation) {
     dateQualifier: "",
     dateText: "",
     note: "",
-    heading: "Thêm citation",
+    heading: "Thêm dẫn chứng",
   };
 }
 
@@ -1572,19 +1573,21 @@ function saveCitationFromDialog() {
   }
 
   editingCitationId = null;
-  persistState("Đã lưu citation demo");
+  persistState("Đã lưu dẫn chứng trong bản demo");
   renderProvenance();
   return true;
 }
 
 function removeCitation(citationId) {
-  if (!window.confirm("Xóa citation này? Nguồn tư liệu sẽ được giữ lại.")) {
+  if (
+    !window.confirm("Xóa dẫn chứng này? Nguồn tư liệu gốc vẫn được giữ lại.")
+  ) {
     return;
   }
 
   checkpoint();
   state.citations = state.citations.filter((item) => item.id !== citationId);
-  persistState("Đã xóa citation demo");
+  persistState("Đã xóa dẫn chứng trong bản demo");
   renderProvenance();
 }
 
@@ -1712,7 +1715,7 @@ function buildDuplicateRelationshipChange(
   );
   if (remapped.source === remapped.target) {
     return {
-      blocker: `Quan hệ ${relation.id} sẽ trở thành self-link sau merge.`,
+      blocker: `Quan hệ ${relation.id} sẽ nối một người với chính họ sau khi gộp.`,
       change: null,
     };
   }
@@ -1832,7 +1835,9 @@ function buildDuplicateMergePreview(targetPersonId, sourcePersonId) {
   const blockers = [...relationshipResult.blockers];
 
   if (hasDuplicateParentChildCycle(effective)) {
-    blockers.push("Merge sẽ tạo vòng lặp tổ tiên trong quan hệ cha/mẹ – con.");
+    blockers.push(
+      "Việc gộp sẽ tạo vòng lặp tổ tiên trong quan hệ cha/mẹ – con.",
+    );
   }
 
   return {
@@ -1881,7 +1886,7 @@ function renderDuplicateCandidates() {
     const empty = document.createElement("p");
     empty.className = "muted";
     empty.textContent =
-      "Không có candidate nào vượt ngưỡng bảo thủ. Không có auto-merge.";
+      "Không có hồ sơ nào đủ tín hiệu để đưa vào danh sách nghi trùng. Hệ thống không tự gộp.";
     list.appendChild(empty);
     return;
   }
@@ -1908,7 +1913,7 @@ function renderDuplicateImpact(preview) {
 
   if (!preview.changes.length) {
     const item = document.createElement("li");
-    item.textContent = "Source không có relationship cần migrate.";
+    item.textContent = "Hồ sơ sẽ gộp không có quan hệ nào cần chuyển.";
     list.appendChild(item);
   }
 }
@@ -1917,7 +1922,7 @@ function renderDuplicateBlockers(preview) {
   const block = document.querySelector("#duplicateBlockers");
   if (!preview.blockers.length) {
     block.textContent =
-      "Preview không phát hiện blocker. Vẫn cần xác nhận thủ công.";
+      "Không phát hiện điều kiện chặn. Vẫn cần kiểm tra và xác nhận thủ công.";
     block.classList.remove("danger");
     return;
   }
@@ -1930,7 +1935,7 @@ function updateDuplicateExecuteState() {
   const confirmation = document.querySelector("#duplicateConfirmation").value;
   const blocked = duplicatePreview && duplicatePreview.blockers.length > 0;
   document.querySelector("#executeDuplicateMerge").disabled =
-    !duplicatePreview || blocked || confirmation !== "MERGE";
+    !duplicatePreview || blocked || confirmation !== "GỘP";
 }
 
 function renderDuplicatePair() {
@@ -1941,12 +1946,12 @@ function renderDuplicatePair() {
 
   duplicatePreview = buildDuplicateMergePreview(target.id, source.id);
   document.querySelector("#duplicateTarget").textContent =
-    `${target.name} · ${formatYears(target)} · giữ canonical`;
+    `${target.name} · ${formatYears(target)} · hồ sơ giữ lại`;
   document.querySelector("#duplicateSource").textContent =
-    `${source.name} · ${formatYears(source)} · sẽ lưu trữ`;
+    `${source.name} · ${formatYears(source)} · hồ sơ sẽ gộp`;
   document.querySelector("#duplicateCitationImpact").textContent =
-    `${duplicatePreview.personCitationCount} citation người · ` +
-    `${duplicatePreview.relationshipCitationCount} citation quan hệ`;
+    `${duplicatePreview.personCitationCount} dẫn chứng hồ sơ · ` +
+    `${duplicatePreview.relationshipCitationCount} dẫn chứng quan hệ`;
   document.querySelector("#duplicateConfirmation").value = "";
   renderDuplicateImpact(duplicatePreview);
   renderDuplicateBlockers(duplicatePreview);
@@ -2005,9 +2010,8 @@ function applyDuplicateRelationshipChange(change) {
 function executeDuplicateMerge() {
   if (!duplicatePair || !duplicatePreview) return;
   if (duplicatePreview.blockers.length) return;
-  if (document.querySelector("#duplicateConfirmation").value !== "MERGE")
-    return;
-  if (!window.confirm("Thực thi merge synthetic này?")) return;
+  if (document.querySelector("#duplicateConfirmation").value !== "GỘP") return;
+  if (!window.confirm("Gộp hai hồ sơ này trong bản demo?")) return;
 
   checkpoint();
   duplicatePreview.changes.forEach(applyDuplicateRelationshipChange);
@@ -2023,7 +2027,7 @@ function executeDuplicateMerge() {
     source.mergedInto = duplicatePair.targetPersonId;
   }
 
-  persistState("Đã merge duplicate synthetic");
+  persistState("Đã gộp hồ sơ trong bản demo");
   selectedId = duplicatePair.targetPersonId;
   duplicatePair = null;
   duplicatePreview = null;
@@ -2073,7 +2077,7 @@ function missingQualityIssues(people, relationships) {
         relatedPersonId: null,
         title: "Chưa ghi nhận cha/mẹ",
         detail:
-          "Hồ sơ có quan hệ gia phả nhưng chưa có cha/mẹ canonical. Có thể là root hợp lệ và chỉ cần review.",
+          "Hồ sơ có quan hệ gia phả nhưng chưa có cha/mẹ. Đây có thể là người thuộc thế hệ gốc và chỉ cần kiểm tra lại.",
       });
     }
 
@@ -2084,8 +2088,8 @@ function missingQualityIssues(people, relationships) {
         personId: person.id,
         relationshipId: null,
         relatedPersonId: null,
-        title: "Thiếu năm sinh canonical",
-        detail: "Hồ sơ đang tham gia cây nhưng chưa có năm sinh canonical.",
+        title: "Thiếu năm sinh",
+        detail: "Hồ sơ đang tham gia cây nhưng chưa có năm sinh.",
       });
     }
   });
@@ -2189,7 +2193,7 @@ function duplicateQualityIssues() {
     relationshipId: null,
     relatedPersonId: candidate.secondPersonId,
     title: "Ứng viên hồ sơ trùng",
-    detail: `${candidate.reasons.join(" · ")}. Chỉ review; không tự merge.`,
+    detail: `${candidate.reasons.join(" · ")}. Chỉ gợi ý để kiểm tra; không tự gộp.`,
   }));
 }
 
@@ -2205,7 +2209,8 @@ function isolatedQualityIssues(people, relationships) {
         relationshipId: null,
         relatedPersonId: null,
         title: "Hồ sơ đang cô lập",
-        detail: "Hồ sơ active chưa có quan hệ canonical với người khác.",
+        detail:
+          "Hồ sơ đang sử dụng nhưng chưa có quan hệ gia đình với người khác.",
       },
     ];
   });
@@ -2222,9 +2227,9 @@ function livingExposureQualityIssues(people) {
         personId: person.id,
         relationshipId: null,
         relatedPersonId: null,
-        title: "Người được xem là còn sống đang public",
+        title: "Người có thể còn sống đang công khai",
         detail:
-          "Theo heuristic hiện tại, chưa có năm mất được xem là còn sống. Hãy review visibility.",
+          "Hồ sơ chưa có năm mất nên có thể thuộc người còn sống. Hãy kiểm tra quyền hiển thị.",
       },
     ];
   });
@@ -2247,8 +2252,9 @@ function provenanceQualityIssues(relationships) {
         personId: relation.source,
         relationshipId: relation.id,
         relatedPersonId: relation.target,
-        title: "Quan hệ chưa có citation",
-        detail: "Quan hệ canonical chưa có nguồn/citation gắn trực tiếp.",
+        title: "Quan hệ chưa có dẫn chứng",
+        detail:
+          "Quan hệ này chưa có nguồn tư liệu hoặc dẫn chứng gắn trực tiếp.",
       },
     ];
   });
@@ -2307,10 +2313,10 @@ function qualityKindLabel(kind) {
     missing_parents: "Thiếu cha/mẹ",
     missing_birth_year: "Thiếu năm sinh",
     chronology: "Chronology",
-    duplicate_candidate: "Duplicate candidate",
+    duplicate_candidate: "Hồ sơ nghi trùng",
     isolated_person: "Hồ sơ cô lập",
-    living_public_exposure: "Living-public exposure",
-    relationship_missing_provenance: "Quan hệ thiếu provenance",
+    living_public_exposure: "Người còn sống đang công khai",
+    relationship_missing_provenance: "Quan hệ thiếu nguồn tư liệu",
   };
   return labels[kind] || kind;
 }
@@ -2428,7 +2434,7 @@ function downloadBulkBackup() {
   const url = URL.createObjectURL(blob);
   const anchorElement = document.createElement("a");
   anchorElement.href = url;
-  anchorElement.download = "gia-pha-synthetic-backup.json";
+  anchorElement.download = "gia-pha-ban-xem-truoc.json";
   document.body.appendChild(anchorElement);
   anchorElement.click();
   anchorElement.remove();
@@ -2459,7 +2465,7 @@ function validateBulkImportReferences(backup) {
       relation.source_person_id === relation.target_person_id,
   );
   if (invalidRelationship) {
-    return "Có relationship tham chiếu person không hợp lệ hoặc self-link.";
+    return "Có quan hệ tham chiếu hồ sơ không hợp lệ hoặc nối một người với chính họ.";
   }
 
   const invalidCitation = citations.find((citation) => {
@@ -2473,12 +2479,15 @@ function validateBulkImportReferences(backup) {
     );
   });
 
-  return invalidCitation ? "Có citation tham chiếu không hợp lệ." : null;
+  return invalidCitation ? "Có dẫn chứng tham chiếu không hợp lệ." : null;
 }
 
 function parseBulkImportPreview(raw) {
   if (!raw) {
-    return { ok: false, message: "Hãy dán backup JSON để preview." };
+    return {
+      ok: false,
+      message: "Hãy dán nội dung tệp sao lưu JSON để kiểm tra.",
+    };
   }
 
   let backup;
@@ -2492,7 +2501,10 @@ function parseBulkImportPreview(raw) {
   }
 
   if (backup?.version !== 1) {
-    return { ok: false, message: "Backup version không được hỗ trợ." };
+    return {
+      ok: false,
+      message: "Phiên bản tệp sao lưu này chưa được hỗ trợ.",
+    };
   }
 
   const referenceError = validateBulkImportReferences(backup);
@@ -2511,13 +2523,13 @@ function bulkImportSummary(backup) {
   const relationships = importArray(backup, "relationships") || [];
   const citations = importArray(backup, "genealogy_citations") || [];
   return (
-    "Preview hợp lệ: " +
+    "Tệp hợp lệ: " +
     people.length +
     " người · " +
     relationships.length +
     " quan hệ · " +
     citations.length +
-    " citation. Import write vẫn bị vô hiệu hóa."
+    " dẫn chứng. Bản xem trước không ghi dữ liệu vào gia phả."
   );
 }
 
@@ -2556,7 +2568,7 @@ function renderBulkPeople() {
       (person.visibility === "public" ? "Công khai" : "Riêng tư");
 
     const life = document.createElement("small");
-    life.textContent = person.death === null ? "living heuristic" : "deceased";
+    life.textContent = person.death === null ? "có thể còn sống" : "đã mất";
 
     label.append(input, text, life);
     list.appendChild(label);
@@ -2599,12 +2611,12 @@ function renderBulkImpact() {
   const message = document.querySelector("#bulkImpactMessage");
   message.textContent = impact.livingPublicCount
     ? impact.livingPublicCount +
-      " hồ sơ living heuristic sẽ ở trạng thái public sau batch."
-    : "Không phát hiện living-public exposure mới trong selection hiện tại.";
+      " hồ sơ có thể thuộc người còn sống sẽ ở trạng thái công khai sau thay đổi."
+    : "Không phát hiện thêm hồ sơ có thể thuộc người còn sống bị chuyển sang công khai.";
 
   const confirmation = document.querySelector("#bulkConfirmation").value;
   document.querySelector("#bulkExecuteVisibility").disabled =
-    confirmation !== "APPLY" || impact.changingCount === 0;
+    confirmation !== "XÁC NHẬN" || impact.changingCount === 0;
 }
 
 function selectAllBulkPeople() {
@@ -2621,21 +2633,21 @@ function openBulkDialog() {
   document.querySelector("#bulkConfirmation").value = "";
   document.querySelector("#bulkImportText").value = "";
   document.querySelector("#bulkImportResult").textContent =
-    "Import write bị vô hiệu hóa trong preview.";
+    "Bản xem trước chỉ kiểm tra tệp và không ghi dữ liệu.";
   renderBulkImpact();
   document.querySelector("#bulkDialog").showModal();
 }
 
 function executeBulkVisibility() {
   const impact = calculateBulkImpact();
-  if (document.querySelector("#bulkConfirmation").value !== "APPLY") return;
+  if (document.querySelector("#bulkConfirmation").value !== "XÁC NHẬN") return;
   if (!impact.changingCount) return;
 
   checkpoint();
   impact.selected.forEach((person) => {
     person.visibility = impact.visibility;
   });
-  persistState("Đã áp dụng batch visibility synthetic");
+  persistState("Đã áp dụng thay đổi quyền hiển thị trong bản demo");
   document.querySelector("#bulkConfirmation").value = "";
   renderBulkPeople();
   renderBulkImpact();
@@ -2756,6 +2768,32 @@ document
 document
   .querySelector("#focusSelected")
   .addEventListener("click", () => focusPerson(getPerson(selectedId)));
+function clearSelection() {
+  selectedId = null;
+  selectedProvenanceTarget = null;
+  focusedId = null;
+  render();
+}
+
+document
+  .querySelector("#closeInspector")
+  .addEventListener("click", clearSelection);
+
+canvas.addEventListener("click", (event) => {
+  if (event.target.closest?.("button, input, select, textarea, .person-node")) {
+    return;
+  }
+  clearSelection();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (document.querySelector("dialog[open]")) return;
+  document
+    .querySelectorAll("details[open]")
+    .forEach((details) => details.removeAttribute("open"));
+  if (selectedId) clearSelection();
+});
 document
   .querySelector("#toggleBranch")
   .addEventListener("click", toggleSelectedBranch);
@@ -2779,15 +2817,18 @@ document
 document
   .querySelector("#addCitation")
   .addEventListener("click", () => openCitationDialog());
-document
-  .querySelector("#reviewDuplicates")
-  .addEventListener("click", openDuplicateDialog);
-document
-  .querySelector("#reviewDataQuality")
-  .addEventListener("click", openQualityDialog);
-document
-  .querySelector("#reviewBulkUtilities")
-  .addEventListener("click", openBulkDialog);
+document.querySelector("#reviewDuplicates").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openDuplicateDialog();
+});
+document.querySelector("#reviewDataQuality").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openQualityDialog();
+});
+document.querySelector("#reviewBulkUtilities").addEventListener("click", () => {
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  openBulkDialog();
+});
 document
   .querySelector("#bulkExport")
   .addEventListener("click", downloadBulkBackup);

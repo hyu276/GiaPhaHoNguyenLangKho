@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   loadDataQualityReport,
@@ -15,6 +15,12 @@ import type {
 
 type QualityData = Extract<DataQualityLoadResult, { ok: true }>;
 
+function closeAdminToolsDisclosure() {
+  document
+    .querySelector<HTMLDetailsElement>("[data-admin-tools]")
+    ?.removeAttribute("open");
+}
+
 const SEVERITY_LABELS: Record<DataQualitySeverity, string> = {
   error: "Lỗi",
   warning: "Cảnh báo",
@@ -24,11 +30,11 @@ const SEVERITY_LABELS: Record<DataQualitySeverity, string> = {
 const KIND_LABELS: Record<DataQualityIssueKind, string> = {
   missing_parents: "Thiếu cha/mẹ",
   missing_birth_year: "Thiếu năm sinh",
-  chronology: "Chronology",
-  duplicate_candidate: "Duplicate candidate",
+  chronology: "Mốc thời gian bất thường",
+  duplicate_candidate: "Hồ sơ nghi trùng",
   isolated_person: "Hồ sơ cô lập",
-  living_public_exposure: "Living-public exposure",
-  relationship_missing_provenance: "Quan hệ thiếu provenance",
+  living_public_exposure: "Người còn sống đang công khai",
+  relationship_missing_provenance: "Quan hệ thiếu nguồn tư liệu",
 };
 
 function personName(data: QualityData, personId: string | null) {
@@ -108,7 +114,7 @@ function QualityIssueCard({
   issue: DataQualityIssue;
 }) {
   return (
-    <article className="rounded-2xl border border-border bg-background p-4">
+    <article className="rounded-lg border border-border bg-background p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -130,7 +136,7 @@ function QualityIssueCard({
 
 function CountCard({ count, label }: { count: number; label: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-background p-3">
+    <div className="rounded-lg border border-border bg-background p-3">
       <p className="text-2xl font-semibold text-card-foreground">{count}</p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
     </div>
@@ -161,15 +167,15 @@ function FilterControls({
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       <label className="text-xs font-medium text-muted-foreground">
-        Severity
+        Mức độ
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           onChange={(event) =>
             onSeverityChange(event.target.value as "all" | DataQualitySeverity)
           }
           value={severity}
         >
-          <option value="all">Tất cả severity</option>
+          <option value="all">Tất cả mức độ</option>
           {Object.entries(SEVERITY_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -181,13 +187,13 @@ function FilterControls({
       <label className="text-xs font-medium text-muted-foreground">
         Loại kiểm tra
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           onChange={(event) =>
             onKindChange(event.target.value as "all" | DataQualityIssueKind)
           }
           value={kind}
         >
-          <option value="all">Tất cả loại</option>
+          <option value="all">Tất cả nhóm kiểm tra</option>
           {Object.entries(KIND_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -201,8 +207,8 @@ function FilterControls({
 
 function EmptyIssues() {
   return (
-    <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">
-      Không có tín hiệu nào phù hợp với filter hiện tại.
+    <p className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
+      Không có mục nào phù hợp với bộ lọc hiện tại.
     </p>
   );
 }
@@ -289,6 +295,19 @@ export function DataQualityPanel() {
   const [severity, setSeverity] = useState<"all" | DataQualitySeverity>("all");
   const [kind, setKind] = useState<"all" | DataQualityIssueKind>("all");
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      closeAdminToolsDisclosure();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   async function refresh() {
     setLoading(true);
     setError(null);
@@ -312,27 +331,32 @@ export function DataQualityPanel() {
   return (
     <>
       <Button onClick={openDashboard} type="button" variant="outline">
-        Data quality
+        Kiểm tra dữ liệu
       </Button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8"
-          role="dialog"
+          aria-label="Kiểm tra chất lượng dữ liệu"
           aria-modal="true"
-          aria-label="Data-quality dashboard"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:p-8"
+          onMouseDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setOpen(false);
+            closeAdminToolsDisclosure();
+          }}
+          role="dialog"
         >
-          <section className="w-full max-w-4xl rounded-3xl border border-border bg-card p-5 shadow-xl sm:p-6">
+          <section className="w-full max-w-4xl rounded-md border border-border bg-card p-5 shadow-lg sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  Step 9 · Review-only
+                <p className="text-xs font-medium text-muted-foreground">
+                  Kiểm tra dữ liệu
                 </p>
-                <h2 className="font-display mt-1 text-3xl text-card-foreground">
-                  Data-quality dashboard
+                <h2 className="font-display mt-1 text-2xl text-card-foreground">
+                  Kiểm tra chất lượng dữ liệu
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Tập trung các tín hiệu cần kiểm tra trước khi xuất bản, không
+                  Những mục dưới đây chỉ là tín hiệu cần xem lại. Hệ thống không
                   tự sửa hoặc suy diễn dữ liệu gia phả.
                 </p>
               </div>
@@ -344,12 +368,15 @@ export function DataQualityPanel() {
                   type="button"
                   variant="outline"
                 >
-                  Refresh
+                  Kiểm tra lại
                 </Button>
                 <Button
-                  aria-label="Đóng Data-quality dashboard"
+                  aria-label="Đóng kiểm tra dữ liệu"
                   autoFocus
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    closeAdminToolsDisclosure();
+                  }}
                   type="button"
                   variant="ghost"
                 >

@@ -44,7 +44,7 @@ async function openSyntheticAdmin(page: Page) {
 
   await page.goto("http://preview.local/index.html");
   await expect(
-    page.getByRole("heading", { name: "Admin Genealogy Editor" }),
+    page.getByRole("heading", { name: "Sơ đồ gia phả" }),
   ).toBeVisible();
 }
 
@@ -53,7 +53,7 @@ test("synthetic admin CRUD relationship and archive journey", async ({
 }) => {
   await openSyntheticAdmin(page);
 
-  await page.getByRole("button", { name: "+ Thêm người" }).click();
+  await page.getByRole("button", { name: "Thêm thành viên" }).click();
   await page.locator("#nameField").fill("Nguyễn Test Journey");
   await page.locator("#birthField").fill("1990");
   await page
@@ -68,7 +68,7 @@ test("synthetic admin CRUD relationship and archive journey", async ({
   await expect(createdNode).toBeVisible();
 
   await page.locator('[data-person-id="P003"]').click();
-  await page.getByRole("button", { name: "+ Con" }).click();
+  await page.getByRole("button", { name: "Thêm con" }).click();
   await page.locator("#relationshipTarget").selectOption("P006");
   await page
     .locator("#relationshipDialog")
@@ -79,6 +79,7 @@ test("synthetic admin CRUD relationship and archive journey", async ({
   await page.locator('[data-person-id="P005"]').click();
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "Lưu trữ" }).click();
+  await page.locator("details.filter-menu > summary").click();
   await page.locator("#archiveFilter").selectOption("all");
   await expect(page.locator('[data-person-id="P005"]')).toHaveClass(/archived/);
 });
@@ -89,7 +90,7 @@ test("synthetic provenance review journey preserves explicit claims", async ({
   await openSyntheticAdmin(page);
 
   await page.locator('[data-person-id="P003"]').click();
-  await page.getByRole("button", { name: "+ Nguồn" }).click();
+  await page.getByRole("button", { name: "Thêm nguồn" }).click();
   await page.locator("#sourceTitle").fill("Nguồn E2E synthetic");
   await page.locator("#sourceReference").fill("E2E-001");
   await page
@@ -97,21 +98,21 @@ test("synthetic provenance review journey preserves explicit claims", async ({
     .getByRole("button", { name: "Lưu nguồn" })
     .click();
 
-  await page.getByRole("button", { name: "+ Citation" }).click();
+  await page.getByRole("button", { name: "Thêm dẫn chứng" }).click();
   await page
     .locator("#citationSource")
     .selectOption({ label: "Nguồn E2E synthetic" });
   await page.locator("#citationKind").selectOption("identity");
   await page
     .locator("#citationClaim")
-    .fill("Claim E2E không thay đổi canonical profile.");
+    .fill("Dẫn chứng E2E không thay đổi hồ sơ chính.");
   await page
     .locator("#citationDialog")
-    .getByRole("button", { name: "Lưu citation" })
+    .getByRole("button", { name: "Lưu dẫn chứng" })
     .click();
 
   await expect(page.locator("#provenanceCitations")).toContainText(
-    "Claim E2E không thay đổi canonical profile.",
+    "Dẫn chứng E2E không thay đổi hồ sơ chính.",
   );
 });
 
@@ -119,38 +120,81 @@ test("synthetic duplicate quality and bulk release journey", async ({
   page,
 }) => {
   await openSyntheticAdmin(page);
+  await page.locator("details.admin-menu > summary").click();
 
-  await page
-    .getByRole("button", { name: "Review duplicate candidates" })
-    .click();
+  await page.getByRole("button", { name: "Kiểm tra hồ sơ trùng" }).click();
   await expect(page.locator("#duplicateCandidateList")).toContainText(
     "Nguyễn Văn Cường",
   );
   await page.locator("#duplicateDialog button[aria-label='Đóng']").click();
 
-  await page.getByRole("button", { name: "Data-quality dashboard" }).click();
+  await page.locator("details.admin-menu > summary").click();
+  await page.getByRole("button", { name: "Kiểm tra dữ liệu" }).click();
   await expect(page.locator("#qualityWarningCount")).not.toHaveText("0");
   await page.locator("#qualityDialog button[aria-label='Đóng']").click();
 
-  await page.getByRole("button", { name: "Bulk / backup demo" }).click();
+  await page.locator("details.admin-menu > summary").click();
+  await page.getByRole("button", { name: "Dữ liệu & sao lưu" }).click();
   await page.getByRole("button", { name: "Chọn tất cả" }).click();
   await page.locator("#bulkVisibility").selectOption("public");
   await expect(page.locator("#bulkLivingPublicCount")).not.toHaveText("0");
 
-  await page.locator("#bulkConfirmation").fill("APPLY");
+  await page.locator("#bulkConfirmation").fill("XÁC NHẬN");
   await expect(page.locator("#bulkExecuteVisibility")).toBeEnabled();
   await page.locator("#bulkExecuteVisibility").click();
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Tải backup JSON" }).click();
+  await page.getByRole("button", { name: "Tải bản sao lưu JSON" }).click();
   const download = await downloadPromise;
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();
 
   const backupText = await fs.readFile(downloadPath!, "utf8");
   await page.locator("#bulkImportText").fill(backupText);
-  await page.getByRole("button", { name: "Validate preview" }).click();
-  await expect(page.locator("#bulkImportResult")).toContainText(
-    "Preview hợp lệ",
+  await page.getByRole("button", { name: "Kiểm tra tệp" }).click();
+  await expect(page.locator("#bulkImportResult")).toContainText("Tệp hợp lệ");
+});
+
+test("product shell stays usable on mobile and dismisses transient UI", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openSyntheticAdmin(page);
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth + 1,
   );
+  expect(hasHorizontalOverflow).toBe(false);
+
+  await page.locator('[data-person-id="P003"]').click();
+  await expect(page.locator(".inspector")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".inspector")).toBeHidden();
+
+  await page.locator("details.admin-menu > summary").click();
+  await page.getByRole("button", { name: "Kiểm tra dữ liệu" }).click();
+  await expect(page.locator("details.admin-menu")).not.toHaveAttribute("open");
+  await expect(page.locator("#qualityDialog")).toBeVisible();
+  await page.locator("#qualityDialog button[aria-label='Đóng']").click();
+});
+
+test("desktop genealogy controls do not cover the tree", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openSyntheticAdmin(page);
+
+  const toolbarBox = await page.locator(".product-toolbar").boundingBox();
+  const canvasBox = await page.locator("#canvas").boundingBox();
+  expect(toolbarBox).not.toBeNull();
+  expect(canvasBox).not.toBeNull();
+  expect(toolbarBox!.y + toolbarBox!.height).toBeLessThanOrEqual(
+    canvasBox!.y + 1,
+  );
+
+  await page.locator('[data-person-id="P003"]').click();
+
+  const treeBox = await page.locator(".canvas-panel").boundingBox();
+  const inspectorBox = await page.locator(".inspector").boundingBox();
+  expect(treeBox).not.toBeNull();
+  expect(inspectorBox).not.toBeNull();
+  expect(treeBox!.x + treeBox!.width).toBeLessThanOrEqual(inspectorBox!.x + 1);
 });

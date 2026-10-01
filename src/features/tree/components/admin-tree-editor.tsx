@@ -1,7 +1,21 @@
+/**
+ * ADMIN_TREE_EDITOR
+ *
+ * Purpose: Provides the interactive genealogy canvas, contextual member drawer, filtering, layout, and relationship workflows.
+ * Connections: React Flow, genealogy mutations, relationship editor, provenance panel, and persisted layout services.
+ * Risk: High because this is the primary interactive editing surface for the genealogy graph.
+ */
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Background,
   Controls,
@@ -138,6 +152,7 @@ type SidebarProps = {
   createPerson: CreatePerson | undefined;
   formMode: PersonFormMode;
   onCancelForm: () => void;
+  onClose: () => void;
   onPersonStateChanged: (personId: string, archived: boolean) => void;
   onFocusPerson: (personId: string) => void;
   layoutCanRedo: boolean;
@@ -186,6 +201,19 @@ function countConnectedRelationships(
   ).length;
 }
 
+function selectedRelationshipCount(
+  selectedPerson: EditorPerson | null,
+  relationships: EditorRelationship[],
+) {
+  if (!selectedPerson) return 0;
+  return countConnectedRelationships(relationships, selectedPerson.id);
+}
+
+function editorWorkspaceClass(drawerOpen: boolean) {
+  const base = "relative grid min-h-[70svh] flex-1 overflow-hidden";
+  return drawerOpen ? `${base} md:grid-cols-[minmax(0,1fr)_24rem]` : base;
+}
+
 function getVisibleRelationships(
   relationships: EditorRelationship[],
   visiblePeople: EditorPerson[],
@@ -218,7 +246,7 @@ function formatYears(person: EditorPerson) {
 }
 
 function getStatusMessage(readOnly: boolean, saveState: SaveState) {
-  if (readOnly) return "Chế độ spectator: chỉ xem";
+  if (readOnly) return "";
 
   switch (saveState.status) {
     case "saving":
@@ -228,7 +256,7 @@ function getStatusMessage(readOnly: boolean, saveState: SaveState) {
     case "error":
       return saveState.message;
     default:
-      return "Chọn một người để xem hồ sơ hoặc kéo để đổi vị trí";
+      return "";
   }
 }
 
@@ -241,7 +269,7 @@ function getEmptyDescription(readOnly: boolean) {
 function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
   return (
     <div
-      className={`min-w-48 rounded-2xl border bg-card px-4 py-3 shadow-sm transition-[transform,opacity] ${
+      className={`min-w-48 rounded-lg border bg-card px-4 py-3 transition-[transform,opacity] ${
         selected ? "border-primary ring-2 ring-primary/20" : "border-border"
       } ${data.archived ? "border-dashed opacity-65" : ""}`}
     >
@@ -249,10 +277,14 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
       <p className="text-sm font-semibold text-card-foreground">
         {data.displayName}
       </p>
-      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <span>{data.years}</span>
-        <span aria-hidden="true">·</span>
-        <span>{data.visibility === "private" ? "Riêng tư" : "Công khai"}</span>
+        {data.visibility === "private" ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>Riêng tư</span>
+          </>
+        ) : null}
         {data.archived ? (
           <>
             <span aria-hidden="true">·</span>
@@ -320,6 +352,7 @@ function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
           ? "Quan hệ hôn phối"
           : "Quan hệ cha mẹ con",
       deletable: false,
+      interactionWidth: 24,
     };
 
     if (relationship.kind === "partnership") {
@@ -357,11 +390,26 @@ type TreeFilterPanelProps = {
   onClear: () => void;
   onLifeFilterChange: (value: LifeFilter) => void;
   onQueryChange: (value: string) => void;
+  onStartCreate: () => void;
   onVisibilityFilterChange: (value: VisibilityFilter) => void;
   query: string;
   readOnly: boolean;
+  statusMessage: string;
   visibilityFilter: VisibilityFilter;
 };
+
+function ToolbarStatus({ message }: { message: string }) {
+  if (!message) return null;
+
+  return (
+    <span
+      aria-live="polite"
+      className="hidden text-xs text-muted-foreground md:inline"
+    >
+      {message}
+    </span>
+  );
+}
 
 function TreeFilterPanel({
   archiveFilter,
@@ -371,81 +419,102 @@ function TreeFilterPanel({
   onClear,
   onLifeFilterChange,
   onQueryChange,
+  onStartCreate,
   onVisibilityFilterChange,
   query,
   readOnly,
+  statusMessage,
   visibilityFilter,
 }: TreeFilterPanelProps) {
+  const hasFilters =
+    lifeFilter !== "all" ||
+    visibilityFilter !== "all" ||
+    (!readOnly && archiveFilter !== "active");
+
   return (
-    <div className="absolute left-4 top-16 z-10 w-[min(22rem,calc(100%-2rem))] rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur">
-      <label className="block text-xs font-semibold text-card-foreground">
-        Tìm theo tên
+    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-2 py-2 sm:px-3">
+      <label className="min-w-[13rem] flex-1">
+        <span className="sr-only">Tìm thành viên</span>
         <input
-          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Nhập họ tên…"
+          placeholder="Tìm thành viên theo tên…"
           type="search"
           value={query}
         />
       </label>
 
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <label className="text-xs font-medium text-muted-foreground">
-          Sinh trạng
-          <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
-            onChange={(event) =>
-              onLifeFilterChange(event.target.value as LifeFilter)
-            }
-            value={lifeFilter}
-          >
-            <option value="all">Tất cả</option>
-            <option value="living">Còn sống</option>
-            <option value="deceased">Đã mất</option>
-          </select>
-        </label>
+      <details className="group relative">
+        <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted">
+          Bộ lọc{hasFilters ? " · đang dùng" : ""}
+        </summary>
+        <div className="absolute left-0 top-10 z-30 grid w-64 gap-3 rounded-lg border border-border bg-card p-3 shadow-lg">
+          <label className="text-xs font-medium text-muted-foreground">
+            Tình trạng
+            <select
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              onChange={(event) =>
+                onLifeFilterChange(event.target.value as LifeFilter)
+              }
+              value={lifeFilter}
+            >
+              <option value="all">Tất cả</option>
+              <option value="living">Còn sống</option>
+              <option value="deceased">Đã mất</option>
+            </select>
+          </label>
 
-        <label className="text-xs font-medium text-muted-foreground">
-          Hiển thị
-          <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
-            onChange={(event) =>
-              onVisibilityFilterChange(event.target.value as VisibilityFilter)
-            }
-            value={visibilityFilter}
-          >
-            <option value="all">Tất cả</option>
-            <option value="public">Công khai</option>
-            <option value="private">Riêng tư</option>
-          </select>
-        </label>
-      </div>
+          <label className="text-xs font-medium text-muted-foreground">
+            Quyền hiển thị
+            <select
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              onChange={(event) =>
+                onVisibilityFilterChange(event.target.value as VisibilityFilter)
+              }
+              value={visibilityFilter}
+            >
+              <option value="all">Tất cả</option>
+              <option value="public">Công khai</option>
+              <option value="private">Riêng tư</option>
+            </select>
+          </label>
+
+          {readOnly ? null : (
+            <label className="text-xs font-medium text-muted-foreground">
+              Hồ sơ
+              <select
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+                onChange={(event) =>
+                  onArchiveFilterChange(
+                    event.target.value as ArchiveFilterValue,
+                  )
+                }
+                value={archiveFilter}
+              >
+                <option value="active">Đang sử dụng</option>
+                <option value="all">Tất cả</option>
+                <option value="archived">Đã lưu trữ</option>
+              </select>
+            </label>
+          )}
+
+          <Button onClick={onClear} size="sm" type="button" variant="outline">
+            Đặt lại bộ lọc
+          </Button>
+        </div>
+      </details>
+
+      <span className="hidden text-xs text-muted-foreground sm:inline">
+        {matchCount} thành viên
+      </span>
+
+      <ToolbarStatus message={statusMessage} />
 
       {readOnly ? null : (
-        <label className="mt-2 block text-xs font-medium text-muted-foreground">
-          Lưu trữ
-          <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-2 py-2 text-xs text-foreground"
-            onChange={(event) =>
-              onArchiveFilterChange(event.target.value as ArchiveFilterValue)
-            }
-            value={archiveFilter}
-          >
-            <option value="active">Đang hoạt động</option>
-            <option value="all">Tất cả</option>
-            <option value="archived">Đã lưu trữ</option>
-          </select>
-        </label>
-      )}
-
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <span aria-live="polite" className="text-xs text-muted-foreground">
-          {matchCount} người phù hợp
-        </span>
-        <Button onClick={onClear} size="sm" type="button" variant="ghost">
-          Xóa lọc
+        <Button className="ml-auto" onClick={onStartCreate} type="button">
+          Thêm thành viên
         </Button>
-      </div>
+      )}
     </div>
   );
 }
@@ -511,7 +580,7 @@ function BranchNavigationControls({
   return (
     <section className="mt-5 border-t border-border pt-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Điều hướng nhánh
+        Người thân & nhánh
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button
@@ -519,7 +588,7 @@ function BranchNavigationControls({
           type="button"
           variant="outline"
         >
-          Focus người
+          Đưa vào giữa
         </Button>
         <Button
           onClick={() => onToggleBranch(person.id)}
@@ -583,11 +652,11 @@ function LayoutAdministrationControls({
   return (
     <section className="mt-5 border-t border-border pt-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Quản trị bố cục
+        Sắp xếp sơ đồ
       </p>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Khóa vị trí áp dụng trong phiên editor. Reset và auto-layout chỉ thay
-        đổi tọa độ trình bày, không thay đổi quan hệ gia phả.
+        Các thao tác trong mục này chỉ thay đổi cách trình bày sơ đồ, không làm
+        thay đổi quan hệ gia đình.
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button
@@ -665,9 +734,11 @@ function SelectedPersonSummary({
             {formatYears(selectedPerson)}
           </p>
         </div>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {getVisibilityLabel(selectedPerson.visibility)}
-        </span>
+        {selectedPerson.visibility === "private" ? (
+          <span className="text-xs font-medium text-muted-foreground">
+            Riêng tư
+          </span>
+        ) : null}
       </div>
 
       <p className="mt-6 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
@@ -763,7 +834,7 @@ function PersonArchiveControls({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-border bg-muted/35 p-3">
+    <div className="mt-5 border-t border-border pt-4">
       <p className="text-xs font-semibold text-card-foreground">
         {getArchiveTitle(archived)}
       </p>
@@ -861,6 +932,21 @@ function SelectedPersonDetails(props: SidebarProps) {
         person={props.selectedPerson}
         relationships={props.relationships}
       />
+      <PersonRelationshipSection
+        createParentChildRelationship={props.createParentChildRelationship}
+        createPartnership={props.createPartnership}
+        focalPerson={props.selectedPerson}
+        onChanged={props.onRelationshipChanged}
+        people={props.people}
+        readOnly={relationshipReadOnly}
+        relationships={props.relationships}
+      />
+      <ProvenancePanel
+        key={`person-${props.selectedPerson.id}`}
+        personId={props.selectedPerson.id}
+        readOnly={props.readOnly}
+        relationshipId={null}
+      />
       <LayoutAdministrationControls
         canRedo={props.layoutCanRedo}
         canUndo={props.layoutCanUndo}
@@ -874,12 +960,6 @@ function SelectedPersonDetails(props: SidebarProps) {
         person={props.selectedPerson}
         readOnly={props.readOnly}
       />
-      <ProvenancePanel
-        key={`person-${props.selectedPerson.id}`}
-        personId={props.selectedPerson.id}
-        readOnly={props.readOnly}
-        relationshipId={null}
-      />
       {props.readOnly ? null : (
         <PersonArchiveControls
           archivePerson={props.archivePerson}
@@ -889,44 +969,57 @@ function SelectedPersonDetails(props: SidebarProps) {
           restorePerson={props.restorePerson}
         />
       )}
-      <PersonRelationshipSection
-        createParentChildRelationship={props.createParentChildRelationship}
-        createPartnership={props.createPartnership}
-        focalPerson={props.selectedPerson}
-        onChanged={props.onRelationshipChanged}
-        people={props.people}
-        readOnly={relationshipReadOnly}
-        relationships={props.relationships}
-      />
     </>
   );
 }
 
-function DefaultEditorSidebar(props: SidebarProps) {
+function EditorDrawer({
+  children,
+  onClose,
+  title,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  title: string;
+}) {
   return (
-    <aside className="rounded-3xl border border-border bg-card p-5">
-      {props.readOnly ? null : (
-        <Button className="w-full" onClick={props.onStartCreate}>
-          Thêm người
+    <aside className="absolute inset-0 z-30 overflow-y-auto bg-card shadow-lg md:relative md:inset-auto md:z-auto md:w-auto md:border-l md:border-border md:shadow-none">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+        <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
+        <Button
+          aria-label="Đóng bảng thông tin"
+          onClick={onClose}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          Đóng
         </Button>
-      )}
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Đang chọn
-      </p>
+      </div>
+      <div className="p-4">{children}</div>
+    </aside>
+  );
+}
+
+function DefaultEditorSidebar(props: SidebarProps) {
+  if (!props.selectedPerson) return null;
+
+  return (
+    <EditorDrawer onClose={props.onClose} title="Thông tin thành viên">
       <SelectedPersonSummary
         onStartEdit={props.onStartEdit}
         readOnly={props.readOnly}
         selectedPerson={props.selectedPerson}
       />
       <SelectedPersonDetails {...props} />
-    </aside>
+    </EditorDrawer>
   );
 }
 
 function EditorSidebar(props: SidebarProps) {
   if (props.selectedRelationship) {
     return (
-      <aside className="rounded-3xl border border-border bg-card p-5">
+      <EditorDrawer onClose={props.onClose} title="Quan hệ gia đình">
         <RelationshipInspector
           onChanged={props.onRelationshipChanged}
           people={props.people}
@@ -946,32 +1039,32 @@ function EditorSidebar(props: SidebarProps) {
           readOnly={props.readOnly}
           relationshipId={props.selectedRelationship.id}
         />
-      </aside>
+      </EditorDrawer>
     );
   }
 
   if (props.formMode === "create") {
     return (
-      <aside className="rounded-3xl border border-border bg-card p-5">
+      <EditorDrawer onClose={props.onClose} title="Thêm thành viên">
         <CreatePersonPanel
           createPerson={props.createPerson}
           onCancelForm={props.onCancelForm}
           onSaved={props.onSaved}
         />
-      </aside>
+      </EditorDrawer>
     );
   }
 
   if (props.formMode === "edit") {
     return (
-      <aside className="rounded-3xl border border-border bg-card p-5">
+      <EditorDrawer onClose={props.onClose} title="Chỉnh sửa thành viên">
         <EditPersonPanel
           onCancelForm={props.onCancelForm}
           onSaved={props.onSaved}
           selectedPerson={props.selectedPerson}
           updatePerson={props.updatePerson}
         />
-      </aside>
+      </EditorDrawer>
     );
   }
 
@@ -1078,10 +1171,14 @@ export function AdminTreeEditor({
       (relationship) => relationship.id === selectedRelationshipId,
     ) ?? null;
   const archivedCount = countArchivedPeople(people);
-  const selectedRelationshipCount = selectedPerson
-    ? countConnectedRelationships(relationships, selectedPerson.id)
-    : 0;
+  const selectedRelationshipCountValue = selectedRelationshipCount(
+    selectedPerson,
+    relationships,
+  );
   const statusMessage = getStatusMessage(readOnly, saveState);
+  const drawerOpen = Boolean(
+    selectedPerson || selectedRelationship || formMode !== null,
+  );
 
   useEffect(() => {
     persistedPositions.current = new Map(
@@ -1097,6 +1194,46 @@ export function AdminTreeEditor({
       createNodes(visiblePeople, lockedPersonIds, persistedPositions.current),
     );
   }, [lockedPersonIds, setNodes, visiblePeople]);
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (document.querySelector('dialog[open], [role="dialog"]')) return;
+
+      setSelectedPersonId(null);
+      setSelectedRelationshipId(null);
+      setFormMode(null);
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    const nodeIds = selectedPerson
+      ? [selectedPerson.id]
+      : selectedRelationship
+        ? [
+            selectedRelationship.sourcePersonId,
+            selectedRelationship.targetPersonId,
+          ]
+        : [];
+
+    if (nodeIds.length === 0) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      flowInstance.current?.fitView({
+        nodes: nodeIds.map((id) => ({ id })),
+        duration: 180,
+        maxZoom: 1.15,
+        padding: 1.25,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [drawerOpen, selectedPerson, selectedRelationship]);
 
   useEffect(() => {
     if (!pendingFocusPersonId) return;
@@ -1366,99 +1503,113 @@ export function AdminTreeEditor({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section
-        aria-label="Sơ đồ gia phả tương tác"
-        className="relative min-h-[65svh] overflow-hidden rounded-3xl border border-border bg-card"
-      >
-        <ReactFlow<PersonNode, RelationshipEdge>
-          nodes={nodes}
-          onInit={(instance) => {
-            flowInstance.current = instance;
-          }}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          onEdgeClick={(_, edge) => handleEdgeSelect(edge.id)}
-          onNodeClick={(_, node) => handleNodeSelect(node.id)}
-          onNodeDragStop={(_, node) => {
-            handleNodeSelect(node.id);
-            persistNodePosition(node);
-          }}
-          nodesDraggable={!readOnly}
-          nodesConnectable={false}
-          nodesFocusable
-          edgesFocusable
-          deleteKeyCode={null}
-          fitView
-          fitViewOptions={{ padding: 0.25 }}
-          minZoom={0.2}
-          maxZoom={2}
-        >
-          <Background gap={24} size={1} />
-          <Controls showInteractive={false} />
-          <MiniMap pannable zoomable />
-        </ReactFlow>
-
-        <div
-          aria-live="polite"
-          className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-border bg-background/90 px-3 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur"
-        >
-          {statusMessage}
-        </div>
-        <TreeFilterPanel
-          archiveFilter={archiveFilter}
-          lifeFilter={lifeFilter}
-          matchCount={visiblePeople.length}
-          onArchiveFilterChange={setArchiveFilter}
-          onClear={clearFilters}
-          onLifeFilterChange={setLifeFilter}
-          onQueryChange={setQuery}
-          onVisibilityFilterChange={setVisibilityFilter}
-          query={query}
-          readOnly={readOnly}
-          visibilityFilter={visibilityFilter}
-        />
-      </section>
-
-      <EditorSidebar
-        archivePerson={archivePerson}
-        archivedCount={archivedCount}
-        collapsedBranchIds={collapsedBranchIds}
-        createParentChildRelationship={createParentChildRelationship}
-        createPartnership={createPartnership}
-        createPerson={createPerson}
-        formMode={formMode}
-        layoutCanRedo={layoutFuture.length > 0 && saveState.status !== "saving"}
-        layoutCanUndo={
-          layoutHistory.length > 0 && saveState.status !== "saving"
-        }
-        lockedPersonIds={lockedPersonIds}
-        onAutoLayoutBranch={autoLayoutBranch}
-        onCancelForm={() => setFormMode(null)}
-        onFocusPerson={focusPerson}
-        onJumpToPerson={revealAndFocusPerson}
-        onPersonStateChanged={handlePersonStateChanged}
-        onRedoLayout={() => void redoLayout()}
-        onRelationshipChanged={handleRelationshipChanged}
-        onResetBranchLayout={resetBranchLayout}
-        onResetPersonPosition={resetPersonPosition}
-        onSaved={handleSaved}
-        onStartCreate={() => setFormMode("create")}
-        onStartEdit={() => setFormMode("edit")}
-        onToggleBranch={toggleBranch}
-        onToggleLayoutLock={toggleLayoutLock}
-        onUndoLayout={() => void undoLayout()}
-        people={people}
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card">
+      <TreeFilterPanel
+        archiveFilter={archiveFilter}
+        lifeFilter={lifeFilter}
+        matchCount={visiblePeople.length}
+        onArchiveFilterChange={setArchiveFilter}
+        onClear={clearFilters}
+        onLifeFilterChange={setLifeFilter}
+        onQueryChange={setQuery}
+        onStartCreate={() => {
+          setSelectedPersonId(null);
+          setSelectedRelationshipId(null);
+          setFormMode("create");
+        }}
+        onVisibilityFilterChange={setVisibilityFilter}
+        query={query}
         readOnly={readOnly}
-        relationships={relationships}
-        removeRelationship={removeRelationship}
-        restorePerson={restorePerson}
-        selectedPerson={selectedPerson}
-        selectedRelationship={selectedRelationship}
-        selectedRelationshipCount={selectedRelationshipCount}
-        updatePerson={updatePerson}
+        statusMessage={statusMessage}
+        visibilityFilter={visibilityFilter}
       />
+
+      <div className={editorWorkspaceClass(drawerOpen)}>
+        <section
+          aria-label="Sơ đồ gia phả tương tác"
+          className="relative min-h-[70svh] overflow-hidden bg-card"
+        >
+          <ReactFlow<PersonNode, RelationshipEdge>
+            nodes={nodes}
+            onInit={(instance) => {
+              flowInstance.current = instance;
+            }}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgeClick={(_, edge) => handleEdgeSelect(edge.id)}
+            onNodeClick={(_, node) => handleNodeSelect(node.id)}
+            onPaneClick={() => {
+              if (formMode) return;
+              setSelectedPersonId(null);
+              setSelectedRelationshipId(null);
+            }}
+            onNodeDragStop={(_, node) => {
+              handleNodeSelect(node.id);
+              persistNodePosition(node);
+            }}
+            nodesDraggable={!readOnly}
+            nodesConnectable={false}
+            nodesFocusable
+            edgesFocusable
+            deleteKeyCode={null}
+            fitView
+            fitViewOptions={{ padding: 0.25 }}
+            minZoom={0.2}
+            maxZoom={2}
+          >
+            <Background gap={32} size={1} />
+            <Controls showInteractive={false} />
+            <MiniMap pannable zoomable />
+          </ReactFlow>
+        </section>
+
+        <EditorSidebar
+          archivePerson={archivePerson}
+          archivedCount={archivedCount}
+          collapsedBranchIds={collapsedBranchIds}
+          createParentChildRelationship={createParentChildRelationship}
+          createPartnership={createPartnership}
+          createPerson={createPerson}
+          formMode={formMode}
+          layoutCanRedo={
+            layoutFuture.length > 0 && saveState.status !== "saving"
+          }
+          layoutCanUndo={
+            layoutHistory.length > 0 && saveState.status !== "saving"
+          }
+          lockedPersonIds={lockedPersonIds}
+          onAutoLayoutBranch={autoLayoutBranch}
+          onCancelForm={() => setFormMode(null)}
+          onClose={() => {
+            setSelectedPersonId(null);
+            setSelectedRelationshipId(null);
+            setFormMode(null);
+          }}
+          onFocusPerson={focusPerson}
+          onJumpToPerson={revealAndFocusPerson}
+          onPersonStateChanged={handlePersonStateChanged}
+          onRedoLayout={() => void redoLayout()}
+          onRelationshipChanged={handleRelationshipChanged}
+          onResetBranchLayout={resetBranchLayout}
+          onResetPersonPosition={resetPersonPosition}
+          onSaved={handleSaved}
+          onStartCreate={() => setFormMode("create")}
+          onStartEdit={() => setFormMode("edit")}
+          onToggleBranch={toggleBranch}
+          onToggleLayoutLock={toggleLayoutLock}
+          onUndoLayout={() => void undoLayout()}
+          people={people}
+          readOnly={readOnly}
+          relationships={relationships}
+          removeRelationship={removeRelationship}
+          restorePerson={restorePerson}
+          selectedPerson={selectedPerson}
+          selectedRelationship={selectedRelationship}
+          selectedRelationshipCount={selectedRelationshipCountValue}
+          updatePerson={updatePerson}
+        />
+      </div>
     </div>
   );
 }

@@ -127,7 +127,7 @@ function getSourceFormDefaults(
       sourceUrl: source.sourceUrl ?? "",
       heading: "Sửa nguồn tư liệu",
       helpText:
-        "Nguồn có thể được dùng bởi nhiều citation; sửa metadata nguồn sẽ hiển thị ở tất cả citation tham chiếu đến nguồn này.",
+        "Nguồn có thể được dùng cho nhiều dẫn chứng; chỉnh sửa thông tin nguồn sẽ áp dụng cho tất cả dẫn chứng đang dùng nguồn này.",
     };
   }
 
@@ -165,7 +165,7 @@ function getCitationFormDefaults(
       dateQualifier: textOrEmpty(citation.dateQualifier),
       dateText: textOrEmpty(citation.dateText),
       note: textOrEmpty(citation.note),
-      heading: "Sửa citation",
+      heading: "Sửa dẫn chứng",
     };
   }
 
@@ -179,7 +179,7 @@ function getCitationFormDefaults(
     dateQualifier: "",
     dateText: "",
     note: "",
-    heading: "Thêm citation",
+    heading: "Thêm dẫn chứng",
   };
 }
 
@@ -233,7 +233,7 @@ function SourceSummary({
   const secondary = getSourceSecondaryText(source);
 
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-3">
+    <div className="rounded-md border border-border bg-muted/30 p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-card-foreground">
@@ -302,7 +302,7 @@ function CitationActions({
         type="button"
         variant="outline"
       >
-        Sửa citation
+        Sửa dẫn chứng
       </Button>
       <Button
         onClick={() => onRemove(citation.id)}
@@ -310,7 +310,7 @@ function CitationActions({
         type="button"
         variant="ghost"
       >
-        Xóa citation
+        Xóa dẫn chứng
       </Button>
     </div>
   );
@@ -332,7 +332,7 @@ function CitationCard({
   const sourceTitle = source ? source.title : "Nguồn không khả dụng";
 
   return (
-    <article className="rounded-2xl border border-border bg-background p-3">
+    <article className="rounded-lg border border-border bg-background p-3">
       <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
         <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
           {CLAIM_KIND_LABELS[citation.claimKind]}
@@ -348,7 +348,7 @@ function CitationCard({
 
       <CitationDate citation={citation} />
 
-      <div className="mt-3 rounded-xl bg-muted/35 p-3 text-xs text-muted-foreground">
+      <div className="mt-3 rounded-md bg-muted/35 p-3 text-xs text-muted-foreground">
         <p className="font-semibold text-card-foreground">{sourceTitle}</p>
         <CitationLocator citationLocator={citation.citationLocator} />
         <CitationNote note={citation.note} />
@@ -386,7 +386,7 @@ function SourceForm({
 
   return (
     <form
-      className="mt-3 rounded-2xl border border-border bg-muted/20 p-3"
+      className="mt-3 rounded-lg border border-border bg-muted/20 p-3"
       key={source ? source.id : "new-source"}
       onSubmit={onSubmit}
     >
@@ -398,7 +398,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Tên nguồn
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.title}
           maxLength={200}
           name="title"
@@ -409,7 +409,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Loại nguồn
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.sourceType}
           name="sourceType"
         >
@@ -424,7 +424,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Nơi lưu trữ / cơ quan
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.repositoryName}
           maxLength={200}
           name="repositoryName"
@@ -434,7 +434,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Mã hồ sơ / ký hiệu
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.referenceCode}
           maxLength={200}
           name="referenceCode"
@@ -444,7 +444,7 @@ function SourceForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         URL nguồn
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.sourceUrl}
           maxLength={2048}
           name="sourceUrl"
@@ -488,7 +488,7 @@ function CitationForm({
 
   return (
     <form
-      className="mt-3 rounded-2xl border border-border bg-muted/20 p-3"
+      className="mt-3 rounded-lg border border-border bg-muted/20 p-3"
       key={citation ? citation.id : "new-citation"}
       onSubmit={onSubmit}
     >
@@ -496,14 +496,14 @@ function CitationForm({
         {defaults.heading}
       </p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        Claim chưa chắc chắn hoặc mâu thuẫn được lưu riêng tại đây; form này
-        không tự sửa năm sinh, năm mất hay quan hệ canonical.
+        Thông tin chưa chắc chắn hoặc mâu thuẫn được lưu riêng tại đây; biểu mẫu
+        này không tự sửa năm sinh, năm mất hay quan hệ chính.
       </p>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Nguồn tư liệu
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.sourceId}
           name="sourceId"
           required
@@ -517,9 +517,9 @@ function CitationForm({
       </label>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
-        Loại claim
+        Loại thông tin
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.claimKind}
           name="claimKind"
         >
@@ -532,9 +532,9 @@ function CitationForm({
       </label>
 
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
-        Nội dung claim
+        Nội dung dẫn chứng
         <textarea
-          className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.claimText}
           maxLength={2000}
           name="claimText"
@@ -545,7 +545,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Vị trí trích dẫn
         <input
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.citationLocator}
           maxLength={240}
           name="citationLocator"
@@ -556,7 +556,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Mức độ chắc chắn
         <select
-          className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.certainty}
           name="certainty"
         >
@@ -572,7 +572,7 @@ function CitationForm({
         <label className="text-xs font-medium text-muted-foreground">
           Dạng ngày
           <select
-            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
             defaultValue={defaults.dateQualifier}
             name="dateQualifier"
           >
@@ -587,7 +587,7 @@ function CitationForm({
         <label className="text-xs font-medium text-muted-foreground">
           Biểu thức ngày
           <input
-            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
             defaultValue={defaults.dateText}
             maxLength={80}
             name="dateText"
@@ -603,7 +603,7 @@ function CitationForm({
       <label className="mt-3 block text-xs font-medium text-muted-foreground">
         Ghi chú nghiên cứu
         <textarea
-          className="mt-1 min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+          className="mt-1 min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
           defaultValue={defaults.note}
           maxLength={2000}
           name="note"
@@ -616,7 +616,7 @@ function CitationForm({
           size="sm"
           type="submit"
         >
-          {saving ? "Đang lưu…" : "Lưu citation"}
+          {saving ? "Đang lưu…" : "Lưu dẫn chứng"}
         </Button>
         <Button
           disabled={saving}
@@ -657,7 +657,7 @@ function ProvenanceToolbar({
         type="button"
         variant="outline"
       >
-        + Citation
+        + Dẫn chứng
       </Button>
     </div>
   );
@@ -666,7 +666,9 @@ function ProvenanceToolbar({
 function LoadingMessage({ loading }: { loading: boolean }) {
   if (!loading) return null;
   return (
-    <p className="mt-3 text-xs text-muted-foreground">Đang tải provenance…</p>
+    <p className="mt-3 text-xs text-muted-foreground">
+      Đang tải nguồn tư liệu…
+    </p>
   );
 }
 
@@ -778,10 +780,10 @@ function CitationList({
     return (
       <div className="mt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Citations
+          Dẫn chứng
         </p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Chưa có citation cho mục đang chọn.
+          Chưa có dẫn chứng cho mục đang chọn.
         </p>
       </div>
     );
@@ -790,7 +792,7 @@ function CitationList({
   return (
     <div className="mt-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        Citations
+        Dẫn chứng
       </p>
       <div className="mt-2 grid gap-2">
         {citations.map((citation) => (
@@ -956,14 +958,14 @@ export function ProvenancePanel({
 
     setEditor(null);
     setStatusMessage(
-      editor.citation ? "Đã cập nhật citation." : "Đã thêm citation.",
+      editor.citation ? "Đã cập nhật dẫn chứng." : "Đã thêm dẫn chứng.",
     );
     await refreshProvenance();
   }
 
   async function removeCitation(citationId: string) {
     const confirmed = window.confirm(
-      "Xóa citation này? Nguồn tư liệu sẽ được giữ lại.",
+      "Xóa dẫn chứng này? Nguồn tư liệu gốc vẫn được giữ lại.",
     );
     if (!confirmed) return;
 
@@ -986,18 +988,19 @@ export function ProvenancePanel({
     }
 
     setEditor(null);
-    setStatusMessage("Đã xóa citation.");
+    setStatusMessage("Đã xóa dẫn chứng.");
     await refreshProvenance();
   }
 
   return (
     <section className="mt-5 border-t border-border pt-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Notes & provenance
+        Nguồn tư liệu & ghi chú
       </p>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Nguồn, citation và claim chưa chắc chắn được lưu tách khỏi dữ liệu
-        canonical. Claim mâu thuẫn có thể cùng tồn tại để review.
+        Nguồn tư liệu và các dẫn chứng chưa chắc chắn được lưu tách khỏi hồ sơ
+        chính. Các thông tin mâu thuẫn có thể cùng tồn tại để người quản trị
+        kiểm tra.
       </p>
 
       <ProvenanceToolbar

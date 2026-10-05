@@ -14,6 +14,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useId,
   useState,
 } from "react";
 import {
@@ -152,6 +153,7 @@ type SidebarProps = {
   createPerson: CreatePerson | undefined;
   formMode: PersonFormMode;
   onCancelForm: () => void;
+  onDraftStateChange: (dirty: boolean, saving: boolean) => void;
   onClose: () => void;
   onPersonStateChanged: (personId: string, archived: boolean) => void;
   onFocusPerson: (personId: string) => void;
@@ -210,7 +212,8 @@ function selectedRelationshipCount(
 }
 
 function editorWorkspaceClass(drawerOpen: boolean) {
-  const base = "relative grid min-h-[70svh] flex-1 overflow-hidden";
+  const base =
+    "relative grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden";
   return drawerOpen ? `${base} md:grid-cols-[minmax(0,1fr)_24rem]` : base;
 }
 
@@ -432,7 +435,7 @@ function TreeFilterPanel({
     (!readOnly && archiveFilter !== "active");
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-2 py-2 sm:px-3">
+    <div className="relative z-40 shrink-0 flex flex-wrap items-center gap-2 border-b border-border bg-card px-2 py-2 sm:px-3">
       <label className="min-w-[13rem] flex-1">
         <span className="sr-only">Tìm thành viên</span>
         <input
@@ -444,11 +447,11 @@ function TreeFilterPanel({
         />
       </label>
 
-      <details className="group relative">
+      <details className="group">
         <summary className="flex h-9 cursor-pointer list-none items-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted">
           Bộ lọc{hasFilters ? " · đang dùng" : ""}
         </summary>
-        <div className="absolute left-0 top-10 z-30 grid w-64 gap-3 rounded-lg border border-border bg-card p-3 shadow-lg">
+        <div className="absolute left-2 top-full z-30 grid w-[min(16rem,calc(100vw-2rem))] sm:left-auto sm:right-3 gap-3 rounded-lg border border-border bg-card p-3 shadow-lg">
           <label className="text-xs font-medium text-muted-foreground">
             Tình trạng
             <select
@@ -504,7 +507,7 @@ function TreeFilterPanel({
         </div>
       </details>
 
-      <span className="hidden text-xs text-muted-foreground sm:inline">
+      <span aria-live="polite" className="text-xs text-muted-foreground">
         {matchCount} thành viên
       </span>
 
@@ -860,8 +863,12 @@ function PersonArchiveControls({
 function CreatePersonPanel({
   createPerson,
   onCancelForm,
+  onDraftStateChange,
   onSaved,
-}: Pick<SidebarProps, "createPerson" | "onCancelForm" | "onSaved">) {
+}: Pick<
+  SidebarProps,
+  "createPerson" | "onCancelForm" | "onDraftStateChange" | "onSaved"
+>) {
   async function handleSave(input: CreatePersonInput) {
     if (!createPerson) {
       return {
@@ -876,6 +883,7 @@ function CreatePersonPanel({
   return (
     <PersonEditorForm
       onCancel={onCancelForm}
+      onDraftStateChange={onDraftStateChange}
       onSave={handleSave}
       onSaved={onSaved}
       person={null}
@@ -885,12 +893,17 @@ function CreatePersonPanel({
 
 function EditPersonPanel({
   onCancelForm,
+  onDraftStateChange,
   onSaved,
   selectedPerson,
   updatePerson,
 }: Pick<
   SidebarProps,
-  "onCancelForm" | "onSaved" | "selectedPerson" | "updatePerson"
+  | "onCancelForm"
+  | "onDraftStateChange"
+  | "onSaved"
+  | "selectedPerson"
+  | "updatePerson"
 >) {
   async function handleSave(input: CreatePersonInput) {
     if (!updatePerson || !selectedPerson) {
@@ -908,6 +921,7 @@ function EditPersonPanel({
     <PersonEditorForm
       key={selectedPerson?.id ?? "missing"}
       onCancel={onCancelForm}
+      onDraftStateChange={onDraftStateChange}
       onSave={handleSave}
       onSaved={onSaved}
       person={selectedPerson}
@@ -982,10 +996,31 @@ function EditorDrawer({
   onClose: () => void;
   title: string;
 }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const previous = document.activeElement;
+    headingRef.current?.focus({ preventScroll: true });
+    return () => {
+      if (previous instanceof HTMLElement && previous.isConnected) {
+        previous.focus({ preventScroll: true });
+      }
+    };
+  }, [title]);
   return (
-    <aside className="absolute inset-0 z-30 overflow-y-auto bg-card shadow-lg md:relative md:inset-auto md:z-auto md:w-auto md:border-l md:border-border md:shadow-none">
+    <aside
+      aria-labelledby={titleId}
+      className="absolute inset-0 z-30 min-h-0 overflow-y-auto overscroll-contain bg-card shadow-lg md:relative md:inset-auto md:z-auto md:w-auto md:border-l md:border-border md:shadow-none"
+    >
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
-        <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
+        <h2
+          id={titleId}
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-sm font-semibold text-card-foreground outline-none"
+        >
+          {title}
+        </h2>
         <Button
           aria-label="Đóng bảng thông tin"
           onClick={onClose}
@@ -1049,6 +1084,7 @@ function EditorSidebar(props: SidebarProps) {
         <CreatePersonPanel
           createPerson={props.createPerson}
           onCancelForm={props.onCancelForm}
+          onDraftStateChange={props.onDraftStateChange}
           onSaved={props.onSaved}
         />
       </EditorDrawer>
@@ -1060,6 +1096,7 @@ function EditorSidebar(props: SidebarProps) {
       <EditorDrawer onClose={props.onClose} title="Chỉnh sửa thành viên">
         <EditPersonPanel
           onCancelForm={props.onCancelForm}
+          onDraftStateChange={props.onDraftStateChange}
           onSaved={props.onSaved}
           selectedPerson={props.selectedPerson}
           updatePerson={props.updatePerson}
@@ -1081,6 +1118,46 @@ function canStartLayoutMutation(
   if (!saveLayouts) return false;
   if (requestedCount === 0) return false;
   return !mutationInFlight;
+}
+
+function EmptyGraph({
+  visibleCount,
+  totalCount,
+  onClear,
+}: {
+  visibleCount: number;
+  totalCount: number;
+  onClear: () => void;
+}) {
+  if (visibleCount > 0) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+      <div
+        role="status"
+        className="pointer-events-auto max-w-sm rounded-xl border bg-card p-6 text-center shadow-sm"
+      >
+        <h2 className="font-semibold">
+          {totalCount
+            ? "Không tìm thấy thành viên"
+            : "Gia phả chưa có thành viên"}
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {totalCount
+            ? "Thử tên khác hoặc bỏ bộ lọc để xem lại sơ đồ."
+            : "Chọn Thêm thành viên để bắt đầu xây dựng gia phả."}
+        </p>
+        {totalCount > 0 ? (
+          <Button className="mt-4" onClick={onClear} variant="outline">
+            Hiện tất cả thành viên
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function canDragNodes(readOnly: boolean, formMode: PersonFormMode) {
+  return !readOnly && formMode === null;
 }
 
 export function AdminTreeEditor({
@@ -1119,6 +1196,24 @@ export function AdminTreeEditor({
     RelationshipEdge
   > | null>(null);
   const layoutMutationInFlight = useRef(false);
+  const canvasRef = useRef<HTMLElement>(null);
+  const draftState = useRef({ dirty: false, saving: false });
+  const updateDraftState = useCallback((dirty: boolean, saving: boolean) => {
+    draftState.current = { dirty, saving };
+  }, []);
+  const canLeaveForm = useCallback(() => {
+    if (draftState.current.saving) return false;
+    return (
+      !draftState.current.dirty ||
+      window.confirm("Hồ sơ có thay đổi chưa lưu. Bỏ thay đổi và tiếp tục?")
+    );
+  }, []);
+  const closeDrawer = useCallback(() => {
+    if (!canLeaveForm()) return;
+    setSelectedPersonId(null);
+    setSelectedRelationshipId(null);
+    setFormMode(null);
+  }, [canLeaveForm]);
   const filteredPeople = useMemo(
     () =>
       filterPeople(people, {
@@ -1200,17 +1295,15 @@ export function AdminTreeEditor({
       if (event.key !== "Escape") return;
       if (document.querySelector('dialog[open], [role="dialog"]')) return;
 
-      setSelectedPersonId(null);
-      setSelectedRelationshipId(null);
-      setFormMode(null);
+      closeDrawer();
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, []);
+  }, [closeDrawer]);
 
   useEffect(() => {
-    if (!drawerOpen) return;
+    if (!canvasRef.current) return;
 
     const nodeIds = selectedPerson
       ? [selectedPerson.id]
@@ -1221,19 +1314,27 @@ export function AdminTreeEditor({
           ]
         : [];
 
-    if (nodeIds.length === 0) return;
-
-    const frameId = window.requestAnimationFrame(() => {
-      flowInstance.current?.fitView({
-        nodes: nodeIds.map((id) => ({ id })),
-        duration: 180,
-        maxZoom: 1.15,
-        padding: 1.25,
+    let frameId = 0;
+    const fit = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        void flowInstance.current?.fitView({
+          ...(nodeIds.length ? { nodes: nodeIds.map((id) => ({ id })) } : {}),
+          duration: 0,
+          maxZoom: 1.15,
+          padding: 0.3,
+        });
       });
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [drawerOpen, selectedPerson, selectedRelationship]);
+    };
+    // Fit after the canvas has its actual size, not before the drawer resizes it.
+    const observer = new ResizeObserver(fit);
+    observer.observe(canvasRef.current);
+    fit();
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [drawerOpen, selectedPerson, selectedRelationship, visiblePeople]);
 
   useEffect(() => {
     if (!pendingFocusPersonId) return;
@@ -1358,18 +1459,24 @@ export function AdminTreeEditor({
   );
 
   function handleNodeSelect(personId: string) {
+    if (!canLeaveForm()) return;
     setSelectedPersonId(personId);
     setSelectedRelationshipId(null);
     setFormMode(null);
   }
 
   function handleEdgeSelect(relationshipId: string) {
+    if (!canLeaveForm()) return;
     setSelectedPersonId(null);
     setSelectedRelationshipId(relationshipId);
     setFormMode(null);
   }
 
   function handleSaved(personId: string) {
+    updateDraftState(false, false);
+    clearFilters();
+    setCollapsedBranchIds(new Set());
+    setPendingFocusPersonId(personId);
     setSelectedPersonId(personId);
     setSelectedRelationshipId(null);
     setFormMode(null);
@@ -1500,6 +1607,7 @@ export function AdminTreeEditor({
     setLifeFilter("all");
     setVisibilityFilter("all");
     setArchiveFilter("active");
+    setCollapsedBranchIds(new Set());
   }
 
   return (
@@ -1513,6 +1621,7 @@ export function AdminTreeEditor({
         onLifeFilterChange={setLifeFilter}
         onQueryChange={setQuery}
         onStartCreate={() => {
+          if (!canLeaveForm()) return;
           setSelectedPersonId(null);
           setSelectedRelationshipId(null);
           setFormMode("create");
@@ -1527,10 +1636,24 @@ export function AdminTreeEditor({
       <div className={editorWorkspaceClass(drawerOpen)}>
         <section
           aria-label="Sơ đồ gia phả tương tác"
-          className="relative min-h-[70svh] overflow-hidden bg-card"
+          ref={canvasRef}
+          onKeyDownCapture={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            const target = event.target as HTMLElement;
+            const node = target.closest(".react-flow__node");
+            const id = node?.getAttribute("data-id");
+            if (!id) return;
+            event.preventDefault();
+            event.stopPropagation();
+            handleNodeSelect(id);
+          }}
+          className="relative min-h-0 min-w-0 overflow-hidden bg-card"
         >
           <ReactFlow<PersonNode, RelationshipEdge>
-            nodes={nodes}
+            nodes={nodes.map((node) => ({
+              ...node,
+              selected: node.id === selectedPersonId,
+            }))}
             onInit={(instance) => {
               flowInstance.current = instance;
             }}
@@ -1548,7 +1671,14 @@ export function AdminTreeEditor({
               handleNodeSelect(node.id);
               persistNodePosition(node);
             }}
-            nodesDraggable={!readOnly}
+            nodesDraggable={canDragNodes(readOnly, formMode)}
+            nodeDragThreshold={6}
+            ariaLabelConfig={{
+              "controls.zoomIn.ariaLabel": "Phóng to",
+              "controls.zoomOut.ariaLabel": "Thu nhỏ",
+              "controls.fitView.ariaLabel": "Xem toàn bộ sơ đồ",
+              "minimap.ariaLabel": "Bản đồ thu nhỏ",
+            }}
             nodesConnectable={false}
             nodesFocusable
             edgesFocusable
@@ -1560,8 +1690,13 @@ export function AdminTreeEditor({
           >
             <Background gap={32} size={1} />
             <Controls showInteractive={false} />
-            <MiniMap pannable zoomable />
+            <MiniMap className="!hidden sm:!block" pannable zoomable />
           </ReactFlow>
+          <EmptyGraph
+            visibleCount={visiblePeople.length}
+            totalCount={people.length}
+            onClear={clearFilters}
+          />
         </section>
 
         <EditorSidebar
@@ -1580,12 +1715,11 @@ export function AdminTreeEditor({
           }
           lockedPersonIds={lockedPersonIds}
           onAutoLayoutBranch={autoLayoutBranch}
-          onCancelForm={() => setFormMode(null)}
-          onClose={() => {
-            setSelectedPersonId(null);
-            setSelectedRelationshipId(null);
-            setFormMode(null);
+          onCancelForm={() => {
+            if (canLeaveForm()) setFormMode(null);
           }}
+          onDraftStateChange={updateDraftState}
+          onClose={closeDrawer}
           onFocusPerson={focusPerson}
           onJumpToPerson={revealAndFocusPerson}
           onPersonStateChanged={handlePersonStateChanged}

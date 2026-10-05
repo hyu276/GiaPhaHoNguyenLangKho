@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 const name = "Thành viên kiểm thử A";
+// IntersectionObserver rounds transformed node bounds (e.g. 0.99999988).
+const fullyVisibleRatio = 0.999999;
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/editor-test-harness");
@@ -17,9 +19,9 @@ test("drawer preserves a visible selected node and bounded canvas", async ({
   await expect(
     page.getByRole("heading", { name: "Thông tin thành viên" }),
   ).toBeVisible();
-  await expect(node).toBeInViewport({ ratio: 1 });
+  await expect(node).toBeInViewport({ ratio: fullyVisibleRatio });
   await page.getByRole("button", { name: "Sửa hồ sơ", exact: true }).click();
-  await expect(node).toBeInViewport({ ratio: 1 });
+  await expect(node).toBeInViewport({ ratio: fullyVisibleRatio });
   const overflow = await page.evaluate(
     () => document.documentElement.scrollHeight > innerHeight + 1,
   );

@@ -17,16 +17,16 @@ test("drawer preserves a visible selected node and bounded canvas", async ({
   await expect(
     page.getByRole("heading", { name: "Thông tin thành viên" }),
   ).toBeVisible();
-  await expect(node).toBeInViewport();
+  await expect(node).toBeInViewport({ ratio: 1 });
   await page.getByRole("button", { name: "Sửa hồ sơ", exact: true }).click();
-  await expect(node).toBeInViewport();
+  await expect(node).toBeInViewport({ ratio: 1 });
   const overflow = await page.evaluate(
     () => document.documentElement.scrollHeight > innerHeight + 1,
   );
   expect(overflow).toBe(false);
   await expect(page.getByText("PERSON CRUD")).toHaveCount(0);
   await expect(
-    page.getByLabel("Quyền hiển thị", { exact: true }),
+    page.getByRole("combobox", { name: "Quyền hiển thị", exact: true }),
   ).toBeVisible();
 });
 

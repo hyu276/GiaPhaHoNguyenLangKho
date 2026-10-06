@@ -272,11 +272,40 @@ function getEmptyDescription(readOnly: boolean) {
 function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
   return (
     <div
-      className={`min-w-48 rounded-lg border bg-card px-4 py-3 transition-[transform,opacity] ${
+      className={`min-w-48 select-none rounded-lg border bg-card px-4 py-3 ${
         selected ? "border-primary ring-2 ring-primary/20" : "border-border"
       } ${data.archived ? "border-dashed opacity-65" : ""}`}
     >
-      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <Handle
+        id="child"
+        type="target"
+        position={Position.Top}
+        className="opacity-0"
+      />
+      <Handle
+        id="partner-left-source"
+        type="source"
+        position={Position.Left}
+        className="opacity-0"
+      />
+      <Handle
+        id="partner-right-source"
+        type="source"
+        position={Position.Right}
+        className="opacity-0"
+      />
+      <Handle
+        id="partner-left-target"
+        type="target"
+        position={Position.Left}
+        className="opacity-0"
+      />
+      <Handle
+        id="partner-right-target"
+        type="target"
+        position={Position.Right}
+        className="opacity-0"
+      />
       <p className="text-sm font-semibold text-card-foreground">
         {data.displayName}
       </p>
@@ -301,7 +330,12 @@ function PersonNodeCard({ data, selected }: NodeProps<PersonNode>) {
           </>
         ) : null}
       </div>
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+      <Handle
+        id="parent"
+        type="source"
+        position={Position.Bottom}
+        className="opacity-0"
+      />
     </div>
   );
 }
@@ -341,8 +375,30 @@ function createNodes(
   });
 }
 
-function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
+function getPartnerHandles(
+  relationship: EditorRelationship,
+  positions: ReadonlyMap<string, LayoutPosition>,
+) {
+  const sourceX = positions.get(relationship.sourcePersonId)?.x ?? 0;
+  const targetX = positions.get(relationship.targetPersonId)?.x ?? 0;
+  return sourceX <= targetX
+    ? {
+        sourceHandle: "partner-right-source",
+        targetHandle: "partner-left-target",
+      }
+    : {
+        sourceHandle: "partner-left-source",
+        targetHandle: "partner-right-target",
+      };
+}
+
+function createEdges(
+  relationships: EditorRelationship[],
+  nodes: PersonNode[],
+): RelationshipEdge[] {
+  const positions = new Map(nodes.map((node) => [node.id, node.position]));
   return relationships.map((relationship) => {
+    const partnerHandles = getPartnerHandles(relationship, positions);
     const edge: RelationshipEdge = {
       id: relationship.id,
       source: relationship.sourcePersonId,
@@ -361,14 +417,31 @@ function createEdges(relationships: EditorRelationship[]): RelationshipEdge[] {
     if (relationship.kind === "partnership") {
       return {
         ...edge,
+        ...partnerHandles,
         label: "Hôn phối",
-        style: { strokeDasharray: "6 5" },
+        pathOptions: { borderRadius: 12, offset: 20 },
+        style: {
+          stroke: "var(--muted-foreground)",
+          strokeWidth: 2,
+          strokeDasharray: "6 5",
+        },
+        labelStyle: { fill: "var(--foreground)", fontSize: 11 },
+        labelBgStyle: { fill: "var(--card)" },
       };
     }
 
     return {
       ...edge,
-      markerEnd: { type: MarkerType.ArrowClosed },
+      sourceHandle: "parent",
+      targetHandle: "child",
+      pathOptions: { borderRadius: 12, offset: 24 },
+      style: { stroke: "var(--muted-foreground)", strokeWidth: 2 },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: "var(--muted-foreground)",
+        width: 16,
+        height: 16,
+      },
     };
   });
 }
@@ -1108,16 +1181,34 @@ function EditorSidebar(props: SidebarProps) {
   return <DefaultEditorSidebar {...props} />;
 }
 
+function samePosition(a: LayoutPosition, b: LayoutPosition | undefined) {
+  return b !== undefined && a.x === b.x && a.y === b.y;
+}
+
+async function saveLayoutsSafely(
+  save: SaveLayouts,
+  inputs: SaveLayoutInput[],
+): Promise<SaveLayoutResult> {
+  try {
+    return await save(inputs);
+  } catch {
+    return {
+      ok: false,
+      message:
+        "Không thể lưu bố cục. Đã khôi phục vị trí trước đó; hãy thử kéo lại.",
+    };
+  }
+}
+
 function canStartLayoutMutation(
   readOnly: boolean,
   saveLayouts: SaveLayouts | undefined,
   requestedCount: number,
-  mutationInFlight: boolean,
 ) {
   if (readOnly) return false;
   if (!saveLayouts) return false;
   if (requestedCount === 0) return false;
-  return !mutationInFlight;
+  return true;
 }
 
 function EmptyGraph({
@@ -1152,6 +1243,35 @@ function EmptyGraph({
           </Button>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function CanvasHistory({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  readOnly,
+}: {
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  readOnly: boolean;
+}) {
+  if (readOnly) return null;
+  return (
+    <div
+      aria-label="Lịch sử bố cục"
+      className="absolute bottom-4 left-16 flex gap-1 rounded-md border bg-card p-1 shadow-sm"
+    >
+      <Button size="sm" variant="ghost" disabled={!canUndo} onClick={onUndo}>
+        Hoàn tác
+      </Button>
+      <Button size="sm" variant="ghost" disabled={!canRedo} onClick={onRedo}>
+        Làm lại
+      </Button>
     </div>
   );
 }
@@ -1195,7 +1315,8 @@ export function AdminTreeEditor({
     PersonNode,
     RelationshipEdge
   > | null>(null);
-  const layoutMutationInFlight = useRef(false);
+  const layoutQueue = useRef(Promise.resolve(true));
+  const pendingLayoutSaves = useRef(new Map<string, number>());
   const canvasRef = useRef<HTMLElement>(null);
   const draftState = useRef({ dirty: false, saving: false });
   const updateDraftState = useCallback((dirty: boolean, saving: boolean) => {
@@ -1240,12 +1361,12 @@ export function AdminTreeEditor({
     () => createNodes(visiblePeople, lockedPersonIds),
     [lockedPersonIds, visiblePeople],
   );
-  const edges = useMemo(
-    () => createEdges(visibleRelationships),
-    [visibleRelationships],
-  );
   const [nodes, setNodes, onNodesChange] =
     useNodesState<PersonNode>(initialNodes);
+  const edges = useMemo(
+    () => createEdges(visibleRelationships, nodes),
+    [visibleRelationships, nodes],
+  );
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedRelationshipId, setSelectedRelationshipId] = useState<
     string | null
@@ -1271,24 +1392,44 @@ export function AdminTreeEditor({
     relationships,
   );
   const statusMessage = getStatusMessage(readOnly, saveState);
+  const layoutCanUndo =
+    layoutHistory.length > 0 && saveState.status !== "saving";
+  const layoutCanRedo =
+    layoutFuture.length > 0 && saveState.status !== "saving";
   const drawerOpen = Boolean(
     selectedPerson || selectedRelationship || formMode !== null,
   );
 
   useEffect(() => {
-    persistedPositions.current = new Map(
-      people.map((person) => [person.id, person.position]),
-    );
-    layoutRevisions.current = new Map(
-      people.map((person) => [person.id, person.layoutRevision]),
-    );
-  }, [people]);
-
-  useEffect(() => {
-    setNodes(
-      createNodes(visiblePeople, lockedPersonIds, persistedPositions.current),
-    );
-  }, [lockedPersonIds, setNodes, visiblePeople]);
+    people.forEach((person) => {
+      if (pendingLayoutSaves.current.has(person.id)) return;
+      const knownRevision = layoutRevisions.current.get(person.id) ?? 0;
+      if ((person.layoutRevision ?? 0) < knownRevision) return;
+      persistedPositions.current.set(person.id, person.position);
+      layoutRevisions.current.set(person.id, person.layoutRevision);
+    });
+    setNodes((current) => {
+      const previous = new Map(current.map((node) => [node.id, node]));
+      return createNodes(
+        visiblePeople,
+        lockedPersonIds,
+        persistedPositions.current,
+      ).map((node) => {
+        const existing = previous.get(node.id);
+        if (
+          existing &&
+          (existing.dragging || pendingLayoutSaves.current.has(node.id))
+        ) {
+          return {
+            ...node,
+            position: existing.position,
+            dragging: Boolean(existing.dragging),
+          };
+        }
+        return node;
+      });
+    });
+  }, [people, visiblePeople, lockedPersonIds, setNodes]);
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -1303,38 +1444,31 @@ export function AdminTreeEditor({
   }, [closeDrawer]);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const nodeIds = selectedPerson
-      ? [selectedPerson.id]
-      : selectedRelationship
-        ? [
-            selectedRelationship.sourcePersonId,
-            selectedRelationship.targetPersonId,
-          ]
-        : [];
-
-    let frameId = 0;
-    const fit = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        void flowInstance.current?.fitView({
-          ...(nodeIds.length ? { nodes: nodeIds.map((id) => ({ id })) } : {}),
-          duration: 0,
-          maxZoom: 1.15,
-          padding: 0.3,
-        });
+    // Only an intentional selection may reveal a clipped node. Never refit on
+    // drag, save/revalidation, filtering, or closing the inspector.
+    if (!selectedPersonId) return;
+    const frameId = window.requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      const instance = flowInstance.current;
+      const element = canvas?.querySelector(`[data-id="${selectedPersonId}"]`);
+      if (!canvas || !instance || !element) return;
+      const bounds = canvas.getBoundingClientRect();
+      const node = element.getBoundingClientRect();
+      const dx =
+        Math.max(0, bounds.left + 16 - node.left) -
+        Math.max(0, node.right - bounds.right + 16);
+      const dy =
+        Math.max(0, bounds.top + 16 - node.top) -
+        Math.max(0, node.bottom - bounds.bottom + 16);
+      const viewport = instance.getViewport();
+      void instance.setViewport({
+        ...viewport,
+        x: viewport.x + dx,
+        y: viewport.y + dy,
       });
-    };
-    // Fit after the canvas has its actual size, not before the drawer resizes it.
-    const observer = new ResizeObserver(fit);
-    observer.observe(canvasRef.current);
-    fit();
-    return () => {
-      observer.disconnect();
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [drawerOpen, selectedPerson, selectedRelationship, visiblePeople]);
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selectedPersonId]);
 
   useEffect(() => {
     if (!pendingFocusPersonId) return;
@@ -1355,19 +1489,15 @@ export function AdminTreeEditor({
     return () => window.cancelAnimationFrame(frameId);
   }, [pendingFocusPersonId, visiblePeople]);
 
-  const applyLayoutPositions = useCallback(
+  const performLayoutMutation = useCallback(
     async (
       requestedPositions: ReadonlyMap<string, LayoutPosition>,
-      recordHistory = true,
+      recordHistory: boolean,
+      optimistic: boolean,
     ) => {
       if (!saveLayouts) return false;
       if (
-        !canStartLayoutMutation(
-          readOnly,
-          saveLayouts,
-          requestedPositions.size,
-          layoutMutationInFlight.current,
-        )
+        !canStartLayoutMutation(readOnly, saveLayouts, requestedPositions.size)
       ) {
         return false;
       }
@@ -1395,16 +1525,17 @@ export function AdminTreeEditor({
       if (after.size === 0) return true;
 
       const firstPersonId = after.keys().next().value as string;
-      layoutMutationInFlight.current = true;
       setSaveState({ status: "saving", personId: firstPersonId });
-      setNodes((currentNodes) =>
-        currentNodes.map((node) => {
-          const position = after.get(node.id);
-          return position ? { ...node, position } : node;
-        }),
-      );
+      if (optimistic)
+        setNodes((currentNodes) =>
+          currentNodes.map((node) => {
+            const position = after.get(node.id);
+            return position ? { ...node, position } : node;
+          }),
+        );
 
-      const result = await saveLayouts(
+      const result = await saveLayoutsSafely(
+        saveLayouts,
         [...after].map(([personId, position]) => ({
           personId,
           positionX: position.x,
@@ -1417,7 +1548,12 @@ export function AdminTreeEditor({
         setNodes((currentNodes) =>
           currentNodes.map((node) => {
             const position = before.get(node.id);
-            return position ? { ...node, position } : node;
+            const requested = after.get(node.id);
+            return position &&
+              !node.dragging &&
+              samePosition(node.position, requested)
+              ? { ...node, position }
+              : node;
           }),
         );
         setSaveState({
@@ -1425,7 +1561,6 @@ export function AdminTreeEditor({
           personId: firstPersonId,
           message: result.message,
         });
-        layoutMutationInFlight.current = false;
         return false;
       }
 
@@ -1444,16 +1579,42 @@ export function AdminTreeEditor({
       }
 
       setSaveState({ status: "saved", personId: firstPersonId });
-      layoutMutationInFlight.current = false;
       return true;
     },
     [people, readOnly, saveLayouts, setNodes],
   );
 
+  const applyLayoutPositions = useCallback(
+    (
+      positions: ReadonlyMap<string, LayoutPosition>,
+      recordHistory = true,
+      optimistic = true,
+    ) => {
+      const pending = pendingLayoutSaves.current;
+      positions.forEach((_, id) => pending.set(id, (pending.get(id) ?? 0) + 1));
+      const operation = layoutQueue.current
+        .then(() => performLayoutMutation(positions, recordHistory, optimistic))
+        .finally(() => {
+          positions.forEach((_, id) => {
+            const remaining = (pending.get(id) ?? 1) - 1;
+            if (remaining) pending.set(id, remaining);
+            else pending.delete(id);
+          });
+        });
+      layoutQueue.current = operation;
+      return operation;
+    },
+    [performLayoutMutation],
+  );
+
   const persistNodePosition = useCallback(
     (node: PersonNode) => {
       if (node.data.archived || node.data.locked) return;
-      void applyLayoutPositions(new Map([[node.id, node.position]]));
+      void applyLayoutPositions(
+        new Map([[node.id, { ...node.position }]]),
+        true,
+        false,
+      );
     },
     [applyLayoutPositions],
   );
@@ -1652,7 +1813,9 @@ export function AdminTreeEditor({
           <ReactFlow<PersonNode, RelationshipEdge>
             nodes={nodes.map((node) => ({
               ...node,
-              selected: node.id === selectedPersonId,
+              selected: node.dragging || node.id === selectedPersonId,
+              draggable:
+                Boolean(node.draggable) && canDragNodes(readOnly, formMode),
             }))}
             onInit={(instance) => {
               flowInstance.current = instance;
@@ -1668,11 +1831,18 @@ export function AdminTreeEditor({
               setSelectedRelationshipId(null);
             }}
             onNodeDragStop={(_, node) => {
-              handleNodeSelect(node.id);
               persistNodePosition(node);
             }}
             nodesDraggable={canDragNodes(readOnly, formMode)}
-            nodeDragThreshold={6}
+            nodeDragThreshold={3}
+            autoPanOnNodeDrag={false}
+            autoPanOnNodeFocus={false}
+            selectNodesOnDrag={false}
+            panOnScroll
+            panOnScrollSpeed={1}
+            zoomOnScroll={false}
+            zoomOnDoubleClick={false}
+            zoomActivationKeyCode={null}
             ariaLabelConfig={{
               "controls.zoomIn.ariaLabel": "Phóng to",
               "controls.zoomOut.ariaLabel": "Thu nhỏ",
@@ -1692,6 +1862,19 @@ export function AdminTreeEditor({
             <Controls showInteractive={false} />
             <MiniMap className="!hidden sm:!block" pannable zoomable />
           </ReactFlow>
+          <div className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-md border bg-card/95 px-3 py-2 text-xs text-muted-foreground">
+            <p>Cuộn để di chuyển · Kéo thẻ để đổi vị trí · + / − để zoom</p>
+            <p className="mt-1">
+              Nét liền có mũi tên: cha/mẹ → con · Nét đứt: hôn phối
+            </p>
+          </div>
+          <CanvasHistory
+            readOnly={readOnly}
+            canUndo={layoutCanUndo}
+            canRedo={layoutCanRedo}
+            onUndo={() => void undoLayout()}
+            onRedo={() => void redoLayout()}
+          />
           <EmptyGraph
             visibleCount={visiblePeople.length}
             totalCount={people.length}
@@ -1707,12 +1890,8 @@ export function AdminTreeEditor({
           createPartnership={createPartnership}
           createPerson={createPerson}
           formMode={formMode}
-          layoutCanRedo={
-            layoutFuture.length > 0 && saveState.status !== "saving"
-          }
-          layoutCanUndo={
-            layoutHistory.length > 0 && saveState.status !== "saving"
-          }
+          layoutCanRedo={layoutCanRedo}
+          layoutCanUndo={layoutCanUndo}
           lockedPersonIds={lockedPersonIds}
           onAutoLayoutBranch={autoLayoutBranch}
           onCancelForm={() => {

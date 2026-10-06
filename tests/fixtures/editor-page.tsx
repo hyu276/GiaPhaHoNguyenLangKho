@@ -53,6 +53,27 @@ export default function EditorHarness() {
     <main className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
       <header className="shrink-0 border-b p-4">
         Kiểm thử component quản trị thực — dữ liệu giả lập
+        <button
+          type="button"
+          onClick={() => {
+            const extra = Array.from(
+              { length: 147 },
+              (_, index): EditorPerson => ({
+                ...partner,
+                id: `synthetic-${index}`,
+                displayName: `Thành viên tổng hợp ${index + 1}`,
+                position: {
+                  x: (index % 12) * 280,
+                  y: 800 + Math.floor(index / 12) * 180,
+                },
+              }),
+            );
+            persisted.current = [...initialPeople, ...extra];
+            setPeople(persisted.current);
+          }}
+        >
+          Nạp 150 thành viên giả lập
+        </button>
         <output aria-label="Các lần lưu bố cục" className="sr-only">
           {JSON.stringify(savedInputs)}
         </output>
@@ -61,6 +82,13 @@ export default function EditorHarness() {
         <AdminTreeEditor
           people={currentPeople}
           relationships={[
+            ...currentPeople.slice(3).map((person, index) => ({
+              id: `synthetic-relation-${index}`,
+              kind: "parent_child" as const,
+              sourcePersonId: currentPeople[Math.floor(index / 2)]!.id,
+              targetPersonId: person.id,
+              revision: 1,
+            })),
             {
               id: "parent-child",
               kind: "parent_child",

@@ -78,7 +78,12 @@ test("consecutive drags persist in order without opening drawer or moving viewpo
   expect(await viewport(page)).toEqual(before);
   expect(await node.getAttribute("style")).toBe(dropped);
   expect((await savedMoves(page))[1]?.[0]?.expectedRevision).toBe(2);
-  expect((await node.boundingBox())!.x).toBeCloseTo(initial!.x - 130, 0);
+  // React Flow activates dragging after its pointer threshold. Assert both
+  // gestures moved and the final persisted coordinate matches the rendered node.
+  const finalX = (await node.boundingBox())!.x;
+  expect(finalX).toBeLessThan(initial!.x - 100);
+  const savedX = (await savedMoves(page))[1]![0]!.positionX;
+  expect(finalX).toBeCloseTo(initial!.x + (savedX - 800) * before.zoom, 2);
   await expect(
     page.getByRole("heading", { name: "Thông tin thành viên" }),
   ).toHaveCount(0);
@@ -135,4 +140,59 @@ test("parent arrows use vertical handles while partnerships use facing side hand
   await movePerson(page, -80, 30);
   await expect(partnership).not.toHaveAttribute("d", oldPartnerPath!);
   await expect(parent).toHaveAttribute("marker-end", /url/);
+});
+
+test("undo and redo remain available directly on the canvas", async ({
+  page,
+}) => {
+  const node = page.locator(`.react-flow__node${person}`);
+  const original = await node.getAttribute("style");
+  const before = await viewport(page);
+  await movePerson(page, -60, 40);
+  await expect(
+    page.getByRole("button", { name: "Hoàn tác", exact: true }),
+  ).toBeEnabled();
+  const moved = await node.getAttribute("style");
+  await page.getByRole("button", { name: "Hoàn tác", exact: true }).click();
+  await expect(node).toHaveAttribute("style", original!);
+  await expect(
+    page.getByRole("button", { name: "Làm lại", exact: true }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Làm lại", exact: true }).click();
+  await expect(node).toHaveAttribute("style", moved!);
+  await expect.poll(async () => (await savedMoves(page)).length).toBe(3);
+  expect(await viewport(page)).toEqual(before);
+});
+
+test("a larger synthetic tree retains stable navigation and drag persistence", async ({
+  page,
+}) => {
+  await page
+    .getByRole("button", { name: "Nạp 150 thành viên giả lập" })
+    .click();
+  await expect(page.locator(".react-flow__node")).toHaveCount(150);
+  await expect(page.locator(".react-flow__edge")).toHaveCount(149);
+  const before = await viewport(page);
+  await movePerson(page, -45, 30);
+  await expect.poll(async () => (await savedMoves(page)).length).toBe(1);
+  await expect(page.getByText("Đã lưu bố cục", { exact: true })).toBeVisible();
+  expect(await viewport(page)).toEqual(before);
+});
+
+test("keyboard movement saves without shifting the viewport", async ({
+  page,
+}) => {
+  const node = page.locator(`.react-flow__node${person}`);
+  await node.click();
+  await expect(
+    page.getByRole("heading", { name: "Thông tin thành viên" }),
+  ).toBeVisible();
+  await node.focus();
+  const before = await viewport(page);
+  const position = await node.boundingBox();
+  await node.press("ArrowRight");
+  await expect.poll(async () => (await savedMoves(page)).length).toBe(1);
+  await expect(page.getByText("Đã lưu bố cục", { exact: true })).toBeVisible();
+  expect((await node.boundingBox())!.x).toBeGreaterThan(position!.x);
+  expect(await viewport(page)).toEqual(before);
 });

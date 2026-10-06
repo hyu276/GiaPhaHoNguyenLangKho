@@ -1798,6 +1798,15 @@ export function AdminTreeEditor({
         <section
           aria-label="Sơ đồ gia phả tương tác"
           ref={canvasRef}
+          onKeyUpCapture={(event) => {
+            if (!event.key.startsWith("Arrow")) return;
+            const target = event.target as HTMLElement;
+            const id = target
+              .closest(".react-flow__node")
+              ?.getAttribute("data-id");
+            const node = id ? flowInstance.current?.getNode(id) : undefined;
+            if (node) persistNodePosition(node);
+          }}
           onKeyDownCapture={(event) => {
             if (event.key !== "Enter" && event.key !== " ") return;
             const target = event.target as HTMLElement;

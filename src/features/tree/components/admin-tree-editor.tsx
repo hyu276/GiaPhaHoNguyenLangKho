@@ -1416,17 +1416,20 @@ export function AdminTreeEditor({
         persistedPositions.current,
       ).map((node) => {
         const existing = previous.get(node.id);
+        // Preserve React Flow measurements so server refreshes do not briefly
+        // hide and remeasure every card after a layout save.
+        const reconciled = { ...existing, ...node };
         if (
           existing &&
           (existing.dragging || pendingLayoutSaves.current.has(node.id))
         ) {
           return {
-            ...node,
+            ...reconciled,
             position: existing.position,
             dragging: Boolean(existing.dragging),
           };
         }
-        return node;
+        return reconciled;
       });
     });
   }, [people, visiblePeople, lockedPersonIds, setNodes]);

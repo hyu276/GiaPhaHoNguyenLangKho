@@ -52,3 +52,14 @@ jobs:
 
       - name: End-to-end smoke test
         run: npm run test:e2e
+
+      - name: Production editor component regression tests
+        run: npm run test:editor
+
+      - name: Editor regression screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-regression-results
+          path: test-results/
+          retention-days: 3

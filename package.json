@@ -19,7 +19,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "quality": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    "quality": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "test:editor": "playwright test --config playwright.editor.config.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",

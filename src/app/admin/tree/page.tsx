@@ -375,8 +375,8 @@ export default async function AdminTreePage() {
   const { activePeopleCount, archivedPeopleCount } = getPeopleCounts(people);
 
   return (
-    <main className="flex min-h-svh flex-col bg-background">
-      <header className="relative z-40 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-5 lg:px-6">
+    <main className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
+      <header className="relative z-50 shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-5 lg:px-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h1 className="font-display text-2xl tracking-tight text-card-foreground sm:text-3xl">

@@ -865,10 +865,21 @@ export function ProvenancePanel({
   useEffect(() => {
     let cancelled = false;
 
-    void loadProvenance({ personId, relationshipId }).then((result) => {
-      if (cancelled) return;
-      setLoaded(loadedStateFromResult(targetKey, result));
-    });
+    void loadProvenance({ personId, relationshipId })
+      .then((result) => {
+        if (cancelled) return;
+        setLoaded(loadedStateFromResult(targetKey, result));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoaded({
+          key: targetKey,
+          sources: [],
+          citations: [],
+          error:
+            "Không thể tải nguồn tư liệu. Hãy đóng rồi mở lại hồ sơ để thử lại.",
+        });
+      });
 
     return () => {
       cancelled = true;

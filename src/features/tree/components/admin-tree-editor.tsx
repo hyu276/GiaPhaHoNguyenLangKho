@@ -10,6 +10,7 @@
 import { useRouter } from "next/navigation";
 import {
   type ReactNode,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -895,15 +896,20 @@ function PersonArchiveControls({
 
     setSaving(true);
     setErrorMessage(null);
-    const result = await mutation({
-      personId: person.id,
-      expectedRevision: person.revision,
-    });
-    setSaving(false);
-
-    if (!result.ok) {
-      setErrorMessage(result.message);
+    try {
+      const result = await mutation({
+        personId: person.id,
+        expectedRevision: person.revision,
+      });
+      if (!result.ok) {
+        setErrorMessage(result.message);
+        return;
+      }
+    } catch {
+      setErrorMessage("Không thể kết nối để cập nhật trạng thái hồ sơ.");
       return;
+    } finally {
+      setSaving(false);
     }
 
     onChanged(person.id, nextArchived);
@@ -1280,6 +1286,91 @@ function canDragNodes(readOnly: boolean, formMode: PersonFormMode) {
   return !readOnly && formMode === null;
 }
 
+function clippedViewportDelta(bounds: DOMRect, node: DOMRect) {
+  if (bounds.width < 1 || bounds.height < 1) return { x: 0, y: 0 };
+  const margin = 12;
+  return {
+    x:
+      Math.max(0, bounds.left + margin - node.left) -
+      Math.max(0, node.right - bounds.right + margin),
+    y:
+      Math.max(0, bounds.top + margin - node.top) -
+      Math.max(0, node.bottom - bounds.bottom + margin),
+  };
+}
+
+function revealClippedNode(
+  canvas: HTMLElement | null,
+  instance: ReactFlowInstance<PersonNode, RelationshipEdge> | null,
+  personId: string,
+) {
+  const element = canvas?.querySelector<HTMLElement>(`[data-id="${personId}"]`);
+  if (!canvas || !instance || !element) return;
+  const shift = clippedViewportDelta(
+    canvas.getBoundingClientRect(),
+    element.getBoundingClientRect(),
+  );
+  if (Math.abs(shift.x) + Math.abs(shift.y) < 1) return;
+  const view = instance.getViewport();
+  void instance.setViewport({
+    ...view,
+    x: view.x + shift.x,
+    y: view.y + shift.y,
+  });
+}
+
+function isSelectionHidden(
+  selectedPersonId: string | null,
+  visiblePeople: EditorPerson[],
+) {
+  if (!selectedPersonId) return false;
+  return !visiblePeople.some((person) => person.id === selectedPersonId);
+}
+
+function useRevealClippedSelection(
+  personId: string | null,
+  inspectorOpen: boolean,
+  formMode: PersonFormMode,
+  canvasRef: RefObject<HTMLElement | null>,
+  flowInstance: RefObject<ReactFlowInstance<
+    PersonNode,
+    RelationshipEdge
+  > | null>,
+) {
+  useEffect(() => {
+    if (!personId || !inspectorOpen || formMode !== null) return;
+    const frame = window.requestAnimationFrame(() =>
+      revealClippedNode(canvasRef.current, flowInstance.current, personId),
+    );
+    return () => window.cancelAnimationFrame(frame);
+  }, [personId, inspectorOpen, formMode, canvasRef, flowInstance]);
+}
+
+function HiddenSelectionNotice({
+  person,
+  hidden,
+  onReveal,
+}: {
+  person: EditorPerson | null;
+  hidden: boolean;
+  onReveal: (personId: string) => void;
+}) {
+  if (!person || !hidden) return null;
+  return (
+    <div className="absolute right-0 top-0 z-40 max-w-sm rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 shadow">
+      Người đang chọn đã bị ẩn theo bộ lọc.
+      <Button
+        className="ml-2"
+        size="sm"
+        variant="outline"
+        onClick={() => onReveal(person.id)}
+      >
+        Hiện thành viên
+      </Button>
+    </div>
+  );
+}
+
 export function AdminTreeEditor({
   archivePerson,
   people,
@@ -1306,6 +1397,22 @@ export function AdminTreeEditor({
   const [lockedPersonIds, setLockedPersonIds] = useState<Set<string>>(
     () => new Set(),
   );
+  // Per-browser lock persistence; no client-only state is read during SSR.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("gia-pha:locked-layout-ids:v1");
+      if (!raw) return;
+      const saved: unknown = JSON.parse(raw);
+      if (!Array.isArray(saved) || !saved.every((id) => typeof id === "string"))
+        return;
+      const frame = window.requestAnimationFrame(() =>
+        setLockedPersonIds(new Set(saved as string[])),
+      );
+      return () => window.cancelAnimationFrame(frame);
+    } catch {
+      return;
+    }
+  }, []);
   const [layoutHistory, setLayoutHistory] = useState<LayoutHistoryEntry[]>([]);
   const [layoutFuture, setLayoutFuture] = useState<LayoutHistoryEntry[]>([]);
   const [pendingFocusPersonId, setPendingFocusPersonId] = useState<
@@ -1446,32 +1553,13 @@ export function AdminTreeEditor({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [closeDrawer]);
 
-  useEffect(() => {
-    // Only an intentional selection may reveal a clipped node. Never refit on
-    // drag, save/revalidation, filtering, or closing the inspector.
-    if (!selectedPersonId) return;
-    const frameId = window.requestAnimationFrame(() => {
-      const canvas = canvasRef.current;
-      const instance = flowInstance.current;
-      const element = canvas?.querySelector(`[data-id="${selectedPersonId}"]`);
-      if (!canvas || !instance || !element) return;
-      const bounds = canvas.getBoundingClientRect();
-      const node = element.getBoundingClientRect();
-      const dx =
-        Math.max(0, bounds.left + 16 - node.left) -
-        Math.max(0, node.right - bounds.right + 16);
-      const dy =
-        Math.max(0, bounds.top + 16 - node.top) -
-        Math.max(0, node.bottom - bounds.bottom + 16);
-      const viewport = instance.getViewport();
-      void instance.setViewport({
-        ...viewport,
-        x: viewport.x + dx,
-        y: viewport.y + dy,
-      });
-    });
-    return () => window.cancelAnimationFrame(frameId);
-  }, [selectedPersonId]);
+  useRevealClippedSelection(
+    selectedPersonId,
+    drawerOpen,
+    formMode,
+    canvasRef,
+    flowInstance,
+  );
 
   useEffect(() => {
     if (!pendingFocusPersonId) return;
@@ -1703,6 +1791,14 @@ export function AdminTreeEditor({
       const next = new Set(current);
       if (next.has(personId)) next.delete(personId);
       else next.add(personId);
+      try {
+        window.localStorage.setItem(
+          "gia-pha:locked-layout-ids:v1",
+          JSON.stringify([...next]),
+        );
+      } catch {
+        // Local storage may be unavailable; in-memory lock remains functional.
+      }
       return next;
     });
   }
@@ -1894,6 +1990,11 @@ export function AdminTreeEditor({
           />
         </section>
 
+        <HiddenSelectionNotice
+          person={selectedPerson}
+          hidden={isSelectionHidden(selectedPersonId, visiblePeople)}
+          onReveal={revealAndFocusPerson}
+        />
         <EditorSidebar
           archivePerson={archivePerson}
           archivedCount={archivedCount}

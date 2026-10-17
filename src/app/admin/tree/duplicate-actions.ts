@@ -16,6 +16,7 @@ import {
   type PersonMergePairInput,
 } from "@/features/tree/duplicate-input";
 import { requireAdmin } from "@/lib/auth/admin";
+import { loadAllPages } from "@/lib/supabase/pagination";
 
 type AdminContext = Awaited<ReturnType<typeof requireAdmin>>;
 type SupabaseAdminClient = AdminContext["supabase"];
@@ -89,28 +90,42 @@ function mapRelationship(row: RelationshipRow): DuplicateRelationship {
 }
 
 async function loadActivePeople(supabase: SupabaseAdminClient) {
-  const result = await supabase
-    .from("people")
-    .select(
-      "id, display_name, description, birth_year, death_year, sex, visibility, archived_at, merged_into_person_id",
-    )
-    .is("archived_at", null)
-    .is("merged_into_person_id", null)
-    .order("display_name");
-
-  if (result.error) return null;
-  return (result.data ?? []).map((row) => mapPerson(row as PersonRow));
+  try {
+    const rows = await loadAllPages((start, end) =>
+      supabase
+        .from("people")
+        .select(
+          "id, display_name, description, birth_year, death_year, sex, visibility, archived_at, merged_into_person_id",
+          { count: "exact" },
+        )
+        .is("archived_at", null)
+        .is("merged_into_person_id", null)
+        .order("id")
+        .range(start, end),
+    );
+    return rows
+      .map((row) => mapPerson(row as PersonRow))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  } catch {
+    return null;
+  }
 }
 
 async function loadRelationships(supabase: SupabaseAdminClient) {
-  const result = await supabase
-    .from("relationships")
-    .select("id, relationship_kind, source_person_id, target_person_id");
-
-  if (result.error) return null;
-  return (result.data ?? []).map((row) =>
-    mapRelationship(row as RelationshipRow),
-  );
+  try {
+    const rows = await loadAllPages((start, end) =>
+      supabase
+        .from("relationships")
+        .select("id, relationship_kind, source_person_id, target_person_id", {
+          count: "exact",
+        })
+        .order("id")
+        .range(start, end),
+    );
+    return rows.map((row) => mapRelationship(row as RelationshipRow));
+  } catch {
+    return null;
+  }
 }
 
 function findPerson(people: DuplicatePerson[], personId: string) {

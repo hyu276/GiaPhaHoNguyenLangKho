@@ -9,6 +9,7 @@ import type {
   DuplicateRelationship,
 } from "@/features/tree/duplicate-domain";
 import { requireAdmin } from "@/lib/auth/admin";
+import { loadAllPages } from "@/lib/supabase/pagination";
 
 type AdminContext = Awaited<ReturnType<typeof requireAdmin>>;
 type SupabaseAdminClient = AdminContext["supabase"];
@@ -69,40 +70,57 @@ function mapRelationship(row: RelationshipRow): DuplicateRelationship {
 }
 
 async function loadQualityPeople(supabase: SupabaseAdminClient) {
-  const result = await supabase
-    .from("people")
-    .select(
-      "id, display_name, description, birth_year, death_year, sex, visibility, archived_at, merged_into_person_id",
-    )
-    .order("display_name");
-
-  if (result.error) return null;
-  return (result.data ?? []).map((row) => mapPerson(row as PersonRow));
+  try {
+    const rows = await loadAllPages((start, end) =>
+      supabase
+        .from("people")
+        .select(
+          "id, display_name, description, birth_year, death_year, sex, visibility, archived_at, merged_into_person_id",
+          { count: "exact" },
+        )
+        .order("id")
+        .range(start, end),
+    );
+    return rows.map((row) => mapPerson(row as PersonRow));
+  } catch {
+    return null;
+  }
 }
 
 async function loadQualityRelationships(supabase: SupabaseAdminClient) {
-  const result = await supabase
-    .from("relationships")
-    .select("id, relationship_kind, source_person_id, target_person_id");
-
-  if (result.error) return null;
-  return (result.data ?? []).map((row) =>
-    mapRelationship(row as RelationshipRow),
-  );
+  try {
+    const rows = await loadAllPages((start, end) =>
+      supabase
+        .from("relationships")
+        .select("id, relationship_kind, source_person_id, target_person_id", {
+          count: "exact",
+        })
+        .order("id")
+        .range(start, end),
+    );
+    return rows.map((row) => mapRelationship(row as RelationshipRow));
+  } catch {
+    return null;
+  }
 }
 
 async function loadCitedRelationshipIds(supabase: SupabaseAdminClient) {
-  const result = await supabase
-    .from("genealogy_citations")
-    .select("relationship_id");
-
-  if (result.error) return null;
-
-  return new Set(
-    ((result.data ?? []) as CitationRelationshipRow[])
-      .map((row) => row.relationship_id)
-      .filter((id): id is string => id !== null),
-  );
+  try {
+    const rows = await loadAllPages((start, end) =>
+      supabase
+        .from("genealogy_citations")
+        .select("id, relationship_id", { count: "exact" })
+        .order("id")
+        .range(start, end),
+    );
+    return new Set(
+      (rows as CitationRelationshipRow[])
+        .map((row) => row.relationship_id)
+        .filter((id): id is string => id !== null),
+    );
+  } catch {
+    return null;
+  }
 }
 
 export async function loadDataQualityReport(): Promise<DataQualityLoadResult> {

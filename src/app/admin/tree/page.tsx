@@ -36,9 +36,13 @@ import { AuditHistoryPanel } from "@/features/tree/components/audit-history-pane
 import { BulkUtilitiesPanel } from "@/features/tree/components/bulk-utilities-panel";
 import { DataQualityPanel } from "@/features/tree/components/data-quality-panel";
 import { DuplicateReviewPanel } from "@/features/tree/components/duplicate-review-panel";
-import { getFallbackPosition } from "@/features/tree/tree-layout";
+import {
+  getFallbackPosition,
+  getStableFallbackIndices,
+} from "@/features/tree/tree-layout";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadAllPages } from "@/lib/supabase/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +54,7 @@ type SupabaseServerClient = Awaited<
 const personRowSchema = z.object({
   id: z.string().uuid(),
   display_name: z.string(),
+  created_at: z.string(),
   description: z.string().nullable(),
   birth_year: z.number().nullable(),
   death_year: z.number().nullable(),
@@ -206,33 +211,53 @@ function getLayoutEntry(
 }
 
 async function loadEditorGraphData(supabase: SupabaseServerClient) {
-  const [peopleResult, relationshipsResult, layoutsResult] = await Promise.all([
-    supabase
-      .from("people")
-      .select(
-        "id, display_name, description, birth_year, death_year, sex, visibility, archived_at, revision",
-      )
-      .order("display_name"),
-    supabase
-      .from("relationships")
-      .select(
-        "id, relationship_kind, source_person_id, target_person_id, revision",
-      )
-      .order("created_at"),
-    supabase
-      .from("person_layouts")
-      .select("person_id, position_x, position_y, revision"),
+  // Pagination is required: PostgREST may otherwise return only its first page.
+  // Stable ID ordering prevents duplicate/missing entries between pages.
+  const [peopleData, relationshipData, layoutData] = await Promise.all([
+    loadAllPages((start, end) =>
+      supabase
+        .from("people")
+        .select(
+          "id, display_name, created_at, description, birth_year, death_year, sex, visibility, archived_at, revision",
+          { count: "exact" },
+        )
+        .order("id")
+        .range(start, end),
+    ),
+    loadAllPages((start, end) =>
+      supabase
+        .from("relationships")
+        .select(
+          "id, relationship_kind, source_person_id, target_person_id, revision",
+          { count: "exact" },
+        )
+        .order("id")
+        .range(start, end),
+    ),
+    loadAllPages((start, end) =>
+      supabase
+        .from("person_layouts")
+        .select("person_id, position_x, position_y, revision", {
+          count: "exact",
+        })
+        .order("person_id")
+        .range(start, end),
+    ),
   ]);
 
-  if (peopleResult.error || relationshipsResult.error || layoutsResult.error) {
-    throw new Error("Không thể tải dữ liệu sơ đồ gia phả.");
-  }
-
-  const peopleRows = z.array(personRowSchema).parse(peopleResult.data || []);
+  const peopleRows = z.array(personRowSchema).parse(peopleData);
   const relationshipRows = z
     .array(relationshipRowSchema)
-    .parse(relationshipsResult.data || []);
-  const layoutRows = z.array(layoutRowSchema).parse(layoutsResult.data || []);
+    .parse(relationshipData);
+  const layoutRows = z.array(layoutRowSchema).parse(layoutData);
+  // Immutable creation order keeps unsaved fallback coordinates stable after
+  // name edits or new additions. Never use display-name sort index for layout.
+  const fallbackIndices = getStableFallbackIndices(
+    peopleRows.map((person) => ({
+      id: person.id,
+      createdAt: person.created_at,
+    })),
+  );
   const layoutByPersonId = new Map(
     layoutRows.map((layout) => [
       layout.person_id,
@@ -243,22 +268,26 @@ async function loadEditorGraphData(supabase: SupabaseServerClient) {
     ]),
   );
 
-  const people: EditorPerson[] = peopleRows.map((person, index) => {
-    const layout = getLayoutEntry(layoutByPersonId, person.id);
-    return {
-      id: person.id,
-      displayName: person.display_name,
-      description: person.description,
-      birthYear: person.birth_year,
-      deathYear: person.death_year,
-      sex: person.sex,
-      visibility: person.visibility,
-      archivedAt: person.archived_at,
-      revision: person.revision,
-      position: layout ? layout.position : getFallbackPosition(index),
-      layoutRevision: layout ? layout.revision : null,
-    };
-  });
+  const people: EditorPerson[] = peopleRows
+    .map((person) => {
+      const layout = getLayoutEntry(layoutByPersonId, person.id);
+      return {
+        id: person.id,
+        displayName: person.display_name,
+        description: person.description,
+        birthYear: person.birth_year,
+        deathYear: person.death_year,
+        sex: person.sex,
+        visibility: person.visibility,
+        archivedAt: person.archived_at,
+        revision: person.revision,
+        position: layout
+          ? layout.position
+          : getFallbackPosition(fallbackIndices.get(person.id) ?? 0),
+        layoutRevision: layout ? layout.revision : null,
+      };
+    })
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const relationships: EditorRelationship[] = relationshipRows.map(
     (relationship) => ({

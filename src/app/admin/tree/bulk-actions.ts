@@ -8,6 +8,7 @@ import {
   bulkVisibilitySchema,
 } from "@/features/tree/bulk-utils";
 import { requireAdmin } from "@/lib/auth/admin";
+import { loadAllPages } from "@/lib/supabase/pagination";
 
 const batchVisibilityInputSchema = z.object({
   visibility: bulkVisibilitySchema,
@@ -59,23 +60,27 @@ function mapBulkPerson(row: BulkPersonRow): BulkPersonSummary {
 
 export async function loadBulkPeople(): Promise<BulkPeopleLoadResult> {
   const { supabase } = await requireAdmin();
-  const result = await supabase
-    .from("people")
-    .select("id, display_name, visibility, death_year, revision")
-    .is("archived_at", null)
-    .is("merged_into_person_id", null)
-    .order("display_name");
-
-  if (result.error) {
-    return { ok: false, message: "Không thể tải danh sách batch." };
+  try {
+    const rows = await loadAllPages((start, end) =>
+      supabase
+        .from("people")
+        .select("id, display_name, visibility, death_year, revision", {
+          count: "exact",
+        })
+        .is("archived_at", null)
+        .is("merged_into_person_id", null)
+        .order("id")
+        .range(start, end),
+    );
+    return {
+      ok: true,
+      people: rows
+        .map((row) => mapBulkPerson(row as BulkPersonRow))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName)),
+    };
+  } catch {
+    return { ok: false, message: "Không thể tải danh sách batch đầy đủ." };
   }
-
-  return {
-    ok: true,
-    people: (result.data ?? []).map((row) =>
-      mapBulkPerson(row as BulkPersonRow),
-    ),
-  };
 }
 
 async function exportTable(
@@ -89,9 +94,18 @@ async function exportTable(
     | "person_merge_audits"
     | "mutation_audits",
 ) {
-  const result = await supabase.from(table).select("*");
-  if (result.error) return null;
-  return result.data ?? [];
+  const key = table === "person_layouts" ? "person_id" : "id";
+  try {
+    return await loadAllPages((start, end) =>
+      supabase
+        .from(table)
+        .select("*", { count: "exact" })
+        .order(key)
+        .range(start, end),
+    );
+  } catch {
+    return null;
+  }
 }
 
 export async function exportGenealogyBackup(): Promise<BackupExportResult> {

@@ -1,3 +1,4 @@
+import { getStableFallbackIndices } from "@/features/tree/tree-layout";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -96,5 +97,23 @@ describe("tree layout", () => {
 
     expect(positions.has("P3")).toBe(false);
     expect(positions.get("P2")).toEqual({ x: 100, y: 280 });
+  });
+});
+
+describe("stable fallback positioning", () => {
+  it("keeps all existing slots after a newly created person is appended", () => {
+    const people = [
+      { id: "b", createdAt: "2026-01-02T00:00:00.000Z" },
+      { id: "a", createdAt: "2026-01-01T00:00:00.000Z" },
+    ];
+    const original = getStableFallbackIndices(people);
+    const changed = getStableFallbackIndices([
+      { id: "b", createdAt: "2026-01-02T00:00:00.000Z" },
+      { id: "c", createdAt: "2026-01-03T00:00:00.000Z" },
+      { id: "a", createdAt: "2026-01-01T00:00:00.000Z" },
+    ]);
+    expect(changed.get("a")).toBe(original.get("a"));
+    expect(changed.get("b")).toBe(original.get("b"));
+    expect(changed.get("c")).toBe(2);
   });
 });

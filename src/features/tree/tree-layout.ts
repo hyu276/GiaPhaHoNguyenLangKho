@@ -19,6 +19,19 @@ export type LayoutRelationship = {
 const COLUMN_GAP = 260;
 const ROW_GAP = 180;
 
+export function getStableFallbackIndices(
+  people: ReadonlyArray<{ id: string; createdAt: string }>,
+): Map<string, number> {
+  return new Map(
+    [...people]
+      .sort(
+        (a, b) =>
+          a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+      )
+      .map((person, index) => [person.id, index]),
+  );
+}
+
 export function getFallbackPosition(index: number): LayoutPosition {
   const column = index % 4;
   const row = Math.floor(index / 4);

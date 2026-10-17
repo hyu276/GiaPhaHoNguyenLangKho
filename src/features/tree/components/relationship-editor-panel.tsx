@@ -363,16 +363,21 @@ function RelationshipCreationControls({
 
     setSaving(true);
     setServerError(null);
-    const result = await runCreateRelationship(
-      proposal,
-      createParentChildRelationship,
-      createPartnership,
-    );
-    setSaving(false);
-
-    if (!result.ok) {
-      setServerError(result.message);
+    try {
+      const result = await runCreateRelationship(
+        proposal,
+        createParentChildRelationship,
+        createPartnership,
+      );
+      if (!result.ok) {
+        setServerError(result.message);
+        return;
+      }
+    } catch {
+      setServerError("Không thể kết nối để tạo quan hệ. Hãy thử lại.");
       return;
+    } finally {
+      setSaving(false);
     }
 
     resetCreator();
@@ -557,16 +562,21 @@ export function RelationshipInspector({
     setDeleting(true);
     setErrorMessage(null);
     setConflict(false);
-    const result = await removeRelationship({
-      relationshipId: relationship.id,
-      expectedRevision: relationship.revision,
-    });
-    setDeleting(false);
-
-    if (!result.ok) {
-      setErrorMessage(result.message);
-      setConflict(result.kind === "conflict");
+    try {
+      const result = await removeRelationship({
+        relationshipId: relationship.id,
+        expectedRevision: relationship.revision,
+      });
+      if (!result.ok) {
+        setErrorMessage(result.message);
+        setConflict(result.kind === "conflict");
+        return;
+      }
+    } catch {
+      setErrorMessage("Không thể kết nối để xóa quan hệ. Hãy thử lại.");
       return;
+    } finally {
+      setDeleting(false);
     }
 
     onChanged(relationship.sourcePersonId);

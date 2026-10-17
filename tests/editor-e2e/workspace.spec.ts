@@ -86,3 +86,31 @@ test("mobile form scrolls without overflowing the workspace", async ({
     page.getByRole("heading", { name: "Thêm thành viên", exact: true }),
   ).toHaveCount(0);
 });
+
+test("layout lock remains active after reload in the same browser", async ({
+  page,
+}) => {
+  const node = page.locator(".react-flow__node").first();
+  await node.click();
+  await page.getByRole("button", { name: "Khóa vị trí" }).click();
+  await expect(
+    page.getByRole("button", { name: "Mở khóa vị trí" }),
+  ).toBeVisible();
+  await page.reload();
+  await page.locator(".react-flow__node").first().click();
+  await expect(
+    page.getByRole("button", { name: "Mở khóa vị trí" }),
+  ).toBeVisible();
+});
+
+test("filtered selection explains how to return to the hidden member", async ({
+  page,
+}) => {
+  await page.locator(".react-flow__node").first().click();
+  await page.getByRole("searchbox").fill("MemberNotFoundAnywhere");
+  await expect(
+    page.getByText("Người đang chọn đã bị ẩn theo bộ lọc."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Hiện thành viên" }).click();
+  await expect(page.getByRole("searchbox")).toHaveValue("");
+});
